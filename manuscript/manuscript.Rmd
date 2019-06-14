@@ -1,5 +1,5 @@
 ---
-title: "Tightly integrated human and machine intelligence within an active learning approach to cropland mapping"
+title: "Improving cropland maps through tight integration of human and machine intelligence"
 
 
 author:  
@@ -47,7 +47,7 @@ geometry: margin=1in
 linenumbers: yes
 spacing: doublespacing
 footerdate: yes
-abstract: no
+abstract: False
 bibliography: 
   - references.bib
   - knitcitations.bib
@@ -91,8 +91,10 @@ cite_options(citation_format = "pandoc")
 \singlespace
 
 \vspace{2mm}\hrule
+\vspace{-20pt}
+# Abstract
+The abstract can go either here or in the YAML
 
-Write your abstract here.
 
 \vspace{3mm}\hrule
 
@@ -102,19 +104,24 @@ Write your abstract here.
 
 \bleft
 
-
 # Introduction
+How much cropland is on the planet, and how much more will be needed to meet humanity's rapidly growing food demands? The first part of this question is unclear, as existing estimates tend to vary widely [e.g. @FritzHighlightingcontinueduncertainty2011; @Fritzneedimprovedmaps2013], which makes it substantially harder to answer the second part. The reason for these difficulties is because cropland estimates rely heavily on remote sensing-derived landcover maps, which can be notoriously high in error, particularly over regions such as Africa [@Esteslargeareaspatiallycontinuous2018; @FritzComparisonglobalregional2010], where agricultural changes will be largest and the need for an accurate baseline is thus greatest [@EstesReconcilingagriculturecarbon2016; @SearchingerHighcarbonbiodiversity2015].  
 
-[@Esteslargeareaspatiallycontinuous2018]
+<!-- - The problem in general  -->
+<!--     - Africa in particular -->
+<!--     - Types of analyses that depend on cropland maps -->
 
-- The problem in general 
-    - Africa in particular
-    - Types of analyses that depend on cropland maps
-- Why cropland mapping is hard
-    - 3 problems
-        - The target itself and its spectral variability and the spectral variability of its background
-            - Spectral and spatial resolution of sensors
-            - Poses a challenge for classification algorithms, which want both high resolution to be smaller than characteristic field size, but temporal contrast also
+Cropland mapping over a region such as Africa is difficult for several reasons. The primary reason relates to the characteristics of characteristics of the region's smallholder-dominated croplands, where field size averages 1-2 ha [@Debatsgeneralizedcomputervision2016; @FritzMappingglobalcropland2015]. This size is small relative to the 30-250 m resolution of the sensors typically used for most landcover mapping efforts, which results in errors due to mixed pixels and aspects of the modifiable area unit problem [@Openshawmillioncorrelationcoefficients1979], in this case the pixel's shape may be poorly matched to that of cropland, and is too coarse to aggregate to approximate that shape at the characteristic scales of crop fields [@Darkmodifiablearealunit2007; @Esteslargeareaspatiallycontinuous2018]. On top of the matter of scale is 1) high intra-class variability of the cropland class, compounded by the fact that these particular croplands can be heavily intergraded with surrounding vegetation [@Debatsgeneralizedcomputervision2016; @Estesplatformcrowdsourcingcreation2016], and 2) the substantial temporal variability within croplands, both within and between seasons. These latter two aspects poses challenges for the classification algorithms that are applied to the imagery.  
+
+These problems arising from cropland characteristics are increasingly being overcome due to technological advances. Recent advances in satellite technology have increased the coverage of high (<5 m) or near-high (10 m) resolution imagery with weekly to near-daily return intervals [@DruschSentinel2ESAOptical2012; @McCabefutureEarthobservation2017]. This spatial and temporal resolution addresses the sensor-scale mismatch, and can capture the intra-seasonal dynamics of cropland more effectively, which helps classifiers more effectively distinguish cropland from surrounding cover types [@Debatsgeneralizedcomputervision2016; @Defournyrealtimeagriculturemonitoring2019]. On top of this, advances in cloud computing [@GorelickGoogleEarthEngine2017a], the opening of extensive image archives [@WulderglobalLandsatarchive2016], and next generation machine learning approaches [@MaxwellImplementationmachinelearningclassification2018; @ZhuDeeplearningremote2017] are being leveraged to create improved and higher resolution (20-30 m) of cropland and landcover for Africa and globally [@ChenGloballandcover2015; @ESACCILAND; @LesivEvaluationESACCI2017; @XiongNominal30mCropland2017]
+
+<!-- , alongside other methodological improvements leading to fusion or synergy maps, which further reduce map error   -->
+
+<!-- - Why cropland mapping is hard -->
+<!--     - 3 problems -->
+<!--         - The target itself and its spectral variability and the spectral variability of its background -->
+<!--             - Spectral and spatial resolution of sensors -->
+<!--             - Poses a challenge for classification algorithms, which want both high resolution to be smaller than characteristic field size, but temporal contrast also -->
     - Training data dependence issues
         - Also interact with image resolution issues
         - Increasingly rely on high amounts of training data
@@ -145,6 +152,7 @@ Write your abstract here.
 # Results
 
 - Image quality and density
+- Computational time/resources, including interaction time
 - Labeling results/quality
 - Impact of features on accuracy
 - Accuracy scores by iteration
@@ -157,11 +165,11 @@ Write your abstract here.
 
 - Left unquantified is how much training on base maps matters
 
-# Acknowledgement
+# Acknowledgements
 
 
 # References
-
+\singlespace
 
 <!-- ```{r write_citations, cache=FALSE, include=FALSE} -->
 <!-- write.bibtex(file="knitcitations.bib") -->
