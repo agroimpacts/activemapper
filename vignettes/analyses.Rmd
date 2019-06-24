@@ -1,0 +1,80 @@
+
+# Analyses and figures
+
+## Ghana reference grids
+
+### Datasets
+
+```{r, eval=FALSE}
+library(raster)
+library(sf)
+library(dplyr)
+library(ggplot2)
+
+res <- 0.005
+res_supergrid <- 1
+num_supergrid <- res_supergrid / res
+
+data_path <- file.path("/Users", unname(Sys.info()["user"]),
+                       "Dropbox/projects/activelearning/mapper/spatial/data")
+master_grid <- raster(file.path(data_path, "processed/master_grid.tif"))
+africa <- st_read(file.path(data_path, "external/africa_noisl_gcs.sqlite")) %>% 
+  st_sf(crs = 4326)
+africa_cont <- africa %>% st_union %>% st_sf
+ghana <- africa %>% filter(country == "Ghana") %>% select(GEOMETRY)
+
+ghana_tilesr <- st_read(file.path(data_path, "processed/ghana_tiles.geojson"))
+aois <- raster(file.path(data_path, "processed/africa_aois.tif"))
+# tiles <- raster(file.path(data_path, "processed/africa_aois.tif"))
+```
+
+
+
+### Figure 2
+```{r}
+ghana_aois <- ghana_tilesr %>% pull(aoi) %>% unique
+aois_sf <- rasterToPolygons(aois) %>% st_as_sf %>% rename(aoi = africa_aois) %>%
+  st_sf(crs = 4326)
+
+ind <- 26  # index of selected AOI for plotting (from ghana_aois)
+
+xylims <- st_coordinates(ghana)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+
+p1 <- ggplot(africa) + geom_sf(fill = "gray97") +
+  geom_sf(data = ghana, fill = "grey85") +
+  geom_sf(data = aois_sf %>% filter(aoi %in% ghana_aois),
+          fill = "transparent") +
+  geom_sf(data = aois_sf %>% filter(aoi == ghana_aois[ind]), fill = "gray70") +
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  theme_void()
+p1
+
+xylims <- aois_sf %>% filter(aoi %in% ghana_aois[c(ind:27, 31:32)]) %>%
+  st_coordinates(.)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+
+tile_sel <- ghana_tilesr %>% filter(aoi == ghana_aois[ind])  # selected tile
+p2 <- ggplot(ghana) + geom_sf(fill = "grey85") +
+  geom_sf(data = aois_sf, fill = "transparent") +
+  geom_sf(data = tile_sel, fill = "gray70") +
+  geom_sf(data = tile_sel %>% slice(1), fill = "red3") +
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  theme_void()
+p2
+
+gpols <- crop(master_grid, tile_sel[1, ]) %>% rasterToPolygons(.) %>%
+  st_as_sf %>% st_sf(crs = 4326)
+p3 <- ggplot(tile_sel %>% slice(c(1:2, 21:22))) +
+  geom_sf(fill = "grey80") +
+  # geom_sf(data = super_cellsr %>% slice(ints[1]), fill = "grey60") +
+  geom_sf(data = gpols, fill = "red3") +
+  theme_void()
+p3
+
+p4 <- cowplot::plot_grid(p1, p2, p3, nrow = 1, scale = c(1, 1, 0.7))
+ggsave("manuscript/figures/figure2.png", width = 7, height = 3, 
+       units = "in", dpi = 300)
+
+```
+
