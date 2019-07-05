@@ -80,7 +80,7 @@ output:
     fig_width: 7
     fig_height: 7
     keep_tex: yes
-    number_sections: no
+    number_sections: yes
     template: manuscript.latex
     includes:
       in_header: header.tex
@@ -97,7 +97,8 @@ geometry: margin=1in
 linenumbers: yes
 spacing: doublespacing
 footerdate: yes
-abstract: False
+abstract: The abstract can go either here or below
+keywords: rmarkdown, reproducible science
 bibliography: 
   - references.bib
   - knitcitations.bib
@@ -138,17 +139,16 @@ cite_options(citation_format = "pandoc")
 ```
 
 
-\singlespace
+<!-- \singlespace -->
 
-\vspace{2mm}\hrule
-\vspace{-20pt}
-# Abstract
-The abstract can go either here or in the YAML
+<!-- \vspace{2mm}\hrule -->
+<!-- \vspace{-20pt} -->
+<!-- <!-- # Abstract --> 
 
 
-\vspace{3mm}\hrule
+<!-- \vspace{3mm}\hrule -->
 
-*Keywords*: rmarkdown, reproducible science
+<!-- *Keywords*: rmarkdown, reproducible science -->
 
 \doublespace
 
@@ -198,10 +198,11 @@ We demonstrate this approach to map cropland in Ghana, a country where agricultu
     
 # Methods
 ## System overview 
-The mapping system is centered around four major components: 1) an image acquisition and pre-processing component, 2) a training data collection platform, 3) a machine learning component, and a 4) segmentation component. The first component is applied as a once-off step to generate an image catalog necessary for the mapping geography, while the second component initiates the the interactive image training and classification (component 3) pipeline that results in a pixel-wise posterior probability map of cropland probabilities on its final iteration (Fig. 1). The final segmentation step (component 4) is then initiated and applied to both the pre-processed primary images and the posterior probability maps, resulting in the final vectorized fields boundary maps.
+The mapping system is centered around four major components: 1) an image acquisition and pre-processing component, 2) a training data collection platform, 3) a machine learning component, and a 4) segmentation component. The first component is applied as a once-off step to generate an image catalog necessary for the mapping geography, while the second component initiates the the interactive image training and classification (component 3) pipeline that results in a pixel-wise posterior probability map of cropland probabilities on its final iteration (Fig. 1). The final segmentation step (component 4) is then initiated and applied to both the pre-processed primary images and the posterior probability maps, resulting in the final vectorized fields boundary maps. Each system component comprises an individual module software hosted on a GitHub repository (see data and software availability section for details). 
 
 ## System components
 ### Imagery
+**[Note: This will require updating to reflect changes to compositing methods]**
 The primary image source used in our system is PlanetScope Analytic surface reflectance product [@PlanetTeamPlanetApplicationProgram2017], although can be readily adapted to apply to Sentinel and Landsat images. PlanetScope provides three visual (red, green, blue) and a near-infrared band at 3-4 m resolution at nominal daily frequency. Although these images are substantially pre-preprocessed and corrected for atmospheric effects, there are substantial residual errors from inter-sensor differences and the radiometric normalization process [@HouborgDailyRetrievalNDVI2018], substantial variation in the orientation of scene footprints, as well as a high frequency of cloud cover over the study region [@WilsonRemotelySensedHighResolution2016]. To correct for these factors, we developed a procedure for creating temporal composites representing the primary growing and non-growing seasons within a single year.  
 
 ```{r, echo = FALSE, out.width="50%", fig.cap="An overview of the primary system components, the data stores that hold the inputs and outputs from each component, and the direction of connections between them. The dashed line indicates iterative interactions, while solid lines indicate one-time or irregular connections.", fig.align='center'}
@@ -210,20 +211,67 @@ knitr::include_graphics('figures/figure1.png')
 
 PlanetScope imagery is accessed via the Planet API, and an initial order is placed wherein the imagery representing all available dates in the two compositing periods and within a bounding box covering the mapping geography is collected and transferred directly to the system's cloud storage (hosted on Amazon Web Services S3). Imagery that don't having certain quality flags are excluded (e.g. failing to meet minimum spatial precision).  
 
-We then transform all images into an "analysis ready data" (ARD) product (cite) that is prepared against a reference grid that is situated within a larger 1 degree resolution grid that covers the entire continent. Each 1 degree cell intersecting the mapping geography (Fig. 2A) is divided into 400 0.05 degree cells (Fig. 2B), which are the reference cells for image compositing. The ARD process then clips the imagery intersecting each 0.05 cell. 
+We then transform all images into an "analysis ready data" (ARD) product (cite) that is prepared against a reference grid that is situated within a larger 1 degree resolution grid that covers the entire continent. Each 1 degree cell defines the minimum mapping area of interest (Fig. 2A) is divided into 400 0.05 degree cells (Fig. 2B), which provides the scale for creating image composite tiles. The ARD process simply clips all available imagery intersecting each 0.05 cell to the extent of that cell, regardless of cloud cover. 
+
 <!-- and then applies the usable data mask (UDM) supplied with the imagery to remove low quality and cloudy pixels.  -->
 
-```{r, echo = FALSE, out.width="100%", fig.cap="Figure scales", fig.align='center'}
+```{r, echo = FALSE, out.width="100%", fig.cap="An overview of analytical scales used in the mapping platform, including the 1 degree areas of interest defining the minimum mapping geography (A), the 0.05 degree grid used for creating image composite tiles (B), and the 0.005 degree resolution reference grid used for collecting training data and distributed computing (C).", fig.align='center'}
 knitr::include_graphics('figures/figure2.png')
 ```
-The temporal compositing process is then applied to the ARD imagery, and is done for two time periods. In Ghana, a composite is made to cover the dry season period (December-February) and to span the entire wet season (May - September).  The longer period is necessary for the wet season because of the high frequency of cloud cover, which severely limits the number of clear scenes over any given area. For each image in the compositing process, we pass a 3X3 median filter over the image to remove speckling, and then calculate a weight value based on a simplified formula of the Haze Optimized Transformation (HOT) index [@Zhangimagetransformcharacterize2002; @ZhuObjectbasedcloudcloud2012]: 
+The temporal compositing process is applied to the ARD imagery for two time periods, the dry season period (December-February) and the entire wet season (May - September). The longer period is necessary for the wet season because of the high frequency of cloud cover, which severely limits the number of clear scenes over any given area. For each pixel in each image in each ARD temporal stack **we pass a 3X3 median filter over the image to remove speckling**, we calculate two weight values. The first is based on a simplified formula of the Haze Optimized Transformation (HOT) index [@Zhangimagetransformcharacterize2002; @ZhuObjectbasedcloudcloud2012]: 
 
 $$
-HOT_{weight} = \frac{1}{(blue - 0.5red)^2}
+\mathrm{HOT_{weight}} = \frac{1}{(\mathrm{B_1} - 0.5\mathrm{B_3})^2}
 $$
-This assigns a low weight to pixels that are cloudy, hazy, or smoky pixels on a particular date. We then use the weights to calculate a weight mean for each pixel and each band for the final composite for each time period. The composites are then added to the S3 store (Fig. 1), and a "slippy map" rendering is created for each composite using RasterFoundry (cite). This web-based rendering of the image is used in the training data platform (see section X). 
+Where B$_1$ is the blue band and B$_3$ is the red band. This equation results in low values for pixels that are cloudy, hazy, or smoky pixels on a particular date, and high values for clear images. The second weight is designed to detect cloud shadow: 
 
-### Training data platform
+$$
+\mathrm{Shadow_{weight}} = \frac{1}{(some values)^4}
+$$
+
+Where X is the median value across the full time series. This formula assigns a low weight to pixels falling within cloud shadows. Weight values lower than the X for a given date and pixel are assigned to that pixel, replacing the $HOT_{weight}$. We then use the resulting to calculate a weighted mean for each pixel for each band for the final composite for each time period. The composites are then added to the S3 store (Fig. 1), and a "slippy map" rendering is created for each composite using RasterFoundry (cite). This web-based rendering of the image is used in the training data platform (see section X). 
+
+
+### Labelling platform
+Both training and reference data are collected by a custom crowdsourcing platform, which refer to here for simplicity's sake as *mapper*. The original version of *mapper* was designed to work with Amazon Web Services' Mechanical Turk job marketplace [@Estesplatformcrowdsourcingcreation2016]. The basic structure of the system remains the same, but we have re-engineered it to be a standalone platform that 1) allows us to register and pay workers (the human supervisors) directly to conduct digitizing work, and 2) drives and assesses the overall machine learning process. The system runs on a Linux Virtual machine hosted on an AWS EC2 instance and is comprised of a database (PostGIS/Postgres), a mapping interface (OpenLayers 3), an image server (RasterFoundry), and a set of utilities for managing mapping and assessing assignments and converting them to rasterized labels for the machine learning process. Each *mapper* instance is focused on a specific mapping geography (e.g. one to several 1 degree cells in Fig. 2A), thus several instances are set up to run in parallel to cover a larger mapping geography such as Ghana. 
+
+Here we provide an overview of *mapper*'s architecture within the context of the labeling workflow within a single instance.
+
+#### Mapping workflow
+##### Selecting training and reference sites
+The labelling process begins with a python script that randomly selects a subset (e.g. 100) of the 0.005 degree grid (Fig. 2C) cells that intersect the *mapper* instance's specific area of interest (e.g. shaded grey cell in Fig. 2A). These site names are stored in a Postgres table that represents the mapping queue. Another python process converts each site into a mapping *task* that has a specified number of *assignments* (maps drawn by an individual worker) that must be completed before the task is complete.  
+
+
+##### Mapping assignments
+Workers registered in the system log in to the mapping platform (built with Flask) and navigate to the OpenLayers-based field mapping interface (Fig. 3). There the worker is presented with a white target box representing the 0.005 degree cell that was randomly selected to label, a set of digitizing tools, and different image backdrops, which include false and true color renderings of both the growing season and off-growing season PlanetScope images covering that cell, as well as a basemap provided by Bing maps. The worker uses the polygon drawing tool to digitize the boundaries in crop fields visible within the PlanetScope overlays that intersect the grid target, following a set of pre-defined digitizing rules. To aid with interpretation, the worker toggles between the various seasonal renderings and the satellite base map to help form a judgement about what constitutes a field within the PlanetScope imagery. The worker assigns each completed polygon a label that describes the field class (e.g. annual cropland, tree crop, fallow), and after completing all visible fields saves the full set of polygons to the server. The worker is then automatically  taken to their next assignment at a different randomly selected site. 
+
+
+```{r, echo = FALSE, out.width="100%", fig.cap="An overview of mapper's interface", fig.align='center'}
+knitr::include_graphics('figures/figure3.png')
+```
+
+##### Processing completed assignments
+Upon submission, the workers' polygons, if there are any--the worker will submit the assignment without mapping if they see no fields in the image--are are cleaned to fix any topological irregularities that arose during digitization (see supporting information (SI)) and stored in a PostGIS table. The assignment that was just completed represents one of two possible types of tasks: 1) an accuracy task; 2) a labeling task for training machine learning. If is was the former type, an `R` script is called that executes a series of map comparisons between the worker's polygons and the reference polygons, assigning a score as based on the following formula:
+
+$$\mathrm{score_i}=\beta0\mathrm{I}+\beta1\mathrm{O}+\beta2\mathrm{F}+\beta3\mathrm{E}+\beta4\mathrm{C}$$
+
+Where *i* represents the particular assignment, and $\beta_{0-5}$ represent varying weights that sum to 1. *I* refers to "inside the box" accuracy, *O* is the accuracy of those portions of the worker's polygons extending beyond the target grid boundaries, *F* is fragmentation accuracy, a measure of how many individual polygons the worker delineated relative to the reference, *E* measures how closely each polygon's boundary matched its corresponding reference polygon boundary, and *C* assesses the accuracy of the worker's thematic labels (see SI for individual formulae).
+
+Over time, workers are assessed multiple times across a range of accuracy tasks that are selected to represent the variability of the agricultural system being mapped. Each worker's score history is averaged to provide an overall assessment of accuracy, and this information is used for creating labels, the second task. 
+
+If the worker's completed assignment was a labelling tasks, their maps remain stored in the database until the remaining assignments needed to complete the task are submitted by other workers. Once complete, an R-based consensus labelling routine is invoked, which uses combines the maps from all workers who undertook the task into a single consensus label using a Bayesian merging approach:
+
+$$
+P(\theta|\mathrm{D})=\sum_{i=1}^{n}\mathrm{P}(\mathrm{W_i}|\mathrm{D})\mathrm{P}(\mathrm{\theta}|\mathrm{D}, \mathrm{W_i})
+$$
+Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W_$i$* is an individual worker.  P($\theta$|D) is therefore the probability that the actual cover type is what the workers who labelled it says it is, while P(W$_i$|D) represents the average producer's accuracy for a given worker, and P(W$\theta$|D, *W$_i$*) is the individual worker's label for that pixel. This approach therefore uses the overall accuracy of each worker to weight their labels as they are combined with other workers' labels for a given pixel (see SI for further details of equation). 
+
+
+
+
+
+
+
 - Training and validation data
 - Accuracy assessment
 

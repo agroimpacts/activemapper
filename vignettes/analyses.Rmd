@@ -41,11 +41,12 @@ ind <- 26  # index of selected AOI for plotting (from ghana_aois)
 xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
 
-p1 <- ggplot(africa) + geom_sf(fill = "gray97") +
-  geom_sf(data = ghana, fill = "grey85") +
+p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
+  geom_sf(data = ghana, fill = "grey85", col = "grey", size = 0.3) +
   geom_sf(data = aois_sf %>% filter(aoi %in% ghana_aois),
-          fill = "transparent") +
-  geom_sf(data = aois_sf %>% filter(aoi == ghana_aois[ind]), fill = "gray70") +
+          fill = "transparent", size = 0.3) +
+  geom_sf(data = aois_sf %>% filter(aoi == ghana_aois[ind]), fill = "gray70",
+          size = 0.3) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   theme_void()
 p1
@@ -55,10 +56,10 @@ xylims <- aois_sf %>% filter(aoi %in% ghana_aois[c(ind:27, 31:32)]) %>%
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
 
 tile_sel <- ghana_tilesr %>% filter(aoi == ghana_aois[ind])  # selected tile
-p2 <- ggplot(ghana) + geom_sf(fill = "grey85") +
-  geom_sf(data = aois_sf, fill = "transparent") +
-  geom_sf(data = tile_sel, fill = "gray70") +
-  geom_sf(data = tile_sel %>% slice(1), fill = "red3") +
+p2 <- ggplot(ghana) + geom_sf(fill = "grey85", col = "grey") +
+  geom_sf(data = aois_sf, fill = "transparent", size = 0.3) +
+  geom_sf(data = tile_sel, fill = "gray70", size = 0.3) +
+  geom_sf(data = tile_sel %>% slice(1), fill = "red3", size = 0.3) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   theme_void()
 p2
@@ -66,15 +67,131 @@ p2
 gpols <- crop(master_grid, tile_sel[1, ]) %>% rasterToPolygons(.) %>%
   st_as_sf %>% st_sf(crs = 4326)
 p3 <- ggplot(tile_sel %>% slice(c(1:2, 21:22))) +
-  geom_sf(fill = "grey80") +
+  geom_sf(fill = "grey80", size = 0.3) +
   # geom_sf(data = super_cellsr %>% slice(ints[1]), fill = "grey60") +
-  geom_sf(data = gpols, fill = "red3") +
+  geom_sf(data = gpols, fill = "red3", size = 0.3) +
   theme_void()
 p3
 
-p4 <- cowplot::plot_grid(p1, p2, p3, nrow = 1, scale = c(1, 1, 0.7))
+g <- cowplot::plot_grid(p1, p2, p3, nrow = 1, scale = c(1, 1, 0.7), 
+                        labels = LETTERS[1:3], label_x = 0.05)
 ggsave("manuscript/figures/figure2.png", width = 7, height = 3, 
        units = "in", dpi = 300)
+
+```
+
+## Climatology figure (supplemental)
+
+Grab CHIRPs monthly data from `mapper`
+```{r, eval = FALSE}
+library(stars)
+dir(file.path(data_path, "external/climatology/chirps"), full.names = TRUE) %>% 
+  stack(.) %>% crop(., ghana) -> chirps
+rftot <- calc(chirps, sum)
+monthly_pct <- chirps / rftot * 100
+names(monthly_pct) <- lubridate::month(1:12, label = TRUE)
+monthly_pct <- setZ(monthly_pct, lubridate::month(1:12, label = TRUE))
+monthly_pct_stars <- stars::st_as_stars(monthly_pct)
+
+# plot(monthly_pct_stars, breaks = seq(0, 35), ) + 
+#   geom_sf(data = ghana, fill = "transparent", size = 0.3)
+p <- ggplot() + geom_stars(data = monthly_pct_stars) + 
+  facet_wrap("band", nrow = 2) + 
+  geom_sf(data = ghana, fill = "transparent", size = 0.3) +
+  scale_fill_viridis_c(breaks = seq(0, 35, 5), "%", na.value = "grey90") +
+  xlab("") + ylab("") + ggtitle("Percent of annual rainfall by month") + 
+  theme(panel.background = element_rect(fill = NA), 
+        axis.text = element_blank(), axis.ticks = element_blank()) 
+ggsave("manuscript/figures/si_rainfall_pct.png", height = 4, width = 6, 
+       units = "in", dpi = 300)
+```
+
+## Consensus maps
+```{r, eval=FALSE}
+library(rmapaccuracy)
+library(leaflet)
+
+instance <- "mapper0"
+dbase <- "Africa"
+host <- paste0(instance, ".crowdmapper.org")
+upw <- list("user" = "postgis", "password" = "P0stG1S")
+coninfo <- mapper_connect(host)
+con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), host = host,
+                      dbname = "Africa", user = upw$user,
+                      password = upw$password)
+
+# coninfo <- mapper_connect(host = host)
+coninfo$con <- con
+
+common_path <- "~/Dropbox/projects/activelearning/mapper"
+common_path <- file.path(common_path, "common")
+params <- yaml::yaml.load_file(file.path(common_path, 'config.yaml'))
+
+name <- "GH0431618"#"GH0448854"
+sqls <- paste0("select id from master_grid where name='", name, "'")
+cid <- DBI::dbGetQuery(con, sqls)[[1]]
+
+
+user.sql <- paste0("select name, category, worker_id, geom_clean ",
+                   "FROM user_maps INNER JOIN categories USING (category)",
+                   "INNER JOIN assignment_data USING (assignment_id)",
+                   " where name like '",  name, "%' ",
+                   "AND categ_group ='field'")
+
+user.polys <- DBI::dbGetQuery(con, gsub(", geom_clean", "", user.sql))
+user.polys <- suppressWarnings(st_read(con, query = user.sql))
+user.polys <- user.polys %>% filter(st_is(. , "POLYGON"))
+
+# # calling consensus map manually, line by line in script
+kmlid <- name
+qsite <- FALSE
+mode <- "consensus"
+
+# execute consensus script
+source(file.path(here::here(), "external/scripts/consensus_labels.R"))
+l <- list(user.polys["worker_id"], bayesoutput[[2]], bayesoutput[[1]])
+save(l, file = file.path(here::here(), "data/consensus.rda"))
+
+scenes <- tbl(con, "scenes_data") %>% filter(cell_id == cid) %>% 
+  dplyr::select(scene_id, cell_id, url, season, tms_url) %>% collect()
+# scenes$scene_id
+
+gcs <- "+proj=longlat +datum=WGS84 +no_defs"
+name <- tbl(coninfo$con, "master_grid") %>% filter(id == cid) %>%
+  dplyr::select(id, name, x, y) %>% collect()
+gpoly <- rmapaccuracy::point_to_gridpoly(data.table::data.table(name), 
+                                         w = 0.005 / 2, gcs, gcs)
+
+s3url <- scenes %>% filter(season == "GS") %>% pull(url)
+planet_path <- file.path("/vsis3", gsub("s3://", "", s3url)) 
+planet <- brick(planet_path)
+
+crfeat <- as(extend(extent(as_Spatial(ejura_sites[1, ])), 0.005),
+             "SpatialPolygons")
+zoomfeat <- as(extend(extent(as_Spatial(ejura_sites[1, ])), 0.002),
+               "SpatialPolygons")
+proj4string(crfeat) <- proj4string(as_Spatial(user.polys))
+proj4string(zoomfeat) <- proj4string(as_Spatial(user.polys))
+crfeat_utm <- spTransform(crfeat, crs(planet))
+zoomfeat_utm <- spTransform(zoomfeat, crs(planet))
+planet_cr <- crop(planet, crfeat_utm)
+planet_cr2 <- crop(planet2, crfeat_utm)
+
+
+
+# set up display
+os <- (scenes %>% filter(season == "OS") %>% filter(row_number() == 1) %>% 
+  dplyr::select(tms_url))$tms_url
+gs <- (scenes %>% filter(season == "GS") %>% filter(row_number() == 1) %>% 
+         dplyr::select(tms_url))$tms_url
+
+m <- leaflet() %>% addTiles() %>% setView(name$x, name$y, zoom = 14) %>% 
+  addTiles(os, group = "OS") %>% addTiles(gs, group = "GS") %>% 
+  addPolygons(data = gpoly, fill = FALSE, group = "Cell") %>% 
+  addLayersControl(overlayGroups = c("Cell", "GS", "OS"),
+    options = layersControlOptions(collapsed = FALSE, autoZIndex = FALSE))
+m
+
 
 ```
 
