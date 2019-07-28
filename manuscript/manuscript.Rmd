@@ -218,18 +218,34 @@ We then transform all images into an "analysis ready data" (ARD) product (cite) 
 ```{r, echo = FALSE, out.width="100%", fig.cap="An overview of analytical scales used in the mapping platform, including the 1 degree areas of interest defining the minimum mapping geography (A), the 0.05 degree grid used for creating image composite tiles (B), and the 0.005 degree resolution reference grid used for collecting training data and distributed computing (C).", fig.align='center'}
 knitr::include_graphics('figures/figure2.png')
 ```
-The temporal compositing process is applied to the ARD imagery for two time periods, the dry season period (December-February) and the entire wet season (May - September). The longer period is necessary for the wet season because of the high frequency of cloud cover, which severely limits the number of clear scenes over any given area. For each pixel in each image in each ARD temporal stack **we pass a 3X3 median filter over the image to remove speckling**, we calculate two weight values. The first is based on a simplified formula of the Haze Optimized Transformation (HOT) index [@Zhangimagetransformcharacterize2002; @ZhuObjectbasedcloudcloud2012]: 
+The temporal compositing process is applied to the ARD imagery for two time periods, the dry season period (December-February) and the entire wet season (May - September). The longer period is necessary for the wet season because of the high frequency of cloud cover, which severely limits the number of clear scenes over any given area. For each pixel in each image in each ARD temporal stack, we calculate two weights, with the first being:
 
-$$
-\mathrm{HOT_{weight}} = \frac{1}{(\mathrm{B_1} - 0.5\mathrm{B_3})^2}
-$$
-Where B$_1$ is the blue band and B$_3$ is the red band. This equation results in low values for pixels that are cloudy, hazy, or smoky pixels on a particular date, and high values for clear images. The second weight is designed to detect cloud shadow: 
+<!-- values. The first is based on a simplified formula of the Haze Optimized Transformation (HOT) index [@Zhangimagetransformcharacterize2002; @ZhuObjectbasedcloudcloud2012]:  -->
 
-$$
-\mathrm{Shadow_{weight}} = \frac{1}{(some values)^4}
-$$
+\begin{equation} \label{eq:cloud}
+\mathrm{W1_t} = \frac{1}{\mathrm{blue_t}^2}
+\end{equation}
 
-Where X is the median value across the full time series. This formula assigns a low weight to pixels falling within cloud shadows. Weight values lower than the X for a given date and pixel are assigned to that pixel, replacing the $HOT_{weight}$. We then use the resulting to calculate a weighted mean for each pixel for each band for the final composite for each time period. The composites are then added to the S3 store (Fig. 1), and a "slippy map" rendering is created for each composite using RasterFoundry (cite). This web-based rendering of the image is used in the training data platform (see section X). 
+And the second:
+
+<!-- Equation solution from here: https://stackoverflow.com/questions/4027363/two-statements-next-to-curly-brace-in-an-equation -->
+ 
+\begin{equation} \label{eq:shadow}  
+\mathrm{W2_t} =\begin{cases}
+    1, & \text{if $\mathrm{NIR_t}$ < median\{$\mathrm{NIR_1}$, $\mathrm{NIR_2}$, ..., $\mathrm{NIR_i}$\}}.\\
+    \frac{1}{\mathrm{NIR_t}^4}, & \text{otherwise}.
+  \end{cases}
+\end{equation}
+
+Where *t* is a particular date in near-daily time series of PlanetScope images, which begins at date 1 for the given compositing period and ends on date *i*, *blue* is the blue band, and *NIR* the near infrared band. Equation \ref{eq:cloud} assigns lower weights to hazy and clouded pixels, while equation \ref{eq:shadow} assigns low weights to pixels in cloud shadow. 
+
+Once these two weights are calculated, the final composited pixel value for each of the four PlanetScope bands is calculated as:
+
+\begin{equation}
+\mathrm{\bar{B} = \frac{\sum_{t=1}^{T}B_t * W1_t * W2_t}{\sum_{t=1}^{T}W1_t * W2_t}}
+\end{equation}
+
+Which is a weighted mean for each pixel for each band *B* for the particular compositing period. The composited tiles are then added to the S3 store (Fig. 1), where they are stored as cloud-optimized geotiffs, and a "slippy map" rendering is created for each composite using RasterFoundry (cite). This web-based rendering of the image is used in the training data platform (see section X). 
 
 
 ### Labelling platform
@@ -253,37 +269,93 @@ knitr::include_graphics('figures/figure3.png')
 ##### Processing completed assignments
 Upon submission, the workers' polygons, if there are any--the worker will submit the assignment without mapping if they see no fields in the image--are are cleaned to fix any topological irregularities that arose during digitization (see supporting information (SI)) and stored in a PostGIS table. The assignment that was just completed represents one of two possible types of tasks: 1) an accuracy task; 2) a labeling task for training machine learning. If is was the former type, an `R` script is called that executes a series of map comparisons between the worker's polygons and the reference polygons, assigning a score as based on the following formula:
 
-$$\mathrm{score_i}=\beta0\mathrm{I}+\beta1\mathrm{O}+\beta2\mathrm{F}+\beta3\mathrm{E}+\beta4\mathrm{C}$$
+\begin{equation}
+\mathrm{score_i}=\beta0\mathrm{I}+\beta1\mathrm{O}+\beta2\mathrm{F}+\beta3\mathrm{E}+\beta4\mathrm{C}
+\end{equation}
 
 Where *i* represents the particular assignment, and $\beta_{0-5}$ represent varying weights that sum to 1. *I* refers to "inside the box" accuracy, *O* is the accuracy of those portions of the worker's polygons extending beyond the target grid boundaries, *F* is fragmentation accuracy, a measure of how many individual polygons the worker delineated relative to the reference, *E* measures how closely each polygon's boundary matched its corresponding reference polygon boundary, and *C* assesses the accuracy of the worker's thematic labels (see SI for individual formulae).
 
 Over time, workers are assessed multiple times across a range of accuracy tasks that are selected to represent the variability of the agricultural system being mapped. Each worker's score history is averaged to provide an overall assessment of accuracy, and this information is used for creating labels, the second task. 
 
-If the worker's completed assignment was a labelling tasks, their maps remain stored in the database until the remaining assignments needed to complete the task are submitted by other workers. Once complete, an R-based consensus labelling routine is invoked, which uses combines the maps from all workers who undertook the task into a single consensus label using a Bayesian merging approach:
+If the worker's completed assignment was a labelling task, their maps remain stored in the database until the remaining assignments needed to complete the task are submitted by other workers. Once complete, an R-based consensus labelling routine is invoked, which combines the maps from all workers who undertook the task into a single consensus label using a Bayesian merging approach:
 
-$$
+\begin{equation}
 P(\theta|\mathrm{D})=\sum_{i=1}^{n}\mathrm{P}(\mathrm{W_i}|\mathrm{D})\mathrm{P}(\mathrm{\theta}|\mathrm{D}, \mathrm{W_i})
-$$
-Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W_$i$* is an individual worker.  P($\theta$|D) is therefore the probability that the actual cover type is what the workers who labelled it says it is, while P(W$_i$|D) represents the average producer's accuracy for a given worker, and P(W$\theta$|D, *W$_i$*) is the individual worker's label for that pixel. This approach therefore uses the overall accuracy of each worker to weight their labels as they are combined with other workers' labels for a given pixel (see SI for further details of equation). 
+\end{equation}
+
+Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and $W_i$ is an individual worker.  P($\theta$|D) is therefore the probability that the actual cover type is what the workers who labelled it says it is, while P(W$_i$|D) is the worker's average score over the accuracy assessment assignments they have mapped to date, and P(W$\theta$|D, *W$_i$*) is the worker's label for that pixel. This approach therefore uses the overall accuracy of each worker to weight their labels as they are combined with other workers' labels for a given pixel (see SI for further details of equation). 
 
 
+<!-- - Training and validation data -->
+<!-- - Accuracy assessment -->
 
-
-
-
-
-- Training and validation data
-- Accuracy assessment
+Once the full set of training sites has been completed, two random draws of pre-determined size (typically **X%** each of the overall number of labels) are made from the randomly selected consensus labels. The first set is designated as a model test set, and the final set is set aside as final map validation sample. The remaining **Y%** of the labels are used to train the classifier. 
 
 ### Classification pipeline
-- Feature engineering
-- ML pipeline Apache Spark
+Upon completion of the labels, *mapper* automatically launches an ephemeral Elastic Map Reduce cluster consisting of tens to hundreds of memory-optimized instances (e.g. m4.xlarge), depending on the size of the mapping geography. 
+
+#### Feature extraction
+The first step in the pipeline is the extraction of additional features from the growing season/non-growing season PlanetScope imagery. Previous work showed that a large number of simple features that summarize the statistical properties of reflectance and vegetatiation indices in local neighborhoods are highly effective for classifying smallholder croplands [@Debatsgeneralizedcomputervision2016]. We followed this logic in this study, but opted for a smaller feature space to accomodate the storage and memory requirements of a mapping geography orders of magnitude larger than that initial work. Here, we used a set of X features, comprised of the eight original composite bands (four from each season), a 5X5 and YXY mean of each band, as well as the slope of each image calculated within the 5X5 and YXY windows (Table X).
+
+
+\begin{center}Table X. List of features.\end{center}
+
+Feature         Window Size     N Features
+-------------- ---------------- --------------------------------
+RGB-NIR        1X1              8 
+Low-pass       3X3              8
+Slope          3X3              8
+Other          YXY              X
+-------------- ---------------- --------------------------------
+
+Feature extraction and the conversion of image features is handled by a combination of `GeoTrellis`, `GeoPySpark`, `rasterio`, and `RasterFrames`. These collectively extract subsets of imagery from the PlanetScope temporal composites, derive the features (Table X), and convert these into `RasterFrames`, which are an Apache Spark compatible data object that is designed specifically for raster data. Features are extracted on the fly for each cell in the training and test sets, a functionality enabled by storing the image composites as Cloud-optimized Geotiffs (COGs), which allows fast windowed reads of image subsets.  
+
+#### Classification
+Once the features from the training sites are extracted into `RasterFrames`, these are combined with their corresponding labels and passed to the machine learning classifier, a `SparkMLlib` implementation of RandomForest [@BreimanRandomForests2001]. \textcolor{red}{The model is trained with a balanced sample and a tree depth of 16 and total tree number of 30, which initial testing showed to provide a reasonable balance between computational time and performance.}
+
+After fitting, the model is applied to the features of the model test set, and a set of accuracy metrics are calculated, including ordinary binary accuracy and the true skill statistic [@AlloucheAssessingaccuracyspecies2006], which is considered to be more effective than the Kappa statistic in that it controls for class prevalence. 
+
+### The active learning loop
+After fitting and model evaluation a second prediction process is undertaken that initiates the active learning process. The feature extraction process is repeated for the rest of the mapping geography that falls outside of the training, test, and validation sets, but applied to a subset of randomly drawn pixels from each cell in order to reduce computation demand. The fitted model is then applied to these features in order to calculate the posterior probability of cropland presence, and an uncertainty criterion [@DebatsIntegratingactivelearning2017] is calculated for each grid cell:
+
+\begin{equation}
+\mathrm{Q_I = \sum_{I(x, y) \epsilon I} (p(x, y) - 0.5)^2}
+\end{equation}
+
+
+
+
+```{r, echo = FALSE, eval = FALSE}
+uncertainty <- function(x) sum((x - 0.5)^2)
+a <- runif(10, min = 0.4, max = 0.6)
+b <- c(runif(5, min = 0, max = 0.2), runif(5, min = 0.8, max = 1))
+
+# sum(a - 0.5)^2
+# 1 - sum(a - 0.5)^2
+# 1 - sum(b - 0.5)^2
+# ass <- (a - 0.5)^2
+# bss <- (b - 0.5)^2
+# 1 - sum(ass)
+# 1 - sum(bss)
+# (1 - sum(b - 0.5)^2)
+uncertainty(a)
+uncertainty(b)
+```
+Where Q is the uncertainty for cell I, calculated from the predicted probability *p* of the randomly selected subset of pixels (x, y) drawn from it. Pixels with predicted probabilities closer to 0.5 are least certain as to their classification, thus images having the lowest values of $Q_I$ represent sites posing the most difficulty for the classifier. 
+
+After scoring with the uncertainty criterion, the top *N* most uncertain grid cells are selected and sent back to *mapper*, where workers then digitize new labels. These new consensus labels are then added to *learner*'s initial training pool upon completion, and a new machine learning instance is launched and completed, and uncertainty scores for the remaining unlabelled sites are calculaetd, and the most uncertain sites are sent again to the workers for labeling. This loop repeats until the mapping skill as assessed with the model test set reaches an asymptote.  
 
 ### Segmentation
+After the final iteration, the segmentation algorithm is invoked, which entails several steps. In the first step, the meanshift algorithm [@YizongChengMeanshiftmode1995a] is applied to the original bands of the growing season/off-growing season PlanetScope image pair. 
 
-## The active learning loop
+In the second step, a Sobel filter is then applied to the green, red, and near-infrared mean-shifted bands [**I assume**], and weighted edge image is computed using weights of 1, 1, and 2 to each band for each season [**for both growing season on and off?**]. A watershed algorithm (**cite**) is then run on the weighted edge image, with a high level of segmentation specified (**2400** segements per tile). 
 
+In the third step, a region adjacency graph is constructed for each tile, in which each node represents all pixels within each polygon created in the previous step. The edge between two adjacent regions (polygons) is calculated as the difference between the means of normalized colors of all bands. Hierarchical merging is then applied, in which the most similar pairs of adjacent nodes are merged until there are no edges remaining below a predetermined threshold of **X**.  
 
+In the fourth step, the merged polygons are overlaid with the posterior probabilities resulting from the final active learning loop, and polygons in which the average posterior probability is greater than a predetermined  threshold (typically 0.5, but is possible to vary locally) are retained as field polygons. 
+
+In the final step, the retained polygons are refined by removing holes and smoothing their boundaries using the Douglas-Peucker algorithm (cite). Neighboring polygon that touch along tile boundaries are merged. 
+ 
 # Results
 
 - Image quality and density
