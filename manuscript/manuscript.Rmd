@@ -354,11 +354,29 @@ In the third step, a region adjacency graph is constructed for each tile, in whi
 
 In the fourth step, the merged polygons are overlaid with the posterior probabilities resulting from the final active learning loop, and polygons in which the average posterior probability is greater than a predetermined  threshold (typically 0.5, but is possible to vary locally) are retained as field polygons. 
 
-In the final step, the retained polygons are refined by removing holes and smoothing their boundaries using the Douglas-Peucker algorithm (cite). Neighboring polygon that touch along tile boundaries are merged. 
+In the final step, the retained polygons are refined by removing holes and smoothing their boundaries using the Douglas-Peucker algorithm (cite). Neighboring polygon that touch along tile boundaries are merged.
+
+To assess the accuracy of the final segmented boundaries, we used a two-step approach. First, we assessed the overall thematic accuracy of the resulting classification against our reserved validation set within each AOI. Second, to assess the quality of the segmentation, we compared the mean area and relative frequencies of the segmented polygons within different size classes against the same metrics derived from the digitized fields of the most accurate worker to map the given AOI. [**Note: the following maybe better for discussion**] We selected this relatively simple procedure, as opposed to more complex measures of object accuracy (**cite**), because both an automated and  human-interpreted segmentation worker interpreting imagery cue in on--abrupt, physically detectable breaks within the imagery--are the same. On the other hand, no matter how well these boundaries align the boundaries of fields in the imagery, it is logistically difficult and potentially impossible to evaluate such an approach against the boundaries that farmers use to delineate their fields, as the conception of a "field" may vary between farmers (**cite**) and their field edges may be invisible or span multiple units that appear to a segmentation to have distinct boundaries (**see SI**). 
  
 # Results
+We developed a cropland map for **X different [replace with whole country]**, agro-ecologically regions of Ghana (X km$^2$ total) (or whole of Ghana), ranging from the primarily grain and vegetable crop producing regions in the drier northern savanna regions to tree crop dominated regions in the forested southwestern corner of the country, where cocoa and oil palm are among the dominant crops. For these latter regions, we did not attempt to classify tree crops, and instead mapping clearing that potentially contain field crops or recently felled or newly replanted tree crops. Our rationale for this decision was that the resolution of PlanetScope imagery is insufficient to distinguish such crops from the surrounding forest, and clear field boundaries are typically not visible in cocoa crops. 
 
-- Image quality and density
+## Image catalog
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+tiles <- sf::read_sf(system.file("extdata/ghana_tiles.geojson", 
+                                 package = "activemapper"))
+km2 <- round(as.numeric(units::set_units(sum(sf::st_area(tiles)), "km2")))
+```
+We generated a complete image catalog for the `r nrow(tiles)` tiles intersecting Ghana, spanning `r km2` km$^2$. This entailed downloading all PlanetScope imagery intersecting the total extent of these tiles for the periods May-September, 2018 (the growing season) and December, 2018 to February, 2019 (the subsequent dry season). The compositing processes was applied to render the resulting seasonally contrasting image pairs for each tile (**Figure Xa**). 
+
+We evaluated the overall quality of the resulting composites across the region using a random selection of 100 tiles, which we graded according to an ordinal measure of image accuracy that ranged from 1 (lowest quality: significant residual haze/cloud and image edge artifacts that rendered visual interpretation difficult) to 5 (highest quality, no detectable haze/cloud and no image edge effects; see SI for full interpretation of categories. The results showed that the majority of the sampled composites (**X%; Fig Xb**) were rated 4 or higher, with small proportions falling within the lowest two quality categories (**Y and Z%**). These lower quality images were confined primarily to the growing season period and the Southwest corner, where the substantially greater cloud cover resulting in a much lower density of available PlanetScope imagery for each time period (**Fig Xc**). Overall, the available image density and quality of composites were closely related (see SI for full details).  
+
+```{r, echo = FALSE, out.width="70%", fig.cap="The location and quality scores of 100 randomly selected tiles for the growing (A) and off-growing season (B), and the corresponding distributions of the quality scores for each season, respectively (C and D) [This a hypothetical placeholder figure].", fig.align='center'}
+knitr::include_graphics('figures/figure4.png')
+```
+
+
+
 - Computational time/resources, including interaction time
 - Labeling results/quality
 - Impact of features on accuracy
@@ -371,6 +389,11 @@ In the final step, the retained polygons are refined by removing holes and smoot
 # Discussion
 
 - Left unquantified is how much training on base maps matters
+- Image quality:
+    - why mean-weighting not median composite (artifacts) (maybe methods)
+    - impact on accuracy
+    
+- Assessment of segmentation quality
 
 # Acknowledgements
 
