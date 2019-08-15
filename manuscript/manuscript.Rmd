@@ -375,6 +375,18 @@ We evaluated the overall quality of the resulting composites across the region u
 knitr::include_graphics('figures/figure4.png')
 ```
 
+## The active learning process
+We ran 16 instances to create cropland probability maps for the **X test regions/whole of Ghana**. Each instance covered a distinct mapping geography comprised of one or more adjacent AOIs (Figure 5), ranging in extent from 12,160 to 23,535 km$^2$ (average = 15,457 km$^2$), and represented a separate active learning process. The average number of iterations per active learning process was **X (range = X-X)**, and the average overall accuracy was **X, with a range of X-X** (Figure 5). Overall user's accuracy was slightly **lower/higher** at **X, (range X-X)**, while producer's accuracy averaged **X, (range X-X)**. Each accuracy measure was highest in **northern-northeastern 2/3** of the country, and lowest in **southerwestern 1/3**, where rainfall and cloud-cover are highest, and where tree crops dominate.  
+
+<!-- and an accuracy surface interpolated from the average cell-wise accuracies calculated between the predicted map and validation labels.  -->
+
+
+```{r, echo = FALSE, out.width="80%", fig.cap="The overall, user's, and producer's accuracies (indicated by fill color) for each of the 16 mapping zones (zones numbers are shown on maps) [This a hypothetical placeholder figure].", fig.align='center'}
+knitr::include_graphics('figures/figure5.png')
+```
+
+## Labelling accuracy
+The accuracy patterns generally align with the difficulty of the labelling task, that is, **the southwestern regions were hardest for workers to interpret, as shown by Figure 6.**
 
 
 - Computational time/resources, including interaction time

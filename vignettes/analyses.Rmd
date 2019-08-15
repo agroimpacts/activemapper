@@ -10,6 +10,7 @@ library(raster)
 library(sf)
 library(dplyr)
 library(ggplot2)
+library(purrr)
 
 res <- 0.005
 res_supergrid <- 1
@@ -28,9 +29,8 @@ aois <- raster(file.path(data_path, "processed/africa_aois.tif"))
 # tiles <- raster(file.path(data_path, "processed/africa_aois.tif"))
 ```
 
+### Figure 2: Grid System
 
-
-### Figure 2
 ```{r, eval = FALSE}
 ghana_aois <- ghana_tilesr %>% pull(aoi) %>% unique
 aois_sf <- rasterToPolygons(aois) %>% st_as_sf %>% rename(aoi = africa_aois) %>%
@@ -106,8 +106,11 @@ ggsave("manuscript/figures/si_rainfall_pct.png", height = 4, width = 6,
        units = "in", dpi = 300)
 ```
 
-## Figure 3
-Placeholder for now
+## Figure 4: Average quality of image tiles
+
+Placeholder for now, as using imagined image quality.
+
+
 ```{r, eval=FALSE}
 # randomly select cells, as if those used to assess image quality
 set.seed(1)
@@ -127,8 +130,6 @@ qual_preds <- ifelse(qual_preds > 5, 5, qual_preds)  # force to 5
 ghana_tiles_ss <- ghana_tiles_ss %>% mutate(Quality = factor(qual_preds)) %>% 
   select(aoi, tile, rf, Quality)
 
-
-
 # random assignment of 1-5 by rainfall
 p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
   geom_sf(data = ghana_tilesr, fill = "grey85", col = "grey", size = 0.3) +
@@ -147,11 +148,106 @@ g <- cowplot::plot_grid(p1, p1, p2, p2, nrow = 2, scale = c(1, 1, 0.9),
                         labels = LETTERS[1:4], label_x = 0.05)
 ggsave("manuscript/figures/figure4.png", width = 5, height = 5, 
        units = "in", dpi = 300)
+```
+
+### Mapping Blocks
+```{r, eval = FALSE}
+prod_groupings1 <- list(c(1216, 1217, 1283, 1284), c(1218, 1285), c(1219, 1286),
+                        c(1348, 1349), 1350, c(1351, 1352), c(1413, 1414), 1415,
+                        c(1416, 1417), c(1477, 1478), 1479, c(1480, 1481), 
+                        c(1539, 1540), 1541, c(1542, 1543), 1599:1602)
+map(1:length(prod_groupings1), function(x) {
+  ind <- prod_groupings1[[x]]
+  ghana_tilesr %>% filter(aoi %in% ind) %>% mutate(grp = x) %>% 
+    select(aoi, tile, grp)
+}) %>% reduce(rbind) -> ghana_tiles_grpd
+
+map_blocks <- ghana_tiles_grpd %>% group_by(grp) %>% 
+  summarize(aois = mean(grp)) %>% ungroup
+st_area(map_blocks) %>% units::set_units("km2") %>% mean
+st_area(map_blocks) %>% units::set_units("km2") %>% range
+```
+
+### Accuracy within blocks
+
+Placeholder. Use imagined accuracy based on rainfall, using dummy approach as with Figure 3.  This will be replaced by metrics from tables for each instance. 
+```{r, eval=FALSE}
+map_blocks <- map_blocks %>% 
+  mutate(rf = (map_blocks %>% st_centroid %>% extract(rftot, .)))
+
+# Rainfall-accuracy relationship
+rflm <- coef(lm(c(0.9, 0.75) ~ range(map_blocks$rf)))  # 75-90%
+set.seed(7) 
+map_blocks <- map_blocks %>% 
+  mutate(Accuracy = (rflm[1] + rflm[2] * rf) * 
+           runif(n(), min = 0.95, max = 1.05) * 100)
+
+# Users
+rflm <- coef(lm(c(0.85, 0.75) ~ range(map_blocks$rf)))  # 75-90%
+set.seed(1) 
+map_blocks <- map_blocks %>% 
+  mutate(User = (rflm[1] + rflm[2] * rf) * 
+           runif(n(), min = 0.95, max = 1.05) * 100)
+
+# Producers
+rflm <- coef(lm(c(0.9, 0.75) ~ range(map_blocks$rf)))  # 75-90%
+set.seed(2) 
+map_blocks <- map_blocks %>% 
+  mutate(Producer = (rflm[1] + rflm[2] * rf) * 
+           runif(n(), min = 0.95, max = 1.05) * 100) %>% 
+  select(grp, aois, rf, Accuracy, User, Producer)
 
 ```
 
+## Figure 5
 
+Plot of Zones and average accuracy
+```{r, eval = FALSE}
+# ghana_tilesr %>% group_by(aoi) %>% summarize(aois = mean(aoi)) %>% ungroup %>% 
+#   ggplot() + geom_sf(col = "grey70") +
+#   geom_sf_text(aes(label = aoi), size = 2) + 
+#   geom_sf(data = ghana, fill = "transparent", lwd = 0.3) + 
+#   theme_void()
 
+cols <- RColorBrewer::brewer.pal(n = 9, "RdYlGn") %>% #[c(1, 9)] %>% 
+  colorRampPalette(colors = .)
+# RColorBrewer::display.brewer.all()
+
+# ggsave("manuscript/figures/si_mapping_blocks.png", width = 5, height = 5, 
+#        units = "in", dpi = 300)
+
+col_grad <- scale_fill_gradientn(colors = cols(10), limits = c(70, 100), 
+                                 breaks = seq(70, 100, 5)) 
+p <- map_blocks %>% 
+  ggplot() + geom_sf(aes(fill = Accuracy)) + #, col = "grey70") +
+  geom_sf_text(aes(label = grp), size = 2) + 
+  geom_sf(data = ghana, fill = "transparent", lwd = 0.3) + col_grad + 
+  theme_void()
+p2 <- map_blocks %>% 
+  ggplot() + geom_sf(aes(fill = User)) + #, col = "grey70") +
+  geom_sf_text(aes(label = grp), size = 2) + 
+  geom_sf(data = ghana, fill = "transparent", lwd = 0.3) + col_grad + 
+  theme_void()
+p3 <- map_blocks %>% 
+  ggplot() + geom_sf(aes(fill = Producer)) + #, col = "grey70") +
+  geom_sf_text(aes(label = grp), size = 2) + 
+  geom_sf(data = ghana, fill = "transparent", lwd = 0.3) + col_grad + 
+  theme_void()
+
+leg <- cowplot::get_legend(p + theme(legend.position = c(0.6, 1)))
+gleg <- cowplot::plot_grid(NULL, leg, ncol = 1, align = "h")
+gp <- cowplot::plot_grid(p + theme(legend.position = 'none'), 
+                         p2 + theme(legend.position = 'none'), 
+                         p3 + theme(legend.position = 'none'), nrow = 1, 
+                         labels = c("Overall", "User's", "Producer's"), 
+                         label_x = 0.0)
+gall <- cowplot::plot_grid(gp, gleg, rel_widths = c(1, 0.1), label_x = 0)
+# gall
+
+ggsave("manuscript/figures/figure5.png", width = 9, 
+       height = 4, units = "in", dpi = 300)
+
+```
 
 ## Consensus maps
 ```{r, eval=FALSE}
