@@ -11,6 +11,7 @@ library(sf)
 library(dplyr)
 library(ggplot2)
 library(purrr)
+library(rmapaccuracy)
 
 res <- 0.005
 res_supergrid <- 1
@@ -24,17 +25,17 @@ africa <- st_read(file.path(data_path, "external/africa_noisl_gcs.sqlite")) %>%
 africa_cont <- africa %>% st_union %>% st_sf
 ghana <- africa %>% filter(country == "Ghana") %>% select(GEOMETRY)
 
-ghana_tilesr <- st_read(file.path(data_path, "processed/ghana_tiles.geojson"))
-aois <- raster(file.path(data_path, "processed/africa_aois.tif"))
+tiles <- st_read(file.path(data_path, "processed/ghana_tiles.geojson"))
+degrees <- raster(file.path(data_path, "processed/africa_aois.tif"))
 # tiles <- raster(file.path(data_path, "processed/africa_aois.tif"))
 ```
 
 ### Figure 2: Grid System
 
 ```{r, eval = FALSE}
-ghana_aois <- ghana_tilesr %>% pull(aoi) %>% unique
-aois_sf <- rasterToPolygons(aois) %>% st_as_sf %>% rename(aoi = africa_aois) %>%
-  st_sf(crs = 4326)
+ghana_aois <- tiles %>% pull(aoi) %>% unique
+degrees <- rasterToPolygons(degrees) %>% st_as_sf %>% 
+  rename(aoi = africa_aois) %>% st_sf(crs = 4326)
 
 ind <- 26  # index of selected AOI for plotting (from ghana_aois)
 
@@ -43,21 +44,21 @@ maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
 
 p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
   geom_sf(data = ghana, fill = "grey85", col = "grey", size = 0.3) +
-  geom_sf(data = aois_sf %>% filter(aoi %in% ghana_aois),
+  geom_sf(data = degrees %>% filter(aoi %in% ghana_aois),
           fill = "transparent", size = 0.3) +
-  geom_sf(data = aois_sf %>% filter(aoi == ghana_aois[ind]), fill = "gray70",
+  geom_sf(data = degrees %>% filter(aoi == ghana_aois[ind]), fill = "gray70",
           size = 0.3) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   theme_void()
 p1
 
-xylims <- aois_sf %>% filter(aoi %in% ghana_aois[c(ind:27, 31:32)]) %>%
+xylims <- degrees %>% filter(aoi %in% ghana_aois[c(ind:27, 31:32)]) %>%
   st_coordinates(.)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
 
-tile_sel <- ghana_tilesr %>% filter(aoi == ghana_aois[ind])  # selected tile
+tile_sel <- tiles %>% filter(aoi == ghana_aois[ind])  # selected tile
 p2 <- ggplot(ghana) + geom_sf(fill = "grey85", col = "grey") +
-  geom_sf(data = aois_sf, fill = "transparent", size = 0.3) +
+  geom_sf(data = degrees, fill = "transparent", size = 0.3) +
   geom_sf(data = tile_sel, fill = "gray70", size = 0.3) +
   geom_sf(data = tile_sel %>% slice(1), fill = "red3", size = 0.3) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
@@ -106,40 +107,219 @@ ggsave("manuscript/figures/si_rainfall_pct.png", height = 4, width = 6,
        units = "in", dpi = 300)
 ```
 
+### Mapping AOIs
+```{r, eval = FALSE}
+prod_groupings1 <- list(c(1216, 1217, 1283, 1284), c(1218, 1285), c(1219, 1286),
+                        c(1348, 1349), 1350, c(1351, 1352), c(1413, 1414), 1415,
+                        c(1416, 1417), c(1477, 1478), 1479, c(1480, 1481), 
+                        c(1539, 1540), 1541, c(1542, 1543), 1599:1602)
+map(1:length(prod_groupings1), function(x) {
+  ind <- prod_groupings1[[x]]
+  tiles %>% filter(aoi %in% ind) %>% mutate(grp = x) %>% select(aoi, tile, grp)
+}) %>% reduce(rbind) -> aois
+
+aois <- aois %>% group_by(grp) %>% 
+  summarize(aois = mean(grp)) %>% ungroup
+aois <- aois %>% 
+  mutate(area = st_area(.) %>% units::set_units("km2") %>% as.numeric) %>% 
+  select(grp, aois, area)
+mean(aois$area)
+range(aois$area)
+
+st_write(aois, dsn = "external/data/aois.geojson")
+```
+
+## Map reference selection
+A random draw of cells within each map AOI, scaled proportionally from 120 to the total area of each cell.
+
+```{r, eval = FALSE}
+aois <- aois %>% mutate(nref = ceiling(area / max(area) * 120)) %>% 
+  select(aois, area, nref)
+
+# extract ids
+ref_sites <- lapply(1:nrow(aois), function(x) {  # x <- 15
+  print(x)
+  cells <- extract(master_grid, aois[x, ])[[1]]
+  return(cells[!is.na(cells)])
+})
+# length(which(is.na(cells)))
+
+# sample then in proportion
+set.seed(1)
+ref_sites_sample <- lapply(1:length(ref_sites), function(x) {
+  sn <- aois[x, ] %>% pull(nref)
+  rsites <- ref_sites[[x]]
+  sample(x = ref_sites[[x]], size = sn, replace = FALSE)
+}) 
+
+# and select cell coordinates from database
+pw <- "bqouhegFpwiEnfD%p6HZ67JsN"
+con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
+                      host = "labeller1.crowdmapper.org", dbname = "Africa", 
+                      user = "postgis", password = pw)
+
+xys <- lapply(1:length(ref_sites_sample), function(x) {
+  print(x)
+  rsites <- ref_sites_sample[[x]]
+  xy <- tbl(con, "master_grid") %>% filter(id %in% rsites) %>% 
+    select(id, name, x, y) %>% collect()
+})
+DBI::dbDisconnect(con)
+
+# convert to polygons
+gcs <- unname(unlist(st_crs(ghana))[2])
+xypolys <- lapply(1:length(xys), function(x) {
+  print(x)
+  polys <- point_to_gridpoly(data.table::data.table(xys[[x]]), 
+                             w = 0.005 / 2, gcs, gcs)
+  polys %>% mutate(aoi = x) %>% select(name, aoi)
+})
+ref_sites_polys <- reduce(xypolys, rbind)
+
+# ggplot(aois) + geom_sf() + 
+#   geom_sf(data = ref_sites_polys, aes(color = factor(aoi))) + theme_void()
+st_write(ref_sites_polys, dsn = here::here("external/data/ref_samples.sqlite"),
+         delete_layer = TRUE)
+
+
+# select PlanetScope data
+planet <- lapply(1:6, function(x) {  # x <- 1
+  cid <- ref_sites_sample[[x]]
+  con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), dbname = "Africa", 
+                        host = paste0("labeller", x, ".crowdmapper.org"), 
+                        user = "postgis", password = pw)
+  pdata <- tbl(con, "scenes_data") %>% 
+    filter(cell_id %in% cid) %>% 
+    select(cell_id, url, season) %>% collect()
+  DBI::dbDisconnect(con)
+  pdata %>% arrange(season, cell_id) %>% mutate(aoi = x) %>% 
+    rename(id = cell_id) %>% select(id, aoi, season, url)
+})
+pth <- here::here(paste0("external/data/aoi", x, ".csv"))
+readr::write_csv(planet[[1]], path = pth)
+
+
+```
+
+Create starter reference polygons for AOIs. These are fixed size in random placement in each cell. These can be moved more easily to capture pure classes
+```{r, eval=FALSE}
+# read back in ref sample points and create three random points in each per AOI
+ref_sites_polys <- st_read(here::here("external/data/ref_samples.sqlite"))
+set.seed(1)
+ref_start_pts <- lapply(1:16, function(x) {
+  print(x)
+  start_pts <- suppressMessages(
+    ref_sites_polys %>% filter(aoi == x) %>% 
+      st_sample(size = rep(3, nrow(.)), silent = TRUE)
+  )
+  start_pts <- st_intersection(st_sf(start_pts), ref_sites_polys)
+  xy <- start_pts %>% st_coordinates %>% as_tibble() %>% setNames(c("x", "y"))
+  start_pts <- bind_cols(start_pts %>% as_tibble, xy) %>% select(name, x, y) %>% 
+    data.table::data.table()
+})
+
+# ref_sites_polys %>% slice(2) %>% st_geometry() %>% plot
+# plot(ref_start_pts_aoi1, add = TRUE)
+
+# pick up names via intersection and convert to x, y points for use with 
+# point_to_grid_poly
+
+# create polygons from starter points, add class fields, etc. 
+gcs <- unname(unlist(st_crs(tiles)))[2]
+w <- 0.0001433
+strt_pol_aoi1 <- point_to_gridpoly(ref_start_pts[[1]], w = w, gcs, gcs) %>% 
+  group_by(name) %>% mutate(rid = 1:n()) %>% ungroup %>% mutate(class = NA) %>% 
+  select(name, rid, class)
+# strt_pol_aoi16 <- point_to_gridpoly(ref_start_pts[[16]], w = w, gcs, gcs) %>% 
+#   group_by(name) %>% mutate(rid = 1:n()) %>% ungroup %>% 
+#   mutate(class = NA) %>% select(name, rid, class)
+# ref_sites_polys %>% slice(1) %>% st_geometry %>% plot
+# plot(start_pols_aoi1[1:3, ], add = TRUE)
+
+# check areas
+# start_pols_aoi1 %>% st_area %>% mean
+# start_pols_aoi16 %>% st_area %>% mean
+
+st_write(strt_pol_aoi1, 
+         dsn = here::here("external/data/ref_polys_ao1.sqlite"))
+```
+
+Grab necessary imagery off of S3
+```{r, eval=FALSE}
+library(aws.s3)
+planet_aoi1 <- readr::read_csv(here::here("external/data/aoi1.csv"))
+dnames <- here::here("external/data/imagery", c("GS", "OS"))
+for(i in dnames) if(!dir.exists(i)) dir.create(i)
+
+os <- get_bucket_df(bucket = "activemapper", 
+                    prefix = "planet/composite_sr_buf/OS")
+
+# os %>% select(Key, Size) %>% mutate(Size = as.numeric(Size)) %>% 
+#   filter(Key %in% gsub("s3://activemapper/", "", planet_aoi1$url)) %>% 
+#   summarize(sum(Size)) / 1e+9
+
+os_urls <- planet_aoi1 %>% filter(season == "OS") %>% distinct(url) %>% 
+  unname %>% unlist
+for(i in os_urls[-length(os_urls)]) {
+# for(i in os_urls) {  
+  cmd <- paste("aws s3 cp", i, file.path(dnames[2], basename(i)))
+  system(cmd)
+}
+gs_urls <- planet_aoi1 %>% filter(season == "GS") %>% distinct(url) %>% 
+  unname %>% unlist
+for(i in gs_urls) {
+  cmd <- paste("aws s3 cp", i, file.path(dnames[1], basename(i)))
+  system(cmd)
+}
+
+
+
+os_tiles <- os %>% select(Key, Size, Bucket) %>% 
+  mutate(Size = as.numeric(Size)) %>% 
+  filter(Key %in% gsub("s3://activemapper/", "", planet_aoi1$url))
+  # with(get_object(object = os$KeyKey, bucket = Bucket, 
+  #                 file = file.path(dnames[2], basename(Key))))
+get_object(object = os_tiles$Key[1], bucket = os_tiles$Bucket[1], 
+                  file = file.path(dnames[2], basename(os_tiles$Key[1])))
+
+```
+
+
+
+
+
 ## Figure 4: Average quality of image tiles
 
 Placeholder for now, as using imagined image quality.
 
-
 ```{r, eval=FALSE}
 # randomly select cells, as if those used to assess image quality
 set.seed(1)
-ghana_tiles_ss <- ghana_tilesr %>% sample_n(100)
+tiles_ss <- tiles %>% sample_n(100)
 
 # set up dummy values of quality, using rainfall as example and regression with
 # some random noise added
-rftiles <- unlist(extract(rftot, ghana_tiles_ss))  # rainfall
-ghana_tiles_ss <- ghana_tiles_ss %>% mutate(rf = rftiles) %>% 
-  select(aoi, tile, rf)
-rflm <- coef(lm(c(8, 1) ~ range(ghana_tiles_ss$rf)))  # regression 1 to 8
-qual_preds <- rflm[1] + rflm[2] * ghana_tiles_ss$rf  # predict
+rftiles <- unlist(extract(rftot, tiles_ss))  # rainfall
+tiles_ss <- tiles_ss %>% mutate(rf = rftiles) %>% select(aoi, tile, rf)
+rflm <- coef(lm(c(8, 1) ~ range(tiles_ss$rf)))  # regression 1 to 8
+qual_preds <- rflm[1] + rflm[2] * tiles_ss$rf  # predict
 set.seed(7) 
 qual_preds <- round(qual_preds *  # random noise
                       runif(length(qual_preds), min = 0.7, max = 1.3))
 qual_preds <- ifelse(qual_preds > 5, 5, qual_preds)  # force to 5
-ghana_tiles_ss <- ghana_tiles_ss %>% mutate(Quality = factor(qual_preds)) %>% 
+tiles_ss <- tiles_ss %>% mutate(Quality = factor(qual_preds)) %>% 
   select(aoi, tile, rf, Quality)
 
 # random assignment of 1-5 by rainfall
 p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
-  geom_sf(data = ghana_tilesr, fill = "grey85", col = "grey", size = 0.3) +
+  geom_sf(data = tiles, fill = "grey85", col = "grey", size = 0.3) +
   geom_sf(data = ghana, fill = "transparent", col = "grey", size = 0.3) +
-  geom_sf(data = ghana_tiles_ss, 
+  geom_sf(data = tiles_ss, 
           mapping = aes(fill = Quality, color = Quality)) +   
   scale_fill_brewer(palette = "RdBu") + scale_color_brewer(palette = "RdBu") + 
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
   theme_void()
-p2 <- ggplot(ghana_tiles_ss) + 
+p2 <- ggplot(tiles_ss) + 
   geom_histogram(aes(x = Quality), bins = 5, stat = "count", col = "grey", 
                  fill = "blue") + 
   xlab("Quality of composite") + ylab("N tiles") + 
@@ -150,49 +330,31 @@ ggsave("manuscript/figures/figure4.png", width = 5, height = 5,
        units = "in", dpi = 300)
 ```
 
-### Mapping Blocks
-```{r, eval = FALSE}
-prod_groupings1 <- list(c(1216, 1217, 1283, 1284), c(1218, 1285), c(1219, 1286),
-                        c(1348, 1349), 1350, c(1351, 1352), c(1413, 1414), 1415,
-                        c(1416, 1417), c(1477, 1478), 1479, c(1480, 1481), 
-                        c(1539, 1540), 1541, c(1542, 1543), 1599:1602)
-map(1:length(prod_groupings1), function(x) {
-  ind <- prod_groupings1[[x]]
-  ghana_tilesr %>% filter(aoi %in% ind) %>% mutate(grp = x) %>% 
-    select(aoi, tile, grp)
-}) %>% reduce(rbind) -> ghana_tiles_grpd
-
-map_blocks <- ghana_tiles_grpd %>% group_by(grp) %>% 
-  summarize(aois = mean(grp)) %>% ungroup
-st_area(map_blocks) %>% units::set_units("km2") %>% mean
-st_area(map_blocks) %>% units::set_units("km2") %>% range
-```
-
 ### Accuracy within blocks
 
 Placeholder. Use imagined accuracy based on rainfall, using dummy approach as with Figure 3.  This will be replaced by metrics from tables for each instance. 
 ```{r, eval=FALSE}
-map_blocks <- map_blocks %>% 
-  mutate(rf = (map_blocks %>% st_centroid %>% extract(rftot, .)))
+rf <- aois %>% st_centroid %>% extract(rftot, .)
+aois <- aois %>% mutate(rf = rf)
 
 # Rainfall-accuracy relationship
-rflm <- coef(lm(c(0.9, 0.75) ~ range(map_blocks$rf)))  # 75-90%
+rflm <- coef(lm(c(0.9, 0.75) ~ range(aois$rf)))  # 75-90%
 set.seed(7) 
-map_blocks <- map_blocks %>% 
+aois <- aois %>% 
   mutate(Accuracy = (rflm[1] + rflm[2] * rf) * 
            runif(n(), min = 0.95, max = 1.05) * 100)
 
 # Users
-rflm <- coef(lm(c(0.85, 0.75) ~ range(map_blocks$rf)))  # 75-90%
+rflm <- coef(lm(c(0.85, 0.75) ~ range(aois$rf)))  # 75-90%
 set.seed(1) 
-map_blocks <- map_blocks %>% 
+aois <- aois %>% 
   mutate(User = (rflm[1] + rflm[2] * rf) * 
            runif(n(), min = 0.95, max = 1.05) * 100)
 
 # Producers
-rflm <- coef(lm(c(0.9, 0.75) ~ range(map_blocks$rf)))  # 75-90%
+rflm <- coef(lm(c(0.9, 0.75) ~ range(aois$rf)))  # 75-90%
 set.seed(2) 
-map_blocks <- map_blocks %>% 
+aois <- aois %>% 
   mutate(Producer = (rflm[1] + rflm[2] * rf) * 
            runif(n(), min = 0.95, max = 1.05) * 100) %>% 
   select(grp, aois, rf, Accuracy, User, Producer)
