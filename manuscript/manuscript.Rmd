@@ -361,19 +361,22 @@ The accuracy assessment procedure described in section 2.2 is used strictly to a
 [Description of map creation process]
 To create a map of Ghana, we divided the country into 16 distinct mapping zones, or areas of interest (AOIs), which were developed by grouping together each 1X1 degree cell (Figure 2A) fully contained with the tiles (Figure 2B) belonging to any adjacent 1X1 cells that overlapped with neighboring countries. The resulting AOIs ranged from 12,160 to 23,535 km$^2$ in extent (average = 15,457 km$^2$), and each was used to run a separate active learning process and to create a final segmented map. 
 
-Primary to initiating active learning in each AOI, we grouped the AOIs into three zones: a northern zone comprising the 6 northernmost AOIs, a central to southeastern zone comprising the 3 middle and 3 southeastern AOIs, and a southwestern zone made up of the AOIs falling in the forest zone (see Figure SX in SI). Within each zone group, we randomly selected 500 points for initial labelling by the mapping team, which were used to train the first iteration of each RandomForest model run for the zone group. At the outset of mapping in each AOI, the mapping team labelled 100 randomly selected points within each AOI that were set aside for model validation, and subsequent iterations targeted new training sites for collection in each AOI based on classification uncertainty. 
+Prior to initiating active learning in each AOI, we grouped the AOIs into three zones: a northern zone comprising the 6 northernmost AOIs, a central to southeastern zone comprising the 3 middle and 3 southeastern AOIs, and a southwestern zone made up of the AOIs falling in the forest zone (see Figure SX in SI). Within each zone group, we randomly selected 500 points for initial labelling by the mapping team, which were used to train the first iteration of each RandomForest model run for the zone group. At the outset of mapping in each AOI, the mapping team labelled 100 randomly selected points within each AOI that were set aside for model validation, and subsequent iterations targeted new training sites for collection in each AOI based on classification uncertainty. 
 
-To more fully evaluate the capacities of different components of the system, we performed several experiments. In the first experiments, we evaluated the degree to which training label quality impacts final map accuracy, by comparing maps created by training the RandomForest algorithm with labels created by the least accurate worker, the most accurate worker, in addition to those trained with the consensus labels. This test aligns with Tier 1 standards for accounting for the impact of training data error on final map accuracy, as recommended by @ElmesAccountingtrainingdata2019. Next, we evaluated the degree to which training sample selection via active learning impacted map accuracy relative to random selection of additional training sites. Related to this, we evaluated two different versions of the active learning uncertainty criterion to evaluate the impact on performance gain. Finally, we evaluated production performance in terms of speed of labelling and accuracy of results by comparing the generation time (label creation, training, and then classification) and accuracy of maps trained by 1) our core team of 10-12 experienced workers, and 2) a team of 100 novice workers from three different countries. 
+To more fully evaluate the capacities of different components of the system, we performed several experiments. In the first experiments, we evaluated the degree to which training label quality impacts final map accuracy, by comparing maps created by training the RandomForest algorithm with labels created by the least accurate worker, the most accurate worker, in addition to those trained with the consensus labels. This test aligns with Tier 1 standards for accounting for the impact of training data error on final map accuracy, as recommended by @ElmesAccountingtrainingdata2019. Next, we evaluated the degree to which training sample selection via active learning impacted map accuracy relative to random selection of additional training sites. Related to this, we evaluated two different versions of the active learning uncertainty criterion to evaluate the impact on performance gain. 
+
+<!-- Finally, we evaluated production performance in terms of speed of labelling and accuracy of results by comparing the generation time (label creation, training, and then classification) and accuracy of maps trained by 1) our core team of 10-12 experienced workers, and 2) a team of 100 novice workers from three different countries.  -->
  
 # Results
-We developed a cropland map covering **X [replace with whole country]**, agro-ecologically regions of Ghana (X km$^2$ total) (or whole of Ghana), ranging from the primarily grain and vegetable crop producing regions in the drier northern savanna regions to tree crop dominated regions in the forested southwestern corner of the country, where cocoa and oil palm are among the dominant crops. For these latter regions, we did not attempt to classify tree crops, and instead mapping clearing that potentially contain field crops or recently felled or newly replanted tree crops. Our rationale for this decision was that the resolution of PlanetScope imagery is insufficient to distinguish such crops from the surrounding forest, and clear field boundaries are typically not visible in cocoa crops. 
-
-## Image catalog
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 tiles <- sf::read_sf(system.file("extdata/ghana_tiles.geojson", 
                                  package = "activemapper"))
 km2 <- round(as.numeric(units::set_units(sum(sf::st_area(tiles)), "km2")))
 ```
+We developed maps for all of Ghana (`r km2` km$^2$). Ghana's has several agro-ecologically distinct regions, ranging from the primarily grain and vegetable crop producing regions in the drier northern savanna regions to tree crop dominated regions in the forested southwestern corner of the country, where cocoa and oil palm are among the dominant crops. For these latter regions, we did not attempt to classify tree crops, and instead mapped clearings that potentially contain field crops or recently felled or newly replanted tree crops. Our rationale for this decision was that the resolution of PlanetScope imagery is insufficient to distinguish such crops from the surrounding forest, and clear field boundaries are typically not visible in cocoa crops. 
+
+## Image catalog
+
 We generated a complete image catalog for the `r nrow(tiles)` tiles intersecting Ghana, spanning `r km2` km$^2$. This entailed downloading all PlanetScope imagery intersecting the total extent of these tiles for the periods May-September, 2018 (the growing season) and December, 2018 to February, 2019 (the subsequent dry season). The compositing processes was applied to render the resulting seasonally contrasting image pairs for each tile (**Figure Xa**). 
 
 We evaluated the overall quality of the resulting composites across the region using a random selection of 100 tiles, which we graded according to a four category quality that evaluated the degree of residual 1) cloud and 2) cloud shadow, 3) the number of visible scene boundary artifacts, and 4) the proportion of the image in which resolution was degraded below the 3-4 m PlanetScope resolution, due to between-date image mis-registrations. Each category was qualitatively ranked from 0-3, with 0 being the lowest quality, and 3 the highest (see SI for complete protocol), thus the highest possible score was 12. The results showed that the majority of the sampled composites (**X%; Fig Xb**) received a score of **X** or higher (**Y and Z%**), as rated by four independent observers (mean standard deviation of observer scores was **XX**). Image quality varied spatially and temporally, with the lower quality images found during in the growing season period and the Southwest corner, where the substantially greater cloud cover resulting in a much lower density of available PlanetScope imagery for each time period (**Fig Xc**). Overall, the available image density and quality of composites were closely related (see SI for full details).  
@@ -383,14 +386,14 @@ knitr::include_graphics('figures/figure4.png')
 ```
 
 ## The active learning process
-**[Fill in with intro]**. The average number of iterations per active learning process was **3**, as overall performance gains, as assessed against validation sets, saturated quickly (see **Figure X** in SI). 
+**[Fill in with intro]**. The average number of iterations per active learning process was **4**, as overall performance gains, as assessed against validation sets, saturated quickly (see **Figure X** in SI). 
 
 The average computational time per iteration per AOI was *6 hours*. **Training time. Interaction time**
 
 ## Map accuracy
 To assess the overall accuracy of the final maps, we used our reference set to evaluate the accuracy of classifications derived from thresholding the posterior probabilities produced by the RandomForest model, as well as the segmented field boundary maps. First, we evaluated the inter-rater agreement between reference supervisors in labeling reference polygons. The average inter-rater agreement was **X%, with a standard deviation of Y% (see Figure X in SI)**, which provides the upper bound on achievable map accuracy. 
 
-Based on this reference sample, we found that the average accuracy of the pixel-wise classifications was **X, with a range of X-X** (Figure 5). Overall user's accuracy was slightly **lower/higher** at **X, (range X-X)**, while producer's accuracy averaged **X, (range X-X)**. Each accuracy measure was highest in **northern-northeastern 2/3** of the country, and lowest in **southwestern 1/3**, where rainfall and cloud-cover are highest, and where tree crops dominate. The segmentation process **increased** accuracy slightly, with a mean overall, user's and producer's accuracy of **X (range X-X), Y (range X-X), and Z (range X-X) percent**.
+Based on this reference sample, we found that the average accuracy of the pixel-wise classifications was **X, with a range of X-X** (Figure 5). Overall user's accuracy was slightly **lower/higher** at **X, (range X-X)**, while producer's accuracy averaged **X, (range X-X)**. Each accuracy measure was highest in **northern-northeastern 2/3** of the country, and lowest in **southwestern 1/3**, where rainfall and cloud-cover are highest, and where tree crops dominate. The segmentation process **increased/decreased** accuracy slightly, with a mean overall, user's and producer's accuracy of **X (range X-X), Y (range X-X), and Z (range X-X) percent**.
 
 <!-- and an accuracy surface interpolated from the average cell-wise accuracies calculated between the predicted map and validation labels.  -->
 
@@ -400,29 +403,42 @@ knitr::include_graphics('figures/figure5.png')
 
 The accuracy patterns generally align with the difficulty of the labelling task, that is, **the southwestern regions were hardest for workers to interpret, as shown by Figure 5.**
 
-
 ## System evaluation/experiment results
 ### Label quality and map accuracy
-We used the reference labels to evaluate the accuracy of maps generated with the least and most accurate workers' labels, and then compared the resulting scores to accuracy assessed using the consensus labels. On average, there was a substantial difference between maps trained with the least and most accurate workers' labels, with the former being on average **X percentage points (range Y-Y%)** more accurate (**Figure 6**). Maps generated with consensus labels were on average **X percentage points (range Y-Y%)** more accurate than those created with the most accurate workers' labels.  
-
-
-```{r, echo = FALSE, out.height = "3in", out.width="5in", fig.cap="Difference in overall, user's, and producer's accuracy between maps made with consensus labels, the least accurate worker's, and most accurate worker's labels. [This a hypothetical placeholder figure].", fig.align='center', message=FALSE}
-# knitr::include_graphics('figures/figure6.png')
-library(tidyverse)
-library(cowplot)
-set.seed(1)
-acc_tb <- tibble(aoi = c(1:9, 12, 15), 
-                 Consensus = runif(11, min = 0.75, max = 0.85),
-                 Highest = runif(11, min = 0.72, max = 0.8),
-                 Least = runif(11, min = 0.65, max = 0.75))
-acc_tb <- gather(acc_tb, key = "type", value = "score", -aoi)
-ggplot(acc_tb) + 
-  geom_boxplot(aes(x = type, y = score), fill = "grey") + 
-  xlab("Labelling strategy") + ylab("Accuracy") + 
-  theme(panel.grid.major.y = element_line(colour = "grey80", linetype = 3))
+```{r, echo=FALSE}
+load(here::here("external/data/label_experiment_metrics.rda"))
+consensus <- scores %>% filter(Label == "Consensus") %>% 
+  select(AUC, Accuracy, TSS) 
+high <- scores %>% filter(Label == "High") %>% select(AUC, Accuracy, TSS) 
+low <- scores %>% filter(Label == "Low") %>% select(AUC, Accuracy, TSS)
+auc <- high$AUC / low$AUC - 1
+tss <- (high$TSS + 1) / (low$TSS + 1) - 1
+acc <- high$Accuracy / low$Accuracy - 1
+cauc <- consensus$AUC / high$AUC - 1
+ctss <- (consensus$TSS + 1) / (high$TSS + 1) - 1
+cacc <- consensus$Accuracy / high$Accuracy - 1
 ```
 
-To further evaluate label quality, we assessed the degree of similarity between worker polygons with the field boundaries collected by our ground validation team. Overall, we found that on average a worker's field boundary interpreted from a PlanetScope image had only an **X%** agreement (as determined by area of intersection over union) with the corresponding field-mapped boundary, and the average field size mapped by a worker was on average **X% smaller/larger** than those mapped on the ground. **However, these discrepancies are not necessarily an indication of how far workers were from the "truth", but maybe instead be at least partially an indication of how different the perspectives as to what constitutes a field when looking at an image versus seeing it from the ground (which in many cases was based on the field team's judgement, rather than farmer guidance).** 
+We used the validation labels to evaluate the accuracy of maps generated in three AOIs (1, 8, and 15; **Figure X**) with the least and most accurate workers' labels, and then compared the resulting scores to accuracy assessed using the consensus labels (**Figure 6**). On average, there was a substantial difference between maps trained with the most and least accurate workers' labels, with the former being on average `r round(mean(acc) * 100, 1)` percent higher (range `r round(min(acc) * 100, 1)`-`r round(max(acc) * 100, 1)`%) in terms of accuracy, `r round(mean(tss) * 100, 1)` percent higher (range `r round(min(tss) * 100, 1)`-`r round(max(tss) * 100, 1)`%) in skill (measured with TSS, which ranges from -1 to 1). Maps generated with consensus labels were on average `r round(mean(cacc) * 100, 1)` percent more accurate (range `r round(min(cacc) * 100, 1)`-`r round(max(cacc) * 100, 1)`%) and `r round(mean(ctss) * 100, 1)` (range `r round(min(ctss) * 100, 1)`-`r round(max(ctss) * 100, 1)`% more skillful. AUC scores showed similar average differences to TSS with respect to both comparisons; on average `r round(mean(auc) * 100, 1)` higher when comparing maps generated with the most and least accurate labels, and `r round(mean(cauc) * 100, 1)` percent more skillful when comparing maps genereated with consensus labels compared to those with the most accurate worker's labels. Although these comparisons were assessed against consensus-generated validation labels, a visual assessment of probability images generated from each labelling strategy shows markedly greater uncertainty between consensus and high accuracy label-generated maps relative to those generated with low accuracy (**see Figure SX in SI**). 
+
+
+```{r, echo = FALSE, out.height = "4in", out.width="7in", fig.cap="Difference in overall, user's, and producer's accuracy between maps made with consensus labels, the least accurate worker's, and most accurate worker's labels. [This a hypothetical placeholder figure].", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/figure6.png')
+# library(tidyverse)
+# library(cowplot)
+# set.seed(1)
+# acc_tb <- tibble(aoi = c(1:9, 12, 15), 
+#                  Consensus = runif(11, min = 0.75, max = 0.85),
+#                  Highest = runif(11, min = 0.72, max = 0.8),
+#                  Least = runif(11, min = 0.65, max = 0.75))
+# acc_tb <- gather(acc_tb, key = "type", value = "score", -aoi)
+# ggplot(acc_tb) + 
+#   geom_boxplot(aes(x = type, y = score), fill = "grey") + 
+#   xlab("Labelling strategy") + ylab("Accuracy") + 
+#   theme(panel.grid.major.y = element_line(colour = "grey80", linetype = 3))
+```
+
+To further evaluate label quality, we assessed the degree of similarity between worker polygons with the field boundaries collected by our ground validation team. Overall, we found that on average a worker's field boundary interpreted from a PlanetScope image had only an **X%** agreement (as determined by area of intersection over union) with the corresponding field-mapped boundary, and the average field size mapped by a worker was on average **X% smaller/larger** than those mapped on the ground. **However, these discrepancies are not necessarily an indication of how far workers were from the "truth", but may instead be at least partially an indication of how different the perspectives are as to what constitutes a field when looking at an image versus seeing it from the ground (which in many cases was based on the field team's judgement, rather than farmer guidance).** 
 
 
 ### 

@@ -1,9 +1,8 @@
 
 # Analyses and figures
+## Datasets
 
-## Ghana reference grids
-
-### Datasets
+The pre-preparation of base datasets that install with the `activemapper` package is shown in `external/scripts/data_setup.R`. These are loaded in here. 
 
 ```{r, eval=FALSE}
 library(raster)
@@ -12,47 +11,46 @@ library(dplyr)
 library(ggplot2)
 library(purrr)
 library(rmapaccuracy)
+library(here)
+library(activemapper)
 
 res <- 0.005
 res_supergrid <- 1
 num_supergrid <- res_supergrid / res
 
-data_path <- file.path("/Users", unname(Sys.info()["user"]),
-                       "Dropbox/projects/activelearning/mapper/spatial/data")
-master_grid <- raster(file.path(data_path, "processed/master_grid.tif"))
-africa <- st_read(file.path(data_path, "external/africa_noisl_gcs.sqlite")) %>% 
-  st_sf(crs = 4326)
+master_grid <- raster(system.file("extdata/ghana_grid.tif", 
+                                  package = "activemapper"))
+africa <- st_read(system.file("extdata/africa.geojson", 
+                              package = "activemapper"))
 africa_cont <- africa %>% st_union %>% st_sf
-ghana <- africa %>% filter(country == "Ghana") %>% select(GEOMETRY)
+ghana <- africa %>% filter(name == "Ghana") %>% select(geometry)
 
-tiles <- st_read(file.path(data_path, "processed/ghana_tiles.geojson"))
-degrees <- raster(file.path(data_path, "processed/africa_aois.tif"))
-# tiles <- raster(file.path(data_path, "processed/africa_aois.tif"))
+tiles <- st_read(system.file("extdata/ghana_tiles.geojson", 
+                             package = "activemapper")) 
+degrees <- st_read(system.file("extdata/degrees.geojson", 
+                               package = "activemapper")) 
 ```
 
 ### Figure 2: Grid System
 
 ```{r, eval = FALSE}
 ghana_aois <- tiles %>% pull(aoi) %>% unique
-degrees <- rasterToPolygons(degrees) %>% st_as_sf %>% 
-  rename(aoi = africa_aois) %>% st_sf(crs = 4326)
 
 ind <- 26  # index of selected AOI for plotting (from ghana_aois)
-
 xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
 
 p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
   geom_sf(data = ghana, fill = "grey85", col = "grey", size = 0.3) +
-  geom_sf(data = degrees %>% filter(aoi %in% ghana_aois),
+  geom_sf(data = degrees %>% filter(grid %in% ghana_aois),
           fill = "transparent", size = 0.3) +
-  geom_sf(data = degrees %>% filter(aoi == ghana_aois[ind]), fill = "gray70",
+  geom_sf(data = degrees %>% filter(grid == ghana_aois[ind]), fill = "gray70",
           size = 0.3) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   theme_void()
-p1
+# p1
 
-xylims <- degrees %>% filter(aoi %in% ghana_aois[c(ind:27, 31:32)]) %>%
+xylims <- degrees %>% filter(grid %in% ghana_aois[c(ind:27, 31:32)]) %>%
   st_coordinates(.)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
 
@@ -63,7 +61,7 @@ p2 <- ggplot(ghana) + geom_sf(fill = "grey85", col = "grey") +
   geom_sf(data = tile_sel %>% slice(1), fill = "red3", size = 0.3) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   theme_void()
-p2
+# p2
 
 gpols <- crop(master_grid, tile_sel[1, ]) %>% rasterToPolygons(.) %>%
   st_as_sf %>% st_sf(crs = 4326)
@@ -72,7 +70,7 @@ p3 <- ggplot(tile_sel %>% slice(c(1:2, 21:22))) +
   # geom_sf(data = super_cellsr %>% slice(ints[1]), fill = "grey60") +
   geom_sf(data = gpols, fill = "red3", size = 0.3) +
   theme_void()
-p3
+# p3
 
 g <- cowplot::plot_grid(p1, p2, p3, nrow = 1, scale = c(1, 1, 0.7), 
                         labels = LETTERS[1:3], label_x = 0.05)
@@ -108,35 +106,18 @@ ggsave("manuscript/figures/si_rainfall_pct.png", height = 4, width = 6,
 ```
 
 ### Mapping AOIs
-```{r, eval = FALSE}
-prod_groupings1 <- list(c(1216, 1217, 1283, 1284), c(1218, 1285), c(1219, 1286),
-                        c(1348, 1349), 1350, c(1351, 1352), c(1413, 1414), 1415,
-                        c(1416, 1417), c(1477, 1478), 1479, c(1480, 1481), 
-                        c(1539, 1540), 1541, c(1542, 1543), 1599:1602)
-map(1:length(prod_groupings1), function(x) {
-  ind <- prod_groupings1[[x]]
-  tiles %>% filter(aoi %in% ind) %>% mutate(grp = x) %>% select(aoi, tile, grp)
-}) %>% reduce(rbind) -> aois
 
-aois <- aois %>% group_by(grp) %>% 
-  summarize(aois = mean(grp)) %>% ungroup
-aois <- aois %>% 
-  mutate(area = st_area(.) %>% units::set_units("km2") %>% as.numeric) %>% 
-  select(grp, aois, area)
-mean(aois$area)
-range(aois$area)
-
-st_write(aois, dsn = "external/data/aois.geojson")
-```
+These were defined in `data_setup.R`.
 
 ## Map reference selection
 A random draw of cells within each map AOI, scaled proportionally from 120 to the total area of each cell.
 
 ```{r, eval = FALSE}
+# set up reference proportion
 aois <- aois %>% mutate(nref = ceiling(area / max(area) * 120)) %>% 
   select(aois, area, nref)
 
-# extract ids
+# extract cell ids for each AOI
 ref_sites <- lapply(1:nrow(aois), function(x) {  # x <- 15
   print(x)
   cells <- extract(master_grid, aois[x, ])[[1]]
@@ -144,7 +125,7 @@ ref_sites <- lapply(1:nrow(aois), function(x) {  # x <- 15
 })
 # length(which(is.na(cells)))
 
-# sample then in proportion
+# sample cell ids in proportion for each AOI
 set.seed(1)
 ref_sites_sample <- lapply(1:length(ref_sites), function(x) {
   sn <- aois[x, ] %>% pull(nref)
@@ -153,7 +134,7 @@ ref_sites_sample <- lapply(1:length(ref_sites), function(x) {
 }) 
 
 # and select cell coordinates from database
-pw <- "bqouhegFpwiEnfD%p6HZ67JsN"
+pw <- "password"  ####### BFG here
 con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), 
                       host = "labeller1.crowdmapper.org", dbname = "Africa", 
                       user = "postgis", password = pw)
@@ -178,9 +159,34 @@ ref_sites_polys <- reduce(xypolys, rbind)
 
 # ggplot(aois) + geom_sf() + 
 #   geom_sf(data = ref_sites_polys, aes(color = factor(aoi))) + theme_void()
-st_write(ref_sites_polys, dsn = here::here("external/data/ref_samples.sqlite"),
+st_write(ref_sites_polys, dsn = here("external/data/ref_samples.sqlite"),
          delete_layer = TRUE)
+ref_sites_tiles <- st_intersection(ref_sites_polys %>% st_centroid, 
+                                   tiles %>% select(tile))
+ref_sites_tiles <- ref_sites_tiles %>% as_tibble %>% select(name, tile, aoi) %>% 
+  arrange(aoi, name)
+readr::write_csv(ref_sites_tiles, 
+                 path = here("external/data/ref_samples_tiles.csv"))
 
+# check also if sampled cells aren't in training or validation samples
+ref_in_train <- lapply(c(1:9, 12, 15), function(x) {  # x <- 2
+  ref_names <- ref_sites_tiles %>% filter(aoi == x) %>% pull(name)
+  con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), dbname = "Africa", 
+                        host = paste0("labeller", x, ".crowdmapper.org"), 
+                        user = "postgis", password = pw)
+  incoming <- tbl(con, "incoming_names") %>% select(name) %>% collect() %>% pull
+  qnames <- tbl(con, "kml_data") %>% filter(kml_type == "Q") %>% 
+    select(name) %>% collect %>% pull
+  DBI::dbDisconnect(con)
+  return(ref_names[which(ref_names %in% c(incoming, qnames))])
+})
+
+# and drop any that are
+ref_sites_tiles2 <- ref_sites_tiles %>% filter(!name %in% unlist(ref_in_train))
+readr::write_csv(ref_sites_tiles, 
+                 path = here("external/data/ref_samples_tiles2.csv"))
+
+# ref_sites_tiles2 %>% group_by(aoi) %>% count
 
 # select PlanetScope data
 planet <- lapply(1:6, function(x) {  # x <- 1
@@ -197,14 +203,15 @@ planet <- lapply(1:6, function(x) {  # x <- 1
 })
 pth <- here::here(paste0("external/data/aoi", x, ".csv"))
 readr::write_csv(planet[[1]], path = pth)
-
-
 ```
 
+### Starter polygons
+
+Version 1 creates three sets of polygons per AOI.
 Create starter reference polygons for AOIs. These are fixed size in random placement in each cell. These can be moved more easily to capture pure classes
 ```{r, eval=FALSE}
 # read back in ref sample points and create three random points in each per AOI
-ref_sites_polys <- st_read(here::here("external/data/ref_samples.sqlite"))
+ref_sites_polys <- st_read(here("external/data/ref_samples.sqlite"))
 set.seed(1)
 ref_start_pts <- lapply(1:16, function(x) {
   print(x)
@@ -214,8 +221,7 @@ ref_start_pts <- lapply(1:16, function(x) {
   )
   start_pts <- st_intersection(st_sf(start_pts), ref_sites_polys)
   xy <- start_pts %>% st_coordinates %>% as_tibble() %>% setNames(c("x", "y"))
-  start_pts <- bind_cols(start_pts %>% as_tibble, xy) %>% select(name, x, y) %>% 
-    data.table::data.table()
+  start_pts <- bind_cols(start_pts %>% as_tibble, xy) %>% select(name, x, y) %>%     data.table::data.table()
 })
 
 # ref_sites_polys %>% slice(2) %>% st_geometry() %>% plot
@@ -239,7 +245,6 @@ strt_pol_aoi1 <- point_to_gridpoly(ref_start_pts[[1]], w = w, gcs, gcs) %>%
 # check areas
 # start_pols_aoi1 %>% st_area %>% mean
 # start_pols_aoi16 %>% st_area %>% mean
-
 st_write(strt_pol_aoi1, 
          dsn = here::here("external/data/ref_polys_ao1.sqlite"))
 ```
@@ -272,19 +277,111 @@ for(i in gs_urls) {
   system(cmd)
 }
 
-
-
 os_tiles <- os %>% select(Key, Size, Bucket) %>% 
   mutate(Size = as.numeric(Size)) %>% 
   filter(Key %in% gsub("s3://activemapper/", "", planet_aoi1$url))
   # with(get_object(object = os$KeyKey, bucket = Bucket, 
   #                 file = file.path(dnames[2], basename(Key))))
 get_object(object = os_tiles$Key[1], bucket = os_tiles$Bucket[1], 
-                  file = file.path(dnames[2], basename(os_tiles$Key[1])))
-
+           file = file.path(dnames[2], basename(os_tiles$Key[1])))
 ```
 
+After creating that and manually classifying and adjusting reference category, read in, make duplicate, clear selections, and write out for additional supervisors. 
+```{r, eval=FALSE}
+ref_aoi1 <- st_read(here::here("external/data/ref_polys_ao1.sqlite"))
+# ref_aoi1 %>% ggplot() + geom_histogram(aes(x = cls), stat = "count")
+ref_aoi1 %>% mutate(cls = NA) %>% 
+  st_write(here::here("external/data/ref_polys_ao1_template.sqlite"))
+```
 
+Now read in and assess accuracy. Grab probability images for AOI1
+```{r, eval=FALSE}
+library(aws.s3)
+library(raster)
+
+# create master_grid extent, get list of probability images, download fpool 
+# (for checking)
+aois <- st_read(here("external/data/aois.geojson"))
+mgrid_ext <- raster(extent(-17.541, 51.459, -35.46, 37.54), res = 0.05)
+pimgs <- get_bucket_df(bucket = "activemapper", 
+                       prefix = "classified-images/1_whole_test") %>% as_tibble
+fpool1 <- s3read_using(FUN = readr::read_csv, 
+                       object = "planet/f_pool_1.csv", bucket = "activemapper")
+host <- "labeller1.crowdmapper.org"
+con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), host = host, 
+                      dbname = "Africa", user = "postgis", password = pw)
+mgrid <- tbl(con, "master_grid") %>% filter(name %in% local(fpool1$name)) %>% 
+  collect()
+kml_data <- tbl(con, "kml_data") %>% filter(kml_type == "F") %>% collect()
+# mgrid %>% st_as_sf(coords = c("x", "y")) %>% st_geometry %>% plot
+
+# strip out row, col from names of probability images, and convert them to x, y
+# from dummy master_grid
+sstr <- "classified-images/1_whole_test/image_"
+pimgs <- pimgs %>% select(Key) %>% 
+  mutate(row = gsub("c*.*_r|.tif", "", gsub(sstr, "", Key))) %>% 
+  mutate(col = gsub("c|_r*.*.tif", "", gsub(sstr, "", Key))) %>% 
+  select(Key, row, col)
+pimgs_xy <- bind_cols(pimgs, 
+                      x = xFromCol(mgrid_ext, as.numeric(pimgs$col) + 1),
+                      y = yFromRow(mgrid_ext, as.numeric(pimgs$row) + 1)) %>%
+  st_as_sf(coords = c("x", "y"), crs = 4326)
+
+# use xy to extract tile ids
+tiles <- read_sf(here("inst/extdata/ghana_tiles.geojson"))
+tiles_xy <- st_intersection(tiles, pimgs_xy)
+tiles_xy <- st_intersection(tiles_xy, aois %>% select(aois)) %>% as_tibble() %>%
+  select(tile, row, col, aois)
+tiles_rc <- inner_join(tiles_xy, tiles %>% select(tile)) %>% st_as_sf() %>% 
+  select(aois, tile, row, col)
+# ggplot(aois) + geom_sf() + geom_sf(data = tiles_xy) +
+#   theme_void()
+
+# select grid cell coordinates for reference cells, and then use those to 
+# intersect with tiles to get row, col for probability images
+ref_xys <- mgrid %>% filter(name %in% ref_aoi1$name) %>% 
+  distinct(id, name, x, y) %>% st_as_sf(coords = c("x", "y"), crs = 4326)
+# which(ref_xys$name %in% kml_data$name)  # confirm no reference sites intersect
+ref_xys_tiles <- st_intersection(ref_xys, tiles_rc) %>% as_tibble
+
+# Then use to get probability image values
+# ref_xys_tiles %>% distinct(row, col)
+dup_tiles <- ref_xys_tiles %>% filter(duplicated(tile)) %>% pull(tile)
+# ref_xys_tiles %>% filter(tile %in% dup_tiles)
+unique_ref_tiles <- ref_xys_tiles %>% distinct(tile) %>% pull %>% sort
+ref_pvals <- lapply(unique_ref_tiles, function(x) {  # x <- unique_ref_tiles[6]
+  print(x)
+  tile <- ref_xys_tiles %>% filter(tile == x) 
+  ref <- ref_aoi1 %>% filter(name %in% tile$name)
+  prob_tile <- pimgs %>% 
+    filter(row == unique(tile$row) & col == unique(tile$col))
+  prob_tiler <- raster(paste0("/vsis3/activemapper/", prob_tile$Key))
+  pvals <- extract(prob_tiler, ref)
+  v <- do.call(rbind, lapply(pvals, function(x) {
+    tibble(mu = mean(x), sd = sd(x), n = length(x))
+  }))
+  bind_cols(ref, v) %>% select(name, rid, cls, mu, sd, n)
+})
+ref_pvals <- do.call(rbind, ref_pvals)
+ref_pvals_tb <- ref_pvals %>% as_tibble
+ref_pvals_tb %>% ggplot() + geom_boxplot(aes(x = cls, y = mu))
+
+tp <- ref_pvals_tb %>% filter(cls == "f" & mu > 50) %>% count
+fn <- ref_pvals_tb %>% filter(cls == "f" & mu < 50) %>% count
+fp <- ref_pvals_tb %>% filter(cls == "n" & mu > 50) %>% count
+tn <- ref_pvals_tb %>% filter(cls == "n" & mu < 50) %>% count
+
+# ref_pvals_tb %>% filter(cls == "f" & mu > 40) %>% count
+# ref_pvals_tb %>% filter(cls == "n" & mu > 40) %>% count
+ref_pvals_tb %>% filter(cls == "n" & mu < 40) %>% count
+laref_pvals_tb %>% filter(cls == "u" & between(mu, 30, 70))
+ref_pvals_tb %>% filter(cls == "u" & (mu < 30 | mu > 70))
+
+(tp + tn) / (tp + tn + fp + fn)
+
+ref_pvals_tb %>% filter(cls == "n" & mu > 50)
+
+```
 
 
 
@@ -410,6 +507,49 @@ ggsave("manuscript/figures/figure5.png", width = 9,
        height = 4, units = "in", dpi = 300)
 
 ```
+
+## Figure 6: High, low, medium comparisons
+
+Statistics from high, medium, low experiment results from Boka. 
+```{r, eval = FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+
+# metrics
+scores <- tibble(
+  # AOI = as.character(c(rep(1, 3), rep(8, 3), rep(15, 3))), 
+  AOI = c(rep(1, 3), rep(8, 3), rep(15, 3)), 
+  Label = c("Low", "High", "Consensus", "Low", "High", "Consensus", 
+            "Low", "High", "Consensus"), 
+  AUC = c(0.6987, 0.7803, 0.7741, 0.7333, 0.8461, 0.8563, 0.6916, 0.7628, 
+          0.7714),
+  Accuracy = c(0.6575, 0.7919, 0.7897, 0.5313, 0.8361, 0.8421, 0.6279, 0.6916,
+               0.7245),
+  TSS = c(0.2940, 0.4194, 0.4138, 0.2568, 0.5390, 0.5639, 0.2718, 0.3835, 
+          0.3916)
+)
+p <- scores %>% pivot_longer(cols = c("AUC", "Accuracy", "TSS")) %>% 
+  arrange(AOI) %>%
+  group_by(AOI) %>% 
+  ggplot(.) + geom_bar(aes(x = name, y = value, fill = Label), 
+                       stat = "identity", position = "dodge") + 
+  scale_fill_manual(values = c("blue", "purple", "orange"), 
+                    name = "Labelling strategy", 
+                    labels = c("Consensus", "Highest scorer", 
+                               "Lowest scorer")) + 
+  xlab("Metric") + ylab("Score") + ggtitle("AOI") +
+  facet_grid(. ~ AOI) + theme_cowplot() 
+ggsave(p, 
+       filename = here::here("manuscript/figures/figure6.png"),
+       height = 4, width = 8, dpi = 300)
+save(scores, file = here::here("external/data/label_experiment_metrics.rda"))
+```
+
+
+
+
 
 ## Consensus maps
 ```{r, eval=FALSE}
