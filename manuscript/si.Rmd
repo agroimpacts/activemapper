@@ -266,6 +266,14 @@ $$
 
 Since `r round((wtA * 1 + wtB * 0) / (wtA + wtB), 3)` > 0.5, we label the particular pixel a field.  
 
+\clearpage
+# Results
+
+```{r, echo = FALSE, out.width="100%", fig.cap="Cropland probability images produced by RandomForest models trained with A) consensus labels, B) the most accurate worker's labels, and C) the least accurate worker's labels.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_hml_probs.png')
+```
+
+
 
 # References
 \singlespace
