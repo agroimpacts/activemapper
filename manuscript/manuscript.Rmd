@@ -460,6 +460,10 @@ To evaluate whether active learning is more effective than a purely random appro
     - impact on accuracy
     
 - Assessment of segmentation quality
+- Relevant literature: 
+    - [@Tongforgottenlanduse2020] discuss Sentinel-based mapping in Sahel, to detect fallows (reference to our intermediate probability values). Semi-automated approach to generating reference data from imagery (based on phenology)
+    - [@BeyMappingsmallholderlargescale2020] use CollectEarth to train an algorithm. Multi-stage. No reporting of training or reference data accuracy. 
+    - [@LuoDevelopingclearskycloud2008] relevant compositing method to cite, which sounds similar to ours. 
 
 # Acknowledgements
 

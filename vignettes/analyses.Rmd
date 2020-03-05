@@ -383,8 +383,6 @@ ref_pvals_tb %>% filter(cls == "n" & mu > 50)
 
 ```
 
-
-
 ## Figure 4: Average quality of image tiles
 
 Placeholder for now, as using imagined image quality.
@@ -579,9 +577,6 @@ plot(lprob, lty = 0, add = TRUE, zlim = c(0, 100),
 dev.off()
 
 ```
-
-
-
 
 
 ## Consensus maps
