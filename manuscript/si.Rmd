@@ -149,6 +149,38 @@ To minimize the risk of topological errors, *mapper*'s polygon digitizing tools 
 
 ### Accuracy assessment
 
+#### Protocol
+Following Stehman and Foody (2019)
+
+- Sample design
+  - Randomization approach in sample selection protocol
+  - "Specify inclusion probabilities or the information needed to derive the inclusion probabilities"
+  - If stratified sampling design chosen, provide:
+    - details of how strata were created
+    - details of sampling design within each strata
+      - Random within each
+    - what sample size was in each stratum
+      - Equal samples in agricultural and non-agricultural classes
+  - Register sample: 
+    - specify locations originally selected
+    - if actual sample site moved, give rationale (find areas fully containing class within sampling unit)
+    - specify which sites weren't sampled due to problems (e.g. missing data)
+  - Desired Confidence Interval (user's accuracy only)
+
+$$n = \frac{z^2p(1-p)}{d^2}$$
+  
+
+      - p = estimated probability
+      - d = desired half-width
+
+- Response design
+  - Definition of spatial assessment
+  - Definition of classes
+  - Reference source
+  - Specific information collected from each source
+  - Rules for reference class labels
+  - How agreement between map and reference classes is defined
+
 ### Consensus labelling
 As described in the main text, the formula used for creating a consensus label is: 
 

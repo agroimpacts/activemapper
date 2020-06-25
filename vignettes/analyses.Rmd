@@ -2,9 +2,7 @@
 # Analyses and figures
 ## Datasets
 
-The pre-preparation of base datasets that install with the `activemapper` package is shown in `external/scripts/data_setup.R`. These are loaded in here. 
-
-```{r, eval=FALSE}
+```{r setup, include=FALSE, cache=FALSE, message = FALSE}
 library(raster)
 library(sf)
 library(dplyr)
@@ -12,25 +10,200 @@ library(ggplot2)
 library(purrr)
 library(rmapaccuracy)
 library(here)
+library(doMC)
 library(activemapper)
+```
 
+### Base Datasets
+
+The pre-preparation of base datasets that install with the `activemapper` package is shown in `external/scripts/data_setup.R`. These are loaded in here. 
+
+```{r, eval=FALSE}
 res <- 0.005
 res_supergrid <- 1
 num_supergrid <- res_supergrid / res
 
-master_grid <- raster(system.file("extdata/ghana_grid.tif", 
-                                  package = "activemapper"))
-africa <- st_read(system.file("extdata/africa.geojson", 
-                              package = "activemapper"))
+mgrid <- raster(
+  system.file("extdata/ghana_grid.tif", package = "activemapper")
+)
+africa <- st_read(
+  system.file("extdata/africa.geojson", package = "activemapper")
+)
 africa_cont <- africa %>% st_union %>% st_sf
 ghana <- africa %>% filter(name == "Ghana") %>% select(geometry)
 
-tiles <- st_read(system.file("extdata/ghana_tiles.geojson", 
-                             package = "activemapper")) 
-degrees <- st_read(system.file("extdata/degrees.geojson", 
-                               package = "activemapper")) 
+degrees <- st_read(
+  system.file("extdata/degrees.geojson", package = "activemapper")
+)
+tiles <- st_read(
+  system.file("extdata/ghana_tiles.geojson", package = "activemapper")
+) 
+aois <- st_read(
+  system.file("extdata/aois.geojson", package = "activemapper")
+)
+# ggplot(data = tiles) + 
+#   geom_sf(aes(fill = as.factor(aoi1)), col = "transparent")
 ```
 
+### Map results
+```{r, eval=FALSE}
+## segments
+segment_files <- dir(here("external/data/results/segments/merged"), 
+                     pattern = "boundarymerge", full.names = TRUE)
+
+iid <- as.numeric(gsub("[[:alpha:]]|_|\\.", "", basename(segment_files)))
+segment_files <- tibble(file = segment_files, order = iid) %>% arrange(iid)
+```
+
+### Intermediate processing
+
+#### Grid for stratifying model results
+```{r, eval=FALSE}
+r <- raster(extent(tiles), res = 0.05)
+crs(r) <- crs(tiles)
+
+# for field areas
+tilesr <- fasterize::fasterize(tiles, r, field = "aoi1")
+tilesr005 <- disaggregate(tilesr, fact = 10)
+tilesr005_sf <- stars::st_as_stars(tilesr005) %>% st_as_sf() %>% 
+  rename(aoi1 = layer)
+
+# for point intersection
+# mask master_grid and convert to points
+mgrid <- mask(mgrid, tiles)
+mgrid_xy <- as.data.frame(mgrid, xy = TRUE) %>% 
+  st_as_sf(coords = c("x", "y"), crs = 4326) %>% rename(id = ghana_grid) %>% 
+  tidyr::drop_na(id)
+
+# join with tiles
+# system.time(extract(tilesr, master_grid_xy))  # 11.81
+system.time(mgrid_xytiles <- st_join(mgrid_xy, tilesr005_sf))  # 26
+
+# ggplot(tilesr005_sf) + geom_sf(aes(fill = layer), col = "transparent")
+# tilesr005_sf %>% filter(layer == 1) %>% plot()
+# tiles_ss <- tiles %>% filter(aoi1 == 1) %>% slice(1:6, 10:15)
+# tiles_ss <- tiles %>% filter(aoi1 == 1) %>% slice(1)
+# plot(st_geometry(tiles_ss))
+# plot(crop(tilesr, tiles_ss), add = TRUE)
+# plot(crop(tilesr005, tiles_ss), add = TRUE)
+# plot(crop(master_grid, tiles_ss), add = TRUE)
+# plot(master_grid)
+
+```
+
+#### Field characteristics
+##### Field density
+
+Process the field segments to calculate cropland coverage per 0.005 degree pixel. Run these in loop.
+
+```{r, eval=FALSE}
+logf <- here("external/logs/gridding_005.log")
+registerDoMC(cores = 7)
+fareas <- foreach(i = segment_files$order, .combine = stack) %dopar% {  
+  # i <- segment_files[11]
+  aoi_id <- gsub("[[:alpha:]]|_|\\.", "", basename(i))
+  
+  cat(glue::glue("Starting {aoi_id} at {Sys.time()}"), file = logf, 
+      sep = "\n", append = TRUE)
+  print(aoi_id)
+  
+  # read in fields
+  cat(glue::glue("...aoi {aoi_id} reading in fields and calculating tile area"),
+      file = logf, sep = "\n", append = TRUE)
+  flds <- read_sf(i)
+  # select out AOI grid and 
+  aoi_tiles <- tilesr005_sf %>% filter(aoi1 == aoi_id) %>% 
+    mutate(cid = 1:n(), area = as.numeric(st_area(.) / 10000))
+
+  # intersect fields
+  cat(glue::glue("...aoi {aoi_id} intersecting fields and calculating area"),
+      file = logf, sep = "\n", append = TRUE)
+  # fld_int <- st_intersection(aoi_tiles, flds)
+  fld_int <- st_join(aoi_tiles_xy, flds)
+  fld_int %>% mutate(class = )
+
+  drops <- fld_int %>%
+    st_is(c("POINT", "MULTIPOINT", "LINESTRING", "MULTILINESTRING")) %>%
+    which()
+  polys <- fld_int %>% st_is("POLYGON") %>% which()
+  fld_int <- fld_int %>% slice(-drops)
+  fld_int <- fld_int %>% mutate(farea = as.numeric(st_area(.) / 10000))
+  fld_areas <- fld_int %>% as_tibble() %>% group_by(cid) %>%
+    summarize(farea = sum(farea))
+  
+  cat(glue::glue("...aoi {aoi_id} joining areas with tiles"), file = logf,
+      sep = "\n", append = TRUE)
+  aoi_tiles <- left_join(aoi_tiles, fld_areas) %>%
+    mutate(farea = ifelse(is.na(farea), 0, farea)) %>%
+    mutate(fprop = round(farea / area, 4))
+  
+  # crop down to just 
+  cat(glue::glue("...aoi {aoi_id} rasterizing"), file = logf, sep = "\n",
+      append = TRUE)
+  aoir <- tilesr005 == as.numeric(aoi_id)
+  arear <- area(aoir) * 100
+  # aoir[aoir == 0] <- NA
+  farea <- fasterize::fasterize(aoi_tiles, aoir, field = "fprop",
+                                fun = "sum", background = 0)
+  
+  cat(glue::glue("Finished aoi {aoi_id} at {Sys.time()}"), file = logf,
+      sep = "\n", append = TRUE)
+  cat("", file = logf, sep = "\n", append = TRUE)
+  return(farea)
+}
+
+# plot(fdensity)
+
+# writeRaster(fdensity, filename = here("external/data/field_density005.tif"))
+# fdensity <- raster(here("external/data/field_density005.tif"))
+```
+
+##### Field points
+For reference site selection and stratification
+```{r, eval=FALSE}
+logf <- here("external/logs/field_points_005.log")
+registerDoMC(cores = 7)
+fpoints <- foreach(i = segment_files$file) %dopar% {  
+  # i <- segment_files$file[1]
+  aoi_id <- gsub("[[:alpha:]]|_|\\.", "", basename(i))
+  
+  cat(glue::glue("Starting {aoi_id} at {Sys.time()}"), file = logf, 
+      sep = "\n", append = TRUE)
+
+  # read in fields
+  cat(glue::glue("...aoi {aoi_id} reading in fields and calculating tile area"),
+      file = logf, sep = "\n", append = TRUE)
+  flds <- read_sf(i) %>% rename(fid = id)  # rename id field
+
+  # intersect fields with main grid
+  cat(glue::glue("...aoi {aoi_id} intersecting fields and calculating area"),
+      file = logf, sep = "\n", append = TRUE)
+  mgrid_ss <- mgrid_xytiles %>% filter(aoi1 == aoi_id)  # subset mgrid
+  fld_int <- st_join(mgrid_ss, flds)
+  fld_int <- fld_int %>% mutate(class = ifelse(is.na(fid), 0, 1)) %>% 
+    select(id, fid, aoi1, class) %>% rename(aoi = aoi1)
+  
+  cat(glue::glue("aoi {aoi_id} complete"),
+      file = logf, sep = "\n", append = TRUE)
+  return(fld_int)
+}
+
+# Rename one of two AOI3 results, and then bind
+fpoints[[3]] <- fpoints[[3]] %>% mutate(aoi = "3N")
+fpoints <- do.call(rbind, fpoints)
+xy <- fpoints %>% st_coordinates() %>% as_tibble() %>% rename(x = X, y = Y)
+fpoints_tb <- bind_cols(fpoints %>% as_tibble() %>% select(-geometry), xy)
+# data.table::fwrite(
+#   fpoints_tb, file = here("external/data/field_points005.csv")
+# )
+
+# readr::read_csv(here("external/data/field_points005.csv"))
+# fpoints[[3]] %>% filter(class == 1) %>% st_geometry %>% plot(cex = 0.1, pch = 16)
+```
+
+
+
+## Figures
 ### Figure 2: Grid System
 
 ```{r, eval = FALSE}
@@ -109,8 +282,56 @@ ggsave("manuscript/figures/si_rainfall_pct.png", height = 4, width = 6,
 
 These were defined in `data_setup.R`.
 
-## Map reference selection
-A random draw of cells within each map AOI, scaled proportionally from 120 to the total area of each cell.
+## Map reference site selection
+
+Use formula from Stehman and Foody (2019) to estimate desired sample size for different classes, using range of expected user's accuracies per class
+```{r, fig.height=4, fig.width=4, fig.align="center"}
+fdensity <- raster(here("external/data/field_density005.tif")) 
+fdensity[fdensity > 1] <- 1
+
+fpoints <- data.table::fread(here("external/data/field_points005.csv")) %>% 
+  filter(aoi != "3N")
+
+# proportion of Ghana that is cropland, based on density
+dropna <- function(x) x[!is.na(x)]
+v <- dropna(values(fdensity))
+fcropland <- sum(v) / length(v)  # 21.5%
+fcropland2 <- (fpoints %>% filter(class == 1) %>% nrow()) / nrow(fpoints)
+
+# sample size function
+ref_sample_size <- function(p, z, d) {
+  n <- (z^2 * p * (1 - p)) / d^2
+  data.frame(p = p, n = n)
+}
+
+# sample size
+sample_size <- ref_sample_size(seq(0.6, 0.9, 0.05), 1.96, 0.03)
+
+p1 <- ggplot(sample_size) + geom_point(aes(p, n)) + 
+  geom_text(aes(p, n, label = round(n)), nudge_x = 0.017) + theme_bw()
+p1
+```
+
+Going with sample size of 800 for cropland class, and 683 for non-cropland, per the above.  MOE of 0.03 and 95% confidence interval on assumed cropland 
+```{r, eval=FALSE}
+# Take weighted average
+set.seed(111)
+fsample <- fpoints %>% filter(class == 1) %>% sample_n(size = 800)
+set.seed(111)
+nofsample <- fpoints %>% filter(class == 0) %>% sample_n(size = 683)
+
+ref_sample <- bind_rows(fsample, nofsample) %>% 
+  mutate(class = as.character(class)) %>% st_as_sf(coords = c("x", "y"))
+
+ggplot(ref_sample) + geom_sf(aes(color = factor(class)), size = 0.5)
+
+data.table::fwrite(
+  ref_sample, file = here("external/reference/map_reference_sample.csv")
+)
+```
+
+
+
 
 ```{r, eval = FALSE}
 # set up reference proportion
