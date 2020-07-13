@@ -93,7 +93,7 @@ classoption: a4paper
 capsize: normalsize
 fontsize: 11pt
 geometry: margin=1in
-linenumbers: yes
+linenumbers: false
 spacing: doublespacing
 footerdate: yes
 abstract: The abstract can go either here or below
@@ -107,9 +107,10 @@ csl: ecology.csl
 
 
 ```{r setup, include=FALSE, cache=FALSE, message = FALSE}
-
 library(knitr)
 library(citr)
+library(tidyverse)
+library(sf)
 
 #opts_knit$set(root.dir=normalizePath('../'))
 
@@ -146,40 +147,6 @@ cite_options(citation_format = "pandoc")
 
 ### Digitizing tools
 To minimize the risk of topological errors, *mapper*'s polygon digitizing tools prevent drawing that results in self-intersections and overlaps between adjacent polygons. Upon submission, the PostGIS [`ST_MakeValid`](https://www.postgis.net/docs/ST_MakeValid.html) function is applied to each polygon's geometry to clean remaining topological errors upon insertion into the database. 
-
-### Accuracy assessment
-
-#### Protocol
-Following Stehman and Foody (2019)
-
-- Sample design
-  - Randomization approach in sample selection protocol
-  - "Specify inclusion probabilities or the information needed to derive the inclusion probabilities"
-  - If stratified sampling design chosen, provide:
-    - details of how strata were created
-    - details of sampling design within each strata
-      - Random within each
-    - what sample size was in each stratum
-      - Equal samples in agricultural and non-agricultural classes
-  - Register sample: 
-    - specify locations originally selected
-    - if actual sample site moved, give rationale (find areas fully containing class within sampling unit)
-    - specify which sites weren't sampled due to problems (e.g. missing data)
-  - Desired Confidence Interval (user's accuracy only)
-
-$$n = \frac{z^2p(1-p)}{d^2}$$
-  
-
-      - p = estimated probability
-      - d = desired half-width
-
-- Response design
-  - Definition of spatial assessment
-  - Definition of classes
-  - Reference source
-  - Specific information collected from each source
-  - Rules for reference class labels
-  - How agreement between map and reference classes is defined
 
 ### Consensus labelling
 As described in the main text, the formula used for creating a consensus label is: 
@@ -297,6 +264,88 @@ $$
 $$
 
 Since `r round((wtA * 1 + wtB * 0) / (wtA + wtB), 3)` > 0.5, we label the particular pixel a field.  
+
+
+
+### Accuracy assessment
+We designed and implemented a map accuracy assessment protocol following procedures summarized by @StehmanKeyissuesrigorous2019. This entailed the creation of a map reference sample, which first entailed designing a sample, and then designing how the sample response would be collected.
+
+#### Map reference sample design
+A reference sample should ideally have some randomization involved in the sample selection protocol, and the probabilities for a sample being included should be provided.  There are multiple sample designs that can be chosen, but we employed a stratified sampling design, using the segmented field boundaries to define the strata for field/non-field. To create the sample, we first extracted the centroids for each of the sample grid cells in Ghana. We then intersected the centroid points with the field segments, assigned a class of 1 (cropland) where points intersected a field, and 0 where they didn't (non-cropland). We then removed from this set of points all those that corresponded to model training, validation, or training reference sites. We then extracted a random sample from both the cropland and non-cropland points. To determine the sample size of each, we specified a desired confidence interval using the following formula [@StehmanKeyissuesrigorous2019]:
+
+$$n = \frac{z^2p(1-p)}{d^2}$$
+        
+Where p is the estimated probability (or mapped class accuracy), and d is the size of the margin of error (1/2 the confidence interval). We selected a d value of 0.03 and assumed that the user's accuracy of the field class would be 0.75 and that of the non-cropland class would be 0.8, returning sample sizes of 800 and 683, respectively. The distribution of the resulting map reference sample is shown in Figure 1.
+
+```{r, echo = FALSE, fig.align='center', out.width="80%", message=FALSE, warning=FALSE, fig.cap="Distribution of the selected map reference sample for the cropland and non-cropland class. "}
+africa <- st_read(
+  system.file("extdata/africa.geojson", package = "activemapper"), quiet = TRUE,
+)
+aois <- st_read(system.file("extdata/aois.geojson", package = "activemapper"), 
+                quiet = TRUE)
+africa_cont <- africa %>% st_union %>% st_sf
+ghana <- africa %>% filter(name == "Ghana") %>% select(geometry)
+
+ref_sample <- readr::read_csv(
+  here::here("external/reference/map_reference_sample.csv")
+)
+ref_sample <- ref_sample %>% st_as_sf(coords = c("x", "y"), crs = 4326)
+
+p <- ggplot() + 
+  # geom_sf(data = ghana) +
+  geom_sf(data = aois) + 
+  geom_sf(data = ref_sample, aes(color = factor(class)), size = 0.1) +
+  scale_color_manual(values = c("red", "blue"), 
+                     labels = c("Non-cropland", "Cropland"), name = "") + 
+  theme_light()
+p
+```
+
+#### Response design
+##### Stage 1
+We collected the map reference sample on a separate instance of `labeller` set up for the purpose (`validator.crowdmapper.org`). For the sampling unit, we selected a rectangular polygon of ~0.1 ha (0.0002866$^\circ$ resolution), centered on the centroid of each grid cell selected for map reference sample.  Four classes were established for the validation: **cropland**, **non-cropland**, **uncertain but likely cropland**, and **uncertain but likely non-cropland**. The latter two classes were designed to capture information related to swidden dynamics, following the rationale that uncertainty and time since last cropping are likely to be positively correlated. This uncertainty also captures information about the inherent difficulty of the mapping task. Samples were collected by visually interpreting the overlays of PlanetScope composites presented in `labeller`, following the same interpretation protocols used by the labelling team, with the exception that the polygons placed were square and of 0.0002866$^\circ$ resolution. 
+
+The map reference sample was first placed and defined in an initial stage. In this stage, the class of the initial square polygon was determined, and then the polygon was adjusted if it overlapped more than one class. In sites where the initial map reference grid fell on one of the two uncertain classes, a second polygon was placed in the nearest location where a definite cropland or non-cropland interpretation could be made, with the choice determined by whether the uncertain class was more likely cropland or not cropland. The uncertain class was only used for providing insight into fallow cycles, while the second, more certain polygon was used in a second stage of the map reference sample, which was given to multiple independent interpreters (see below). 
+
+The following set of rules were followed in this first, sample placing phase (undertaken by Lyndon Estes):
+
+1. When determining the class corresponding with the initial location of the target grid, IF:
+  - More than half of the target falls within what appears to be a clear arable crop field, then assign it to **cropland**. 
+  - More than half falls in what is clearly not a field, then assign it to **non-cropland**. 
+  - More than half falls in a location where it is harder to tell whether it is cropland or non-cropland, determine whether it is more likely a crop field or not a crop field, and then assign either **uncertain but likely cropland**, or **uncertain but likely non-cropland**.
+  
+2. After determining the class, IF:
+  a. The target polygon is contained entirely within a single clear class AND
+      - The class is either **cropland** or **non-cropland** THEN:
+        - Digitize a point within the center of the target box, assign appropriate class, and complete the assignment
+      - The class belongs to one of the two **uncertain** classes THEN:
+      
+        - Digitize a square aligned exactly with the initial target polygon, and choose the class **cropland** or **non-cropland** (following the most likely interpretation) and move the new polygon to the nearest location where it can be contained entirely within that clear **cropland** or **non-cropland** class;
+        
+        - Digitize a point in the middle of the target polygon, and assign it the appropriate label: **cropland** or **non-cropland**. 
+        
+  b. The target polygon partially overlaps a second class AND:
+      - That class is either **cropland** or **non-cropland** THEN:
+      
+        - Digitize a square aligned exactly with the target polygon, assign the appropriate class, and move the box to the nearest location (shortest possible distance) where it can be contained entirely within that same class.  
+  
+      - That class is **uncertain** THEN:
+    
+        - Digitize a square aligned exactly with the target polygon, assign the appropriate **uncertain** class, then move the box to the nearest location (shortest possible distance) where it can be contained entirely within that same **uncertain** class.
+        - Digitize a second square aligned exactly with the initial target polygon, and choose the class **cropland** or **non-cropland** (following the most likely interpretation) and move the new polygon to the nearest location where it can be contained entirely within that clear **cropland** or **non-cropland** class.
+  
+
+We then 
+  - Definition of spatial assessment
+  - Definition of classes
+  - Reference source
+  - Specific information collected from each source
+  - Rules for reference class labels
+  - How agreement between map and reference classes is defined
+
+##### Stage 2
+
+
 
 \clearpage
 # Results
