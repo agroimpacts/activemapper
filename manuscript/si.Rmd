@@ -143,6 +143,30 @@ cite_options(citation_format = "pandoc")
 
 \bleft
 # Methods
+## Assessing quality of composites
+The rubric presented in Table 1 was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry overlays within a `labeller` instance set up for the purpose. 
+
+```{r, echo=FALSE, message=FALSE}
+library(kableExtra)
+image_qual_criteria <- tibble(
+  `Quality dimension` = c(
+    "Percent affected by residual cloud", "Percent affected by cloud shadow", 
+    "Number of visible scene boundaries", "Percent blurred"
+  ),
+  `3 pts` = c("<1%", "<1%", "None", "None"), 
+  `2 pts` = c("1-5%", "1-5%", "1", "<20%"), 
+  `1 pts` = c("5-10%", "5-10%", "2-3", "20-50%"),
+  `0 pts` = c(">10%", ">10%", ">3", ">50%")
+) 
+cap <- glue::glue("Four dimensions used to assess the assess the quality
+                  of the temporally composited image tiles, including the
+                  criteria used to award points for scoring each dimension.")
+kable(image_qual_criteria, format = "latex", booktabs = "T", caption = cap) %>% 
+  kable_styling(full_width = TRUE, latex_options = c("hold_position")) %>% 
+  column_spec(1, width = "8cm")
+```
+
+
 ## Mapping platform
 
 ### Digitizing tools
@@ -349,6 +373,9 @@ We then
 
 \clearpage
 # Results
+## Image quality
+
+
 
 ```{r, echo = FALSE, out.width="100%", fig.cap="Cropland probability images produced by RandomForest models trained with A) consensus labels, B) the most accurate worker's labels, and C) the least accurate worker's labels.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/si_hml_probs.png')
