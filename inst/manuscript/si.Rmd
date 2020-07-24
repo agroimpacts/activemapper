@@ -1,79 +1,7 @@
 ---
-title: "Supporting Information"
-
-author:  
-
-- name: \*Provisional author list\*
-  affilnum: '1'
-
-- name: Lyndon D. Estes
-  affilnum: '1'
-  email: lestes@clarku.edu
-
-- name: Su Ye
-  affilnum: '1'
-
-- name: Lei Song
-  affilnum: '1'
-
-- name: Ron Eastman
-  affilnum: '1'
-  
-- name: Sitian Xiong
-  affilnum: '1'
-
-- name: Tammy Woodard
-  affilnum: '1'
-
-- name: Boka Luo
-  affilnum: '1'
-
-- name: Dennis McRitchie
-  affilnum: '2'
-
-- name: Ryan Avery
-  affilnum: '3'
-
-- name: Kelly Caylor
-  affilnum: '3'
-
-- name: Stephanie Debats
-  affilnum: '4'
-
-- name: SpatialCollective
-  affilnum: '5'
-
-- name: Meridia
-  affilnum: '6'
-
-- name: Azavea
-  affilnum: '7'
-
-affiliation:
-
-- affilnum: 1
-  affil: Graduate School of Geography, Clark University, 950 Main Street, Worcester, MA 01610 USA
-
-- affilnum: 2
-  affil: Dennis and Sons, Tucson, AZ, USA
-
-- affilnum: 3
-  affil: UCSB
-
-- affilnum: 4
-  affil: Uber
-
-- affilnum: 5
-  affil: SpatialCollective
-
-- affilnum: 5
-  affil: Meridia
-
-- affilnum: 5
-  affil: Azavea
+title: "Supporting Information: Improving cropland maps through tight integration of human and machine intelligence"
 
 output:
-
   pdf_document:
     fig_caption: yes
     fig_width: 7
@@ -96,7 +24,7 @@ geometry: margin=1in
 linenumbers: false
 spacing: doublespacing
 footerdate: yes
-abstract: The abstract can go either here or below
+# abstract: The abstract can go either here or below
 keywords: rmarkdown, reproducible science
 bibliography: 
   - references.bib
@@ -105,12 +33,20 @@ csl: ecology.csl
 
 ---
 
+<!-- Provides custom captions for figures in supplement -->
+\newcommand{\beginsupplement}{%
+        \setcounter{table}{0}
+        \renewcommand{\thetable}{S\arabic{table}}%
+        \setcounter{figure}{0}
+        \renewcommand{\thefigure}{S\arabic{figure}}%
+     }
 
 ```{r setup, include=FALSE, cache=FALSE, message = FALSE}
 library(knitr)
 library(citr)
 library(tidyverse)
 library(sf)
+library(activemapper)
 
 #opts_knit$set(root.dir=normalizePath('../'))
 
@@ -138,10 +74,12 @@ cleanbib()
 cite_options(citation_format = "pandoc")
 ```
 
-
+\beginsupplement
 \singlespace
 
 \bleft
+
+
 # Methods
 ## Assessing quality of composites
 The rubric presented in Table 1 was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry overlays within a `labeller` instance set up for the purpose. 
@@ -254,6 +192,18 @@ Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their over
 
 With $\mathrm{P(\theta|D, W_i)}$ being either 0 or 1. In labelling, if the consensus result for a pixel is: $\mathrm{P(\theta = field|D)}$ > 0.5, then we assign that pixel to the field category, otherwise to the no field category. 
 
+After creating the consensus label, the degree of confidence in the resulting label value can be expressed in terms of Bayesian risk. Risk for a given training sample site *i* is calculated as:
+
+\begin{equation}
+\mathrm{R_i=\frac{1}{n}\sum_{j=1}^{n} C_j(1 - L_j) + (1 - C_j)L_j}
+\end{equation}
+
+Where *C* is the consensus probability that a given pixel *j* is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. *R* is thus the average risk across all pixels at a given site, and the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling.  
+
+```{r riskcurve, echo = FALSE, fig.align='center', out.width="70%", message=FALSE, warning=FALSE, fig.cap="Bayesian risk values (Y-axis) for consensus values (X axis) ranging from 0 to 1 (0 indicates no consensus that a pixel falls into the field class, 1 means complete consensus) for field and non-field consensus labels."}
+knitr::include_graphics('figures/si_label_risk.png')
+```
+
 #### Example
 
 To provide an example of this approach in practice, we'll imagine two workers A and B, each with the following histories:
@@ -287,7 +237,13 @@ $$
 \mathrm{P(\theta|D)=\frac{\sum_{i=1}^{n}weight_iP(L = field|D, W_i)}{\sum_{i=1}^{n}weight_i}} = \frac{`r wtA` * 1 + `r wtB` * 0}{`r wtA` + `r wtB`} = `r round((wtA * 1 + wtB * 0) / (wtA + wtB), 3)`
 $$
 
-Since `r round((wtA * 1 + wtB * 0) / (wtA + wtB), 3)` > 0.5, we label the particular pixel a field.  
+Since `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj` > 0.5, we label the particular pixel a field.  
+
+
+
+Using the relevant part of equation 15, T=the corresponding risk associated with this particular pixel's label $\mathrm{R_j}$ is thus `r rj * (1 - 1) + (1 - rj) * 1`. 
+
+
 
 
 
@@ -299,30 +255,10 @@ A reference sample should ideally have some randomization involved in the sample
 
 $$n = \frac{z^2p(1-p)}{d^2}$$
         
-Where p is the estimated probability (or mapped class accuracy), and d is the size of the margin of error (1/2 the confidence interval). We selected a d value of 0.03 and assumed that the user's accuracy of the field class would be 0.75 and that of the non-cropland class would be 0.8, returning sample sizes of 800 and 683, respectively. The distribution of the resulting map reference sample is shown in Figure 1.
+Where p is the estimated probability (or mapped class accuracy), and d is the size of the margin of error (1/2 the confidence interval). We selected a d value of 0.03 and assumed that the user's accuracy of the field class would be 0.75 and that of the non-cropland class would be 0.8, returning sample sizes of 800 and 683, respectively. The distribution of the resulting map reference sample is shown in Figure \ref{fig:refsample}.
 
-```{r, echo = FALSE, fig.align='center', out.width="80%", message=FALSE, warning=FALSE, fig.cap="Distribution of the selected map reference sample for the cropland and non-cropland class. "}
-africa <- st_read(
-  system.file("extdata/africa.geojson", package = "activemapper"), quiet = TRUE,
-)
-aois <- st_read(system.file("extdata/aois.geojson", package = "activemapper"), 
-                quiet = TRUE)
-africa_cont <- africa %>% st_union %>% st_sf
-ghana <- africa %>% filter(name == "Ghana") %>% select(geometry)
-
-ref_sample <- readr::read_csv(
-  here::here("external/reference/map_reference_sample.csv")
-)
-ref_sample <- ref_sample %>% st_as_sf(coords = c("x", "y"), crs = 4326)
-
-p <- ggplot() + 
-  # geom_sf(data = ghana) +
-  geom_sf(data = aois) + 
-  geom_sf(data = ref_sample, aes(color = factor(class)), size = 0.1) +
-  scale_color_manual(values = c("red", "blue"), 
-                     labels = c("Non-cropland", "Cropland"), name = "") + 
-  theme_light()
-p
+```{r refsample, echo = FALSE, fig.align='center', out.width="80%", message=FALSE, warning=FALSE, fig.cap="Distribution of the selected map reference sample for the cropland and non-cropland class. "}
+knitr::include_graphics('figures/si_map_reference_sample.png')
 ```
 
 #### Response design
@@ -375,14 +311,29 @@ We then
 # Results
 ## Image quality
 
+## Active learning process
+### Labelling
+The distributions of the initial 500 sites used to train the RandomForest model for each AOI are shown in Figure \ref{fig:trainval}. In AOI 3, the initial active learning cycle resulted in low accuracy because the northern part of the AOI shows low contrast between fields and the surrounding vegetation in the dry season. Training the model with the initial 500 samples resulted in large commission errors in this part of the AOI, thus we ran a second active learning cycle that began with an inital random draw of 300 training sites confined to this AOI (blue points in Figure \ref{fig:trainval}A)
+```{r trainval, echo = FALSE, out.width="80%", fig.cap="The distribution of A) initial randomly selected training sites, including 300 points selected within AOI 3 to retrain a second active learning run for this region, as well as the locations of training reference sites, and B) validation points and training sites selected during each active learning iteration.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_training_validation_pts.png')
+```
 
+The distribution of data collection effort and scores received at training reference sites by labelling team (Figure \ref{fig:trainqual}).
+
+```{r trainqual, echo = FALSE, out.width="60%", fig.cap="The A) distributions of scores at training reference sites for each labeller (means indicated by X in boxplots), and B) the number of training and training reference sites completed by each labeller. Labellers' identities are anonymized.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_training_quality_n.png')
+```
+
+
+## Experiments
+### Label quality
 
 ```{r, echo = FALSE, out.width="100%", fig.cap="Cropland probability images produced by RandomForest models trained with A) consensus labels, B) the most accurate worker's labels, and C) the least accurate worker's labels.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/si_hml_probs.png')
 ```
 
 
-
+\clearpage
 # References
 \singlespace
 

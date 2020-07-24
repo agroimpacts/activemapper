@@ -16,7 +16,7 @@ library(aws.s3)
 
 ### Base Datasets
 
-The pre-preparation of base datasets that install with the `activemapper` package is shown in `external/scripts/data_setup.R`. These are loaded in here. 
+The pre-preparation of base datasets that install with the `activemapper` package is shown in `data-raw/data_for_instances.R`. These are loaded in here from `ext_data`.
 
 ```{r, eval=FALSE}
 res <- 0.005
@@ -458,7 +458,6 @@ crfeat_utm <- spTransform(crfeat, crs(planet))
 zoomfeat_utm <- spTransform(zoomfeat, crs(planet))
 planet_cr <- crop(planet, crfeat_utm)
 planet_cr2 <- crop(planet2, crfeat_utm)
-
 
 
 # set up display
