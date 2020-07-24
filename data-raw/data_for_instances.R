@@ -1,12 +1,14 @@
 # Data set up
 
-# Clip down labeller's master grid to just Ghana tiles extent and ID layer for
+#------------------------------------------------------------------------------#
+# Prepare main grid for Ghana
+# Clip down labeller's primary grid to just Ghana tiles extent and ID layer for
 # shipping with activemapper package data
 library(raster)
 library(sf)
 library(dplyr)
 
-# get data from labeller
+# get data from labeller (get from S3)
 data_path <- file.path("/Users", unname(Sys.info()["user"]),
                        "Dropbox/projects/activelearning/mapper/spatial/data")
 master_grid <- brick(file.path(data_path, "processed/master_grid.tif"))
@@ -22,12 +24,14 @@ ghana_grid <- crop(master_grid[[1]], extent(tiles))
 # length(unique(ghana_grid[!is.na(ghana_grid)]))
 # which(duplicated(ghana_grid[!is.na(ghana_grid)]))
 
-writeRaster(ghana_grid , file = "inst/extdata/ghana_grid.tif",
+writeRaster(ghana_grid, file = "inst/extdata/ghana_grid.tif",
             overwrite = TRUE, datatype = "INT4U")  # careful for datatype
 r <- raster("inst/extdata/ghana_grid.tif")
 # length(r[!is.na(r)])
 # length(unique(r[!is.na(r)]))
 
+#------------------------------------------------------------------------------#
+# Create AOIs, tiles, degrees
 # slim down Africa data
 africa <- st_read(file.path(data_path, "external/africa_noisl_gcs.sqlite")) %>%
   st_sf(crs = 4326) %>% select(name, iso3) %>%
@@ -80,76 +84,3 @@ con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), host = host,
 mgrid <- tbl(con, "master_grid") %>% collect()
 mgrid %>% select(id, name, x, y, fwts) %>%
   readr::write_csv(here::here("inst/extdata/ghana_grid.csv"))
-
-################################################################################
-# Train/validation/training reference sites
-
-# read in incoming and outgoing names files
-# get names of csv files holding sample sites
-# also new Q sites from labeller 8
-str <- glue::glue("aws s3 ls s3://activemapper/planet/")
-planet_bucket <- system(str, intern = TRUE)
-fnames <- sapply(strsplit(planet_bucket, split = " "), function(x) x[length(x)])
-sample_files <- as_tibble(fnames) %>%
-  filter(grepl("incoming_names|outgoing_names|q_sites", value)) %>%
-  filter(!grepl("congo|BF|GH|tanzania|empty|test", value)) %>% pull()
-
-# read in in loop
-calval_pts <- lapply(sample_files, function(x) {  # x <- sample_files[1]
-  print(x)
-  sites <- s3read_using(readr::read_csv, bucket = "activemapper",
-                        object = glue::glue("planet/{x}"))
-  sites %>% mutate(file = gsub("\\.csv", "", x)) %>% select(file, !!names(.))
-})
-
-# write list for cleaning up data
-# bind_cols(
-#   file = sample_files,
-#   nr = sapply(calval_pts, function(x) nrow(x))
-# ) %>% readr::write_csv(here("external/misc/calval_sites.csv"))
-
-# new Q sites from labeller8 (after turning on labeller8)
-newqsites <- tbl(con, "kml_data_static") %>% collect() %>%
-  mutate(file = "qsites_new", name) %>% select(file, name)
-
-# combine with calval_pts
-calval_pts <- append(calval_pts, list(newqsites))
-
-# combine into single tibble
-sapply(calval_pts, function(x) {  # x <- calval_pts[[62]]
-  if(nrow(x) > 0) {
-    # print(unique(x$file))
-    if(substr(unique(x$file), 1, 1) == "q") {
-      out <- x %>% mutate(usage = "qsite", iteration = 0)
-      out %>% select(file, name, iteration, usage)
-    } else {
-      x %>% select(file, name, iteration, usage)
-    }
-  }
-}) %>% reduce(rbind) -> calval_pts_tb
-
-dup_names <- calval_pts_tb %>% distinct(name, usage) %>%
-  group_by(name) %>% count() %>% filter(n > 1) %>% pull(name)
-# calval_pts_tb %>% filter(usage == "qsite")
-# calval_pts_tb %>% filter(name %in% dup_names) %>% filter(usage == "qsite")
-  # arrange(name) %>%
-  # filter(file == "incoming_names_3")
-# calval_pts_tb %>% filter(file == "incoming_names_3") %>% arrange(name) %>%
-#   group_by(name) %>% count() %>% filter(n > 1)
-
-# join with main grid
-mgrid <- data.table::fread(
-  system.file("extdata/ghana_grid.csv", package = "activemapper")
-)
-
-calval_pts_tbf <- left_join(calval_pts_tb, mgrid) %>%
-  select(file, id, name, x, y, iteration)
-
-# data.table::fwrite(calval_pts_tbf,
-#                    file = here("external/data/train_val_sites.csv"))
-# file.copy(here::here("external/data/train_val_sites.csv"),
-#           here::here("inst/extdata/train_val_sites.csv"))
-data.table::fwrite(calval_pts_tbf,
-                   file = here("inst/extdata/train_val_sites.csv"))
-
-
