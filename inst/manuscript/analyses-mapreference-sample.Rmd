@@ -35,6 +35,8 @@ v <- dropna(values(fdensity))
 fcropland <- sum(v) / length(v)  # 21.5%
 fcropland2 <- (fpoints %>% filter(class == 1) %>% nrow()) / nrow(fpoints)
 
+
+###! Move this to SI
 # sample size function
 ref_sample_size <- function(p, z, d) {
   n <- (z^2 * p * (1 - p)) / d^2
@@ -49,7 +51,7 @@ p1 <- ggplot(sample_size) + geom_point(aes(p, n)) +
 p1
 ```
 
-Remove all points that were used for training, training referenec, or  validation. Contained in CSV of sites prepared in `data_prep.R`
+Remove all points that were used for training, training reference, or  validation. Contained in CSV of sites prepared in `data_prep.R`
 ```{r, eval = FALSE}
 train_val <- readr::read_csv(here("external/data/train_val_sites.csv"))
 fpointsr <- fpoints %>% filter(!id %in% unique(train_val$id))

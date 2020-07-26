@@ -384,4 +384,43 @@ label_consensus <- instance_tbls$kml_data %>% filter(aoi %in% aoinms) %>%
 #             nonzeros = sum(ifelse(Risk > 0, 1, 0)))
 usethis::use_data(label_consensus, overwrite = TRUE)
 
+#------------------------------------------------------------------------------#
+# Iteration metrics
+# Analyze and reshape for figure making
+
+load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
+
+# function to calculate change over time
+delta_func <- function(x, rnd = 4) round((x - lag(x)) / lag(x), rnd)
+
+# process individual AOIs
+metrics <- c("Accuracy", "AUC", "F1", "TSS", "Precision", "Recall", "TPR",
+             "FPR")
+aoinms <- paste0("labeller", 1:16)
+iteration_metrics <- instance_tbls$iteration_metrics %>%
+  filter(aoi %in% aoinms) %>%
+  filter(iteration > 0) %>%
+  filter(!(aoi == "labeller3" & run == 0))  %>% # remove run 0 labeller3
+  mutate(iteration = iteration - 1) %>% # rebase iteration counter on 0
+  mutate(F1 = 2 * (precision * recall) / (precision + recall)) %>%
+  rename(AOI = aoi, Iteration = iteration, Accuracy = accuracy, AUC = auc,
+         TSS = tss, Precision = precision, Recall = recall, TPR = tpr,
+         FPR = fpr) %>%
+  select(AOI, Iteration, !!metrics) %>%
+  group_by(AOI) %>%  # calculate deltas
+  mutate_at(metrics, funs("change" = delta_func)) %>%
+  ungroup() %>%
+  tidyr::pivot_longer(cols = Accuracy:FPR_change, names_to = "Metric",
+                      values_to = "Score")
+
+# process across AOI means and combine with AOIs
+iteration_metrics %>%
+  filter(Iteration < 4) %>%
+  group_by(Iteration, Metric) %>% summarize(Score = mean(Score)) %>%
+  mutate(AOI = "All") %>%
+  ungroup %>%
+  select(AOI, !!names(.)) %>%
+  bind_rows(iteration_metrics, .) -> iteration_metrics
+
+usethis::use_data(iteration_metrics)
 

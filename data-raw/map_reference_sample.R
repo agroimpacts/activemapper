@@ -33,9 +33,11 @@ ref_sample <- bind_rows(fsample, nofsample) %>%
 # !!! data_from_segmenter.R)
 ref_sample <- left_join(ref_sample %>% select(id, aoi, class), mgrid_tb,
                         by = "id") %>% select(id, name, aoi, class, x, y)
+
+# Write to package
 # data.table::fwrite(
 #   ref_sample, file = here("external/reference/map_reference_sample.csv")
-# )
+# ) # original location
 data.table::fwrite(
   ref_sample, file = here("inst/extdata/map_reference_sample.csv")
 )
@@ -45,7 +47,7 @@ ref_sample_labeller <- ref_sample %>% select(name) %>%
   mutate(run = 0, iteration = 0, processed = TRUE, usage = "train",
          label = TRUE)
 
-# write to s3 bucket as input to new validation instance
+# write to s3 bucket as input for new validation instance
 aws.s3::s3write_using(
   ref_sample_labeller,
   FUN = readr::write_csv, bucket = "activemapper",

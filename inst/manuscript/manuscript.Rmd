@@ -284,7 +284,7 @@ If the worker's completed assignment was a labelling task, their maps remain sto
 P(\theta|\mathrm{D})=\sum_{i=1}^{n}\mathrm{P}(\mathrm{W_i}|\mathrm{D})\mathrm{P}(\mathrm{\theta}|\mathrm{D}, \mathrm{W_i})
 \end{equation}
 
-Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and $W_i$ is an individual worker.  P($\theta$|D) is therefore the probability that the actual cover type is what the workers who labelled it says it is, while P(W$_i$|D) is the worker's average score over the accuracy assessment assignments they have mapped to date, and P(W$\theta$|D, *W$_i$*) is the worker's label for that pixel. This approach therefore uses the overall accuracy of each worker to weight their labels as they are combined with other workers' labels for a given pixel (see SI for further details). The Bayesian risk of the completed final is then assessed, which measures the average level of consensus for the label assigned to each pixel in a given site, with values closer to 0 indicating complete consensus, and thus the highest confidence, while values approaching 1 reveal progressively increasing disagreement (see SI). 
+Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and $W_i$ is an individual worker.  P($\theta$|D) is therefore the probability that the actual cover type is what the workers who labelled it says it is, while P(W$_i$|D) is the worker's average score over the accuracy assessment assignments they have mapped to date, and P(W$\theta$|D, *W$_i$*) is the worker's label for that pixel. This approach therefore uses the overall accuracy of each worker to weight their labels as they are combined with other workers' labels for a given pixel (see SI for further details). **The "risk" of the final consensus label is then assessed, which measures the proportion of pixels in the label exceeding a Bayesian risk threshold (see SI), and thus provides an additional measure of label quality.** 
 
 Once all training sites are completed, they are randomly partitioned into training and validation sets according to predetermined proportions. 
 
@@ -423,7 +423,9 @@ After initial training, the active learning process was run for 3 iterations for
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 data("label_summary")  
-tsites <- label_summary$nlabels %>% group_by(kml_type) %>% 
+toofew <- label_summary$nlabels %>% filter(n < 10) %>% pull(ID)
+tsites <- label_summary$nlabels %>% filter(!ID %in% toofew) %>% 
+  group_by(kml_type) %>% 
   summarize(tot = sum(n), mu = round(mean(n)), med = round(median(n)), 
             stdev = round(sd(n)), lower = min(n), upper = max(n))
 
@@ -431,17 +433,17 @@ tsites <- label_summary$nlabels %>% group_by(kml_type) %>%
 train_rate <- label_summary$nlabels %>% 
   tidyr::pivot_wider(names_from = kml_type, values_from = n) %>% 
   rename_all(funs(c("ID", "tr", "tref"))) %>% 
-  mutate(trate = tref / tr)
+  mutate(trate = tref / tr) %>% filter(tr > 10)
 ```
 
 The distribution of training and validation sample collection effort was divided across `r nrow(label_summary$score_stats)` labellers, with a core team of `r label_summary$nlabels %>% filter(kml_type == "Training" & n > 1000) %>% nrow()` who mapped more than 1,000 sites each. As each training site was mapped by 4 separate labellers, `r tsites$tot[1]` sets of vector labels were made. Each labeller digitized an average of `r tsites$mu[1]` (see Figure S3A for more details on labelling effort). 
 
 This accuracy of the labellers was assessed `r tsites$tot[2]` times against `r length(unique(label_summary$scores$name))` unique training reference sites (Figure S3A), with each labeller assessed an average of `r tsites$mu[2]` times at a rate of 1 training reference site for every `r round(1 / (tsites$mu[2] / tsites$mu[1]), 2)` training site mapped. The average of each labeller's average accuracy score was `r round(mean(label_summary$score_stats$Mean), 2)` (range `r round(min(label_summary$score_stats$Mean), 2)` to `r round(max(label_summary$score_stats$Mean), 2)`; see Figure S3B for detailed score distributions). 
 
-After each site was mapped by four labellers, consensus labels were generated. 
-
+After each site was mapped by four labellers, consensus labels were generated. **The average risk for each consensus label was *X* (see SI)**.  
 
 ### Model performance
+The average performance associated 
 
 **[Fill in with intro]**. The average number of iterations per active learning process was **4**, as overall performance gains, as assessed against validation sets, saturated quickly (see **Figure X** in SI). 
 

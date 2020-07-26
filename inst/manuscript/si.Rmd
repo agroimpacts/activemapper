@@ -180,7 +180,7 @@ Equations \ref{eq:pacc1} and \ref{eq:pacc2} are producer's accuracies, thus the 
 <!-- \ref{eq:prior} represents "mapper likelihood" for the current map: -->
 
 The other component of equation \ref{eq:prior}, P(W$_i$), is the worker's average score over *m* accuracy assessment assignment:  
-\begin{equation}
+\begin{equation} 
 \mathrm{P(W_i) \propto \frac{1}{m}\sum_{j=1}^{m}score_j}
 \end{equation}
 
@@ -192,11 +192,13 @@ Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their over
 
 With $\mathrm{P(\theta|D, W_i)}$ being either 0 or 1. In labelling, if the consensus result for a pixel is: $\mathrm{P(\theta = field|D)}$ > 0.5, then we assign that pixel to the field category, otherwise to the no field category. 
 
-After creating the consensus label, the degree of confidence in the resulting label value can be expressed in terms of Bayesian risk. Risk for a given training sample site *i* is calculated as:
+After creating the consensus label, the degree of confidence in the resulting label value can be expressed in terms of Bayesian risk. Risk is calculated as:
 
-\begin{equation}
-\mathrm{R_i=\frac{1}{n}\sum_{j=1}^{n} C_j(1 - L_j) + (1 - C_j)L_j}
+\begin{equation} \label{eq:pixelrisk}
+\mathrm{r=C(1 - L) + (1 - C)L}
 \end{equation}
+
+Where *C* is the consensus probability that a given pixel is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. The risk values across the entire sample site can be processed in two ways to provide useful information about the confidence in the consensus label for that site. The first is a simple average of all risk values in the site, where the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling. A second approach is to calculate the proportion of pixels having risk values that exceed a certain threshold. This second approach is currently implemented in our system, using a threshold value of 0.4. 
 
 Where *C* is the consensus probability that a given pixel *j* is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. *R* is thus the average risk across all pixels at a given site, and the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling.  
 
@@ -222,9 +224,12 @@ knitr::kable(sc, align = c("r", "c", "c"), format = "pandoc")
 
 In this scenario, worker A thinks that the given pixel falls within a field, and worker B thinks it is not a field.  First, we calculate the weights for each worker:
 
+\clearpage
 $$
 Weight_A = score_A * PA_A(field) = P(W_A)P(D=field|W_A) = `r sc[1, 2]` * `r sc[1, 4]` = `r wtA`
 $$
+
+
 
 $$
 Weight_B = score_B * PA_B(field) = P(W_B)P(D=no field|W_B) = `r sc[2, 3]` * `r sc[2, 4]` = `r wtB`
@@ -232,16 +237,13 @@ $$
 
 And then we plug these weights into the full equation:
 
-
 $$
 \mathrm{P(\theta|D)=\frac{\sum_{i=1}^{n}weight_iP(L = field|D, W_i)}{\sum_{i=1}^{n}weight_i}} = \frac{`r wtA` * 1 + `r wtB` * 0}{`r wtA` + `r wtB`} = `r round((wtA * 1 + wtB * 0) / (wtA + wtB), 3)`
 $$
 
 Since `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj` > 0.5, we label the particular pixel a field.  
 
-
-
-Using the relevant part of equation 15, T=the corresponding risk associated with this particular pixel's label $\mathrm{R_j}$ is thus `r rj * (1 - 1) + (1 - rj) * 1`. 
+Using equation \ref{eq:pixelrisk}, the corresponding risk associated with this particular pixel's label is thus `r rj * (1 - 1) + (1 - rj) * 1`. 
 
 
 
@@ -318,10 +320,10 @@ The distributions of the initial 500 sites used to train the RandomForest model 
 knitr::include_graphics('figures/si_training_validation_pts.png')
 ```
 
-The distribution of data collection effort and scores received at training reference sites by labelling team (Figure \ref{fig:trainqual}).
+The distribution of data collection effort and scores received at training reference sites by labelling team (Figure \ref{fig:trainqual}). These results include those from a repeated labelling of the initial training in Cluster 2.  This was done because we discovered a small spatial offset in the original image composites, which we corrected by reprocessing the images. We replaced the image overlays in the instance for Cluster 2 \ref{fig:trainval}A), and the labelling team mapped these sites a second time during the production run in late 2019. The reprocessed labels were used to initially train the model for AOIs 9, 12, and 15.
 
 ```{r trainqual, echo = FALSE, out.width="60%", fig.cap="The A) distributions of scores at training reference sites for each labeller (means indicated by X in boxplots), and B) the number of training and training reference sites completed by each labeller. Labellers' identities are anonymized.", fig.align='center', message=FALSE, results='hold'}
-knitr::include_graphics('figures/si_training_quality_n.png')
+knitr::include_graphics('figures/si_training_qual_n.png')
 ```
 
 

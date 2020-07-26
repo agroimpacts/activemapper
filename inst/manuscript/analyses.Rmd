@@ -192,6 +192,7 @@ fpoints[[3]] <- fpoints[[3]] %>% mutate(aoi = "3N")
 fpoints <- do.call(rbind, fpoints)
 xy <- fpoints %>% st_coordinates() %>% as_tibble() %>% rename(x = X, y = Y)
 fpoints_tb <- bind_cols(fpoints %>% as_tibble() %>% select(-geometry), xy)
+
 # data.table::fwrite(
 #   fpoints_tb, file = here("external/data/field_points005.csv")
 # )
