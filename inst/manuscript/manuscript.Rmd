@@ -443,6 +443,14 @@ This accuracy of the labellers was assessed `r tsites$tot[2]` times against `r l
 After each site was mapped by four labellers, consensus labels were generated. **The average risk for each consensus label was *X* (see SI)**.  
 
 ### Model performance
+The gain in model performance was assessed for each AOI and for each iteration using a variety of metrics, including overall accuracy, area under the curve of the Receiver Operating Characteristic (AUC), and the F1 score (Figure \ref{fig:alperformance}). 
+
+
+```{r alperformance, echo = FALSE, out.width="100%", fig.cap="Scores for overall Accuracy, area under the curve of the Receiver Operating Characteristic, and the F1 score resulting for the Random Forest model after each iteration of the active learning loop for each AOI (gray lines), as well as the mean score per iteration across all AOIs (black lines).", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/figure5.png')
+```
+
+
 The average performance associated 
 
 **[Fill in with intro]**. The average number of iterations per active learning process was **4**, as overall performance gains, as assessed against validation sets, saturated quickly (see **Figure X** in SI). 

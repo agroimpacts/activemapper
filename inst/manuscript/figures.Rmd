@@ -1,0 +1,435 @@
+---
+title: Figures
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: github
+    math: katex
+    toc_depth: 4
+    toc: yes
+    css: css/vignette.css
+---
+
+```{r setup, include=FALSE, cache=FALSE, message = FALSE}
+library(raster)
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(here)
+library(RColorBrewer)
+library(activemapper)
+```
+
+Creation of figures for main manuscript and the supplementary information. 
+
+## Base Datasets
+
+The preparation of datasets used here and which install with the `activemapper` package, is shown in `data-raw/data_[from|to]_instaces.R`. These are loaded in here. 
+
+```{r, eval=FALSE}
+pth <- function(x) file.path(here("inst/manuscript"), x)
+
+res <- 0.005
+res_supergrid <- 1
+num_supergrid <- res_supergrid / res
+
+mgridr <- raster(
+  system.file("extdata/ghana_grid.tif", package = "activemapper")
+)
+mgrid <- readr::read_csv(
+  system.file("extdata", "ghana_grid.csv", package = "activemapper")
+) %>% select(-fwts)
+africa <- st_read(
+  system.file("extdata/africa.geojson", package = "activemapper")
+)
+africa_cont <- africa %>% st_union %>% st_sf
+ghana <- africa %>% filter(name == "Ghana") %>% select(geometry)
+
+degrees <- st_read(
+  system.file("extdata/degrees.geojson", package = "activemapper")
+)
+tiles <- st_read(
+  system.file("extdata/ghana_tiles.geojson", package = "activemapper")
+) 
+aois <- st_read(
+  system.file("extdata/aois.geojson", package = "activemapper")
+)
+# ggplot(data = tiles) + 
+#   geom_sf(aes(fill = as.factor(aoi1)), col = "transparent")
+
+# database results
+load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
+```
+
+
+## Methods 
+
+### Figure 1: System architecture
+Created in keynote
+
+### Figure 2: Grid system and AOIs
+
+```{r, eval = FALSE}
+ghana_aois <- tiles %>% pull(aoi1) %>% unique
+ghana_degrees <- tiles %>% pull(aoi2) %>% unique
+
+ind <- 8  # index of selected AOI for plotting (from ghana_aois)
+xylims <- st_coordinates(ghana)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+
+p1 <- ggplot() + 
+  geom_sf(data = africa, fill = "gray90", color = "grey50", size = 0.2) +
+  geom_sf(data = ghana, fill = "grey85", col = "transparent", size = 0.3) +
+  geom_sf(data = degrees %>% filter(grid %in% ghana_degrees),
+          fill = "transparent", col = "grey70", size = 0.4, lty = 3) +
+  geom_sf(data = aois, fill = "transparent", col = "black", size = 0.4) +
+  geom_sf(data = aois %>% filter(aois == ind), col = "black", fill = "gray70", 
+          size = 0.4) +
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  theme_void()
+
+deg_sel <- tiles %>% as_tibble %>% filter(aoi1 %in% 4:12) %>% 
+  distinct(aoi1, aoi2) %>% pull()
+deg_sel <- c(1349, 1350, 1351, 1414, 1415, 1416, 1478, 1479, 1480)
+
+xylims <- degrees %>% filter(grid %in% deg_sel) %>% st_coordinates(.)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+
+tile_sel <- tiles %>% filter(aoi1 == ind)  # selected tile
+p2 <- ggplot(ghana) + geom_sf(fill = "grey85", col = "grey") +
+  geom_sf(data = degrees %>% filter(grid %in% ghana_degrees),
+          fill = "transparent", col = "grey70", size = 0.4, lty = 3) +
+  geom_sf(data = aois, fill = "transparent", size = 0.3) +
+  geom_sf(data = tile_sel, fill = "gray70", size = 0.3) +
+  geom_sf(data = tile_sel %>% slice(190), fill = "red3", size = 0.3) +
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  theme_void()
+# p2
+
+gpols <- crop(mgridr, tile_sel[190, ]) %>% rasterToPolygons(.) %>%
+  st_as_sf %>% st_sf(crs = 4326)
+p3 <- ggplot(tile_sel %>% slice(169:171, 189:191, 209:211)) +
+  geom_sf(fill = "grey80", size = 0.3) +
+  geom_sf(data = gpols, fill = "red3", size = 0.3) +
+  theme_void()
+# p3
+
+gp <- cowplot::plot_grid(p1, p2, p3, nrow = 1, scale = c(1, 1, 0.7), 
+                         labels = LETTERS[1:3], label_x = 0.05)
+ggsave(pth("figures/figure2.png"), width = 7, height = 3,
+       units = "in", dpi = 300)
+```
+
+### Figure 3: Labeller interface
+Taken as a screenshot. 
+
+### Figure S1: Bayesian Risk
+
+A plot of the Bayesian risk curves associated with different levels of consensus, for both a cropland and non-cropland consensus label.
+```{r, eval=FALSE}
+# Heat map function
+consensus <- seq(0, 1, 0.05)
+risk <- function(r1, r2) {
+  r1 * (1 - r2) + (1 - r1) * r2
+}
+
+risk_tbl <- tibble(
+  Consensus = consensus, `Non-field` = risk(consensus, 0), 
+  Field = risk(consensus, 1)
+) %>% pivot_longer(cols = contains("field"), names_to = "Label", 
+                   values_to = "Risk")
+p <- ggplot(risk_tbl) + geom_line(aes(x = Consensus, y = Risk, color = Label)) +   scale_color_manual(values = c("blue", "red")) + 
+  theme_linedraw()
+
+ggsave(pth("figures/si_label_risk.png"), width = 5, 
+       height = 4, units = "in", dpi = 300, bg = "transparent")
+```
+
+
+### Figure S2: Map reference sample
+```{r, eval = FALSE}
+ref_sample <- readr::read_csv(
+  system.file("extdata", "map_reference_sample.csv", package = "activemapper")
+)
+ref_sample <- ref_sample %>% st_as_sf(coords = c("x", "y"), crs = 4326)
+
+xylims <- st_coordinates(ghana)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+
+p <- ggplot(africa) + 
+  geom_sf(fill = "gray97", color = "grey", size = 0.25) +
+  geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) +
+  geom_sf(data = ref_sample, aes(color = factor(class)), size = 0.1) +
+  scale_color_manual(values = c("red", "blue"), 
+                     labels = c("Non-cropland", "Cropland"), name = "") + 
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  guides(colour = guide_legend(override.aes = list(size = 1, fill = NA))) + 
+  theme_void() + 
+  theme(legend.key = element_rect(fill = "grey85", color = "transparent"))
+
+ggsave(pth("figures/si_map_reference_sample.png"), width = 4, 
+       height = 4, units = "in", dpi = 300, bg = "transparent")
+```
+
+
+## Results 
+### Figure 4: Composite quality
+```{r, eval=FALSE, fig.cap="Placeholder for composite quality image."}
+data("image_quality")
+tile_quality <- image_quality %>% filter(worker_id == 98) %>% 
+  group_by(name, season) %>% 
+  summarize(tile = min(tile), Score = sum(score) / 12) %>% ungroup() %>% 
+  inner_join(tiles, .)
+
+# nms <- image_quality %>% group_by(name, worker_id) %>% count() %>% ungroup() %>% 
+#   filter(worker_id == 98) %>% pull(name)
+# image_quality %>% filter(worker_id != 98 & !name %in% nms)
+# image_quality %>% filter(name, worker_id)
+xylims <- st_coordinates(ghana)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+pal <- colorRampPalette(rev(brewer.pal(9, "RdBu")))
+# sc <- scale_colour_gradientn(colours = myPalette(100), limits=c(1, 8))
+
+p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
+  geom_sf(data = tiles, fill = "grey85", col = "grey", size = 0.3) +
+  geom_sf(data = ghana, fill = "transparent", col = "grey", size = 0.3) +
+  geom_sf(data = tile_quality, mapping = aes(fill = Score, color = Score)) +  
+  scale_fill_gradientn(colours = pal(20)) + 
+  scale_color_gradientn(colours = pal(20)) + 
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
+  theme_void()
+p1
+```
+
+### Figure 5: Active learning gain
+```{r, eval=FALSE}
+# iteration metrics
+data("iteration_metrics")
+
+# Plots
+cols <- c(rep("grey", length(unique(iteration_metrics$AOI)) -1), "black")
+lsize <- c(rep(0.3, length(unique(iteration_metrics$AOI)) -1), 1)
+V1 <- c("Accuracy", "AUC", "F1")
+
+# prepare data
+# remove labeller from AOI
+imetrics <- iteration_metrics %>% 
+  filter(Metric %in% V1) %>% 
+  mutate(AOI = gsub("labeller", "", AOI))
+
+# select out final iteration for each AOI
+mx_metrics <- imetrics %>% group_by(AOI) %>% 
+  filter(Iteration == max(Iteration)) %>% filter(Metric %in% V1)
+
+# plot
+p <- ggplot(imetrics) + 
+  geom_line(aes(Iteration, Score, color = AOI, size = AOI)) +
+  geom_point(data =  mx_metrics, aes(Iteration, Score, color = AOI), 
+             size = 1) +
+  ggrepel::geom_text_repel(
+    data = mx_metrics %>% filter(AOI != "All"), 
+    aes(label = AOI, x = Iteration, y = Score), col = "grey50", 
+    segment.color = "grey80", point.padding = 0.05 
+  ) +
+  scale_color_manual(values = cols, guide = FALSE) +
+  scale_size_manual(values = lsize, guide = FALSE) + 
+  scale_y_continuous(breaks = seq(0.2, 1, 0.1), expand = c(0, 0), 
+                     limits = c(0.2, 1)) + 
+  facet_wrap(vars(Metric), ncol = 3) + 
+  theme_linedraw() + 
+  theme(strip.background = element_rect(fill = "white"))+
+  theme(strip.text = element_text(colour = "black"))
+
+ggsave(pth("figures/figure5.png"), 
+       width = 7, height = 4, units = "in", dpi = 300)
+```
+
+
+
+
+### Figure S4: Initial training site distribution
+Figure showing distribution of initial 500 samples per cluster, as well as distribution of points per iteration.  
+```{r trainingsites, eval=FALSE}
+data("train_val_sites")
+
+qsites <- instance_tbls$kml_data %>% 
+  filter(aoi %in% paste0("labeller", 1:16)) %>% 
+  filter(kml_type == "Q") %>% select(name, x, y) %>% distinct() %>%
+  mutate(Cluster = "Training reference") %>% 
+  st_as_sf(coords = c("x", "y"), crs = 4326) %>% select(Cluster, name)
+
+train_val_q <- rbind(train_val_sites$initial %>% select(-iteration), qsites)
+      
+
+# initial train cluster panel
+xylims <- st_coordinates(ghana)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+pal <- RColorBrewer::brewer.pal(n = 9, "Spectral")[c(1, 2, 3, 4, 9)]
+
+p1 <- ggplot(africa) + 
+  geom_sf(fill = "gray97", color = "grey", size = 0.25) +
+  geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) +
+  geom_sf(data = train_val_q, aes(color = Cluster, fill = Cluster), 
+          size = 0.05) +   
+  scale_color_manual(values = pal) +
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  guides(colour = guide_legend(override.aes = list(size = 1, fill = NA))) + 
+  theme_void() + 
+  theme(legend.key = element_rect(fill = "grey85", color = "transparent"))
+
+pal <- c(RColorBrewer::brewer.pal(n = 4, "Spectral"), "white")
+p2 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
+  geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) + 
+  geom_sf(data = train_val_sites$active, aes(color = Type), size = 0.05) +
+  scale_color_manual(values = pal) +
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  guides(colour = guide_legend(override.aes = list(size = 1, fill = NA))) + 
+  theme_void() + 
+  theme(legend.key = element_rect(fill = "grey85", color = "transparent"))
+
+# arrange and save
+# cp_theme1 <- theme(legend.box.just = "left")
+cp_theme1 <- theme(legend.margin = margin(0, 0, 0, 0, "cm"), 
+                   legend.text.align = 0, legend.title.align = 0)
+gp <- cowplot::plot_grid(p1 + cp_theme1, 
+                         p2 + cp_theme1, 
+                         nrow = 2,
+                         align = "hv", #axis = "l",
+                         labels = LETTERS[1:2], label_x = 0.05)
+ggsave(pth("figures/si_training_validation_pts.png"), width = 4, 
+       height = 6, units = "in", dpi = 300, bg = "transparent")
+
+```
+
+### Figure S5: Label count and quality
+```{r labelquality, eval=FALSE}
+data("label_summary")
+
+# combine with label_quality
+label_quality2 <- left_join(
+  label_summary$scores, label_summary$score_stats, by = "uuid"
+) %>% select(uuid, score, N, Mean, StDev) %>% 
+  mutate(uuid = substr(uuid, 1, 5)) %>% rename(ID = uuid)
+
+# find Q counts to get IDs infrequent workers
+toofewq <- label_quality2 %>% group_by(ID) %>% count() %>% filter(n < 10)
+label_quality2 <- label_quality2 %>% filter(!ID %in% toofewq$ID)
+
+# Q site accuracy
+p1 <- ggplot(label_quality2) + 
+  geom_boxplot(aes(x = reorder(ID, -score), y = score, fill = ID), 
+               col = "grey50", varwidth = TRUE, show.legend = FALSE,
+               outlier.size = 1) + 
+  geom_point(aes(x = ID, y = Mean), shape = 4, size = 2) +
+  scale_y_continuous(breaks = seq(0, 1, 0.1), limits = c(0, 1), 
+                     expand = c(0, 0.01)) + 
+  scale_fill_manual(values = rep("grey", length(unique(label_quality2$ID)))) + 
+  xlab("ID") + ylab("Score") + 
+  theme_linedraw() + 
+  theme(axis.text = element_text(size = 11), 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+# N sites by type
+yl <- c(0, ceiling(max(label_summary$nlabels$n) * 1.01))
+p2 <- label_summary$nlabels %>% filter(!ID %in% toofewq$ID) %>% 
+  group_by(ID, kml_type) %>% 
+  ggplot() + 
+  geom_bar(aes(x = reorder(ID, -n), y = n, fill = kml_type), 
+           position = "dodge", stat = "identity") +
+  xlab("ID") + ylab("N") + 
+  labs(fill = "Map Type") + 
+  scale_fill_manual(values = c("grey40", "grey70")) + 
+  scale_y_continuous(breaks = seq(yl[1], yl[2], by = 200), 
+                     expand = c(0, 0.01), limits = yl) + 
+  theme_linedraw() + 
+  theme(legend.position = c(0.7, 0.85), axis.text = element_text(size = 11), 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+cp_theme <- theme(axis.text = element_text(size = 11),  
+                  legend.text = element_text(size = 11),
+                  legend.title = element_text(size = 11),
+                  axis.title = element_text(size = 12))
+gp <- cowplot::plot_grid(p2 + cp_theme, p1 + cp_theme, nrow = 2, 
+                         labels = LETTERS[1:2], label_x = 0.0) 
+                         #rel_widths = c(0.65, 0.45))
+ggsave(pth("figures/si_training_qual_n.png"), width = 4, 
+       height = 8, units = "in", dpi = 300, bg = "transparent")
+```
+
+### Figure S6: Consenus label (Bayesian) risk
+
+[Not complete: checking values]
+```{r, eval=FALSE}
+data("label_consensus")
+label_consensus_pts <- label_consensus %>% 
+  rename(Risk = consensus_conflict) %>% 
+  st_as_sf(coords = c("x", "y"), crs = 4326)
+label_consensus %>% distinct(aoi)
+
+xylims <- st_coordinates(ghana)
+maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
+pal <- colorRampPalette(rev(brewer.pal(9, "RdBu")))
+
+p <- ggplot(africa) + 
+  geom_sf(fill = "gray97", color = "grey", size = 0.25) +
+  geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) +
+  geom_sf(data = label_consensus_pts, aes(color = Risk, fill = Risk), 
+          size = 0.1) +
+  scale_color_gradientn(colours = pal(20)) + 
+  scale_fill_gradientn(colours = pal(20)) +
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
+  guides(fill = guide_colorbar(nbin = 20), color = FALSE) +
+  theme_void() + 
+  theme(legend.key = element_rect(fill = "grey85", color = "transparent"))
+p
+label_consensus %>% rename(Risk = consensus_conflict) %>% 
+  ggplot() + geom_histogram(aes(x = Risk)) + 
+  facet_wrap(vars(aoi))
+
+ggsave("manuscript/figures/si_map_reference_sample.png", width = 4, 
+       height = 4, units = "in", dpi = 300, bg = "transparent")
+
+```
+
+
+
+
+```{r, eval=FALSE}
+# randomly select cells, as if those used to assess image quality
+set.seed(1)
+tiles_ss <- tiles %>% sample_n(100)
+
+# set up dummy values of quality, using rainfall as example and regression with
+# some random noise added
+rftiles <- unlist(extract(rftot, tiles_ss))  # rainfall
+tiles_ss <- tiles_ss %>% mutate(rf = rftiles) %>% select(aoi, tile, rf)
+rflm <- coef(lm(c(8, 1) ~ range(tiles_ss$rf)))  # regression 1 to 8
+qual_preds <- rflm[1] + rflm[2] * tiles_ss$rf  # predict
+set.seed(7) 
+qual_preds <- round(qual_preds *  # random noise
+                      runif(length(qual_preds), min = 0.7, max = 1.3))
+qual_preds <- ifelse(qual_preds > 5, 5, qual_preds)  # force to 5
+tiles_ss <- tiles_ss %>% mutate(Quality = factor(qual_preds)) %>% 
+  select(aoi, tile, rf, Quality)
+
+# random assignment of 1-5 by rainfall
+p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
+  geom_sf(data = tiles, fill = "grey85", col = "grey", size = 0.3) +
+  geom_sf(data = ghana, fill = "transparent", col = "grey", size = 0.3) +
+  geom_sf(data = tiles_ss, 
+          mapping = aes(fill = Quality, color = Quality)) +   
+  scale_fill_brewer(palette = "RdBu") + scale_color_brewer(palette = "RdBu") + 
+  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
+  theme_void()
+p2 <- ggplot(tiles_ss) + 
+  geom_histogram(aes(x = Quality), bins = 5, stat = "count", col = "grey", 
+                 fill = "blue") + 
+  xlab("Quality of composite") + ylab("N tiles") + 
+  cowplot::theme_cowplot(font_size = 12)
+g <- cowplot::plot_grid(p1, p1, p2, p2, nrow = 2, scale = c(1, 1, 0.9), 
+                        labels = LETTERS[1:4], label_x = 0.05)
+ggsave("manuscript/figures/figure4.png", width = 5, height = 5, 
+       units = "in", dpi = 300)
+```
+
+
