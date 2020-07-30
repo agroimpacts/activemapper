@@ -82,9 +82,9 @@ cite_options(citation_format = "pandoc")
 
 # Methods
 ## Assessing quality of composites
-The rubric presented in Table 1 was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry overlays within a `labeller` instance set up for the purpose. 
+The rubric presented in Table \ref{tab:imqcriteria} was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry overlays within a `labeller` instance set up for the purpose. 
 
-```{r, echo=FALSE, message=FALSE}
+```{r imqcriteria, echo=FALSE, message=FALSE}
 library(kableExtra)
 image_qual_criteria <- tibble(
   `Quality dimension` = c(
@@ -264,6 +264,7 @@ knitr::include_graphics('figures/si_map_reference_sample.png')
 ```
 
 #### Response design
+
 ##### Stage 1
 We collected the map reference sample on a separate instance of `labeller` set up for the purpose (`validator.crowdmapper.org`). For the sampling unit, we selected a rectangular polygon of ~0.1 ha (0.0002866$^\circ$ resolution), centered on the centroid of each grid cell selected for map reference sample.  Four classes were established for the validation: **cropland**, **non-cropland**, **uncertain but likely cropland**, and **uncertain but likely non-cropland**. The latter two classes were designed to capture information related to swidden dynamics, following the rationale that uncertainty and time since last cropping are likely to be positively correlated. This uncertainty also captures information about the inherent difficulty of the mapping task. Samples were collected by visually interpreting the overlays of PlanetScope composites presented in `labeller`, following the same interpretation protocols used by the labelling team, with the exception that the polygons placed were square and of 0.0002866$^\circ$ resolution. 
 
@@ -312,6 +313,20 @@ We then
 \clearpage
 # Results
 ## Image quality
+```{r, echo=FALSE}
+data("image_quality")
+wqual_diff <- image_quality$img %>% filter(kml_type == "F") %>%
+  group_by(name, season, worker_id) %>%
+  summarize(tile = min(tile), score = sum(score) / 12) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = worker_id, values_from = score,
+              names_prefix = "w") %>%
+  select(tile, season, w92, w99) %>% 
+  mutate(d = w92 - w99, 
+         absd = abs(d))
+```
+
+The image quality assessment was conducted by two separate observers (L. Song and Q. Zhang). Each observer assessed the composites for each season at all 50 of the randomly selected tiles (see main text) following the defined criteria (Table \ref{tab:imqcriteria}). To calculate the score for a given tile for each season, we summed the ranking across the four categories for each observer, rescaled the values, and then calculated the mean tile score across both observers by season. The mean difference between the two observers was `r d <- round(mean(wqual_diff$d), 3); d` (sd = `r absd <- round(sd(wqual_diff$d), 3); absd`) and the mean absolute difference was `r round(mean(wqual_diff$absd), 3)` (sd = `r round(sd(wqual_diff$absd), 3)`), thus one observer scored tiles about `r abs(round(d * 100))` percent lower than the other observer, on average.
 
 ## Active learning process
 ### Labelling

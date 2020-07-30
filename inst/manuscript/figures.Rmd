@@ -85,6 +85,7 @@ p1 <- ggplot() +
   geom_sf(data = aois, fill = "transparent", col = "black", size = 0.4) +
   geom_sf(data = aois %>% filter(aois == ind), col = "black", fill = "gray70", 
           size = 0.4) +
+  geom_sf_text(data = aois, aes(label = aois)) + 
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   theme_void()
 
@@ -174,31 +175,55 @@ ggsave(pth("figures/si_map_reference_sample.png"), width = 4,
 
 ## Results 
 ### Figure 4: Composite quality
-```{r, eval=FALSE, fig.cap="Placeholder for composite quality image."}
+```{r, eval=FALSE}
 data("image_quality")
-tile_quality <- image_quality %>% filter(worker_id == 98) %>% 
-  group_by(name, season) %>% 
-  summarize(tile = min(tile), Score = sum(score) / 12) %>% ungroup() %>% 
-  inner_join(tiles, .)
 
-# nms <- image_quality %>% group_by(name, worker_id) %>% count() %>% ungroup() %>% 
-#   filter(worker_id == 98) %>% pull(name)
-# image_quality %>% filter(worker_id != 98 & !name %in% nms)
-# image_quality %>% filter(name, worker_id)
+# plot parameters
 xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
 pal <- colorRampPalette(rev(brewer.pal(9, "RdBu")))
 # sc <- scale_colour_gradientn(colours = myPalette(100), limits=c(1, 8))
 
+leglabs <- seq(0.4, 1, 0.1)
 p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
   geom_sf(data = tiles, fill = "grey85", col = "grey", size = 0.3) +
   geom_sf(data = ghana, fill = "transparent", col = "grey", size = 0.3) +
-  geom_sf(data = tile_quality, mapping = aes(fill = Score, color = Score)) +  
-  scale_fill_gradientn(colours = pal(20)) + 
-  scale_color_gradientn(colours = pal(20)) + 
+  geom_sf(data = image_quality$tile, 
+          mapping = aes(fill = Score, color = Score)) +
+  facet_wrap(vars(season), ncol = 2) +
+  scale_fill_gradientn(colors = pal(7), 
+                       breaks = seq(0.4, 1, 0.1), limits = c(0.4, 1),
+                       labels = leglabs) + 
+  scale_color_gradientn(colors = pal(7), 
+                        breaks = seq(0.4, 1, 0.1), limits = c(0.4, 1), 
+                        labels = leglabs) + 
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
-  theme_void()
-p1
+  theme_linedraw() + 
+  theme(legend.position="bottom", 
+        strip.background = element_rect(fill = "white"), 
+        strip.text = element_text(colour = "black"), 
+        panel.grid = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank())
+
+p2 <- ggplot(as_tibble(image_quality$tile)) +
+  geom_histogram(aes(x = Score), fill = "blue", col = "grey", #bins = 10, 
+                 binwidth = 0.05, boundary = 0.1) + 
+  scale_x_continuous(breaks = leglabs, labels = leglabs, expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 30)) +
+  facet_wrap(vars(season), ncol = 2) + 
+  ylab("Count") + 
+  theme_linedraw() + 
+  theme(strip.background = element_rect(fill = "white"), 
+        strip.text = element_text(colour = "black"))
+
+g <- cowplot::plot_grid(p1, p2, nrow = 2, align = "hv", axis = "l",
+                        labels = LETTERS[1:2], label_x = 0, 
+                        label_y = c(0.97, 1),   
+                        scale = c(1, 1), rel_heights = c(1, 0.7))
+ggsave(pth("figures/figure4.png"), 
+       width = 4, height = 6.5, units = "in", dpi = 300)
+
 ```
 
 ### Figure 5: Active learning gain
@@ -237,8 +262,8 @@ p <- ggplot(imetrics) +
                      limits = c(0.2, 1)) + 
   facet_wrap(vars(Metric), ncol = 3) + 
   theme_linedraw() + 
-  theme(strip.background = element_rect(fill = "white"))+
-  theme(strip.text = element_text(colour = "black"))
+  theme(strip.background = element_rect(fill = "white"), 
+        theme(strip.text = element_text(colour = "black"))
 
 ggsave(pth("figures/figure5.png"), 
        width = 7, height = 4, units = "in", dpi = 300)

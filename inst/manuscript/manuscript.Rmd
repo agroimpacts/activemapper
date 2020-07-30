@@ -81,6 +81,7 @@ output:
     fig_height: 7
     keep_tex: yes
     number_sections: yes
+    extra_dependencies: ["flafter"]
     template: manuscript.latex
     includes:
       in_header: header.tex
@@ -206,7 +207,7 @@ The mapping system is centered around four components: 1) an image acquisition a
 **[Note: This will require updating to reflect changes to compositing methods]**
 The primary image source used in our system is the PlanetScope Analytic surface reflectance product [@PlanetTeamPlanetApplicationProgram2017], although it can be readily adapted to apply to other images (e.g. Sentinel and Landsat). PlanetScope provides three visual (red, green, blue) and a near-infrared band at 3-4 m resolution at nominal daily frequency. Although these images are already pre-preprocessed and corrected for atmospheric effects, there are residual errors from inter-sensor differences and the radiometric normalization process [@HouborgDailyRetrievalNDVI2018], variation in the orientation of scene footprints, as well as a high frequency of cloud cover over the study region [@WilsonRemotelySensedHighResolution2016]. To correct for these factors, we developed a procedure for creating temporal composites representing the primary growing and non-growing seasons within a single year.  
 
-```{r, echo = FALSE, out.width="50%", fig.cap="An overview of the primary system components, the data stores that hold the inputs and outputs from each component, and the direction of connections between them. The dashed line indicates iterative interactions, while solid lines indicate one-time or irregular connections.", fig.align='center'}
+```{r aois, echo = FALSE, out.width="50%", fig.cap="An overview of the primary system components, the data stores that hold the inputs and outputs from each component, and the direction of connections between them. The dashed line indicates iterative interactions, while solid lines indicate one-time or irregular connections.", fig.align='center'}
 knitr::include_graphics('figures/figure1.png')
 ```
 
@@ -216,7 +217,7 @@ We then transform all images into an "analysis ready data" (ARD) product [@Dwyer
 
 <!-- and then applies the usable data mask (UDM) supplied with the imagery to remove low quality and cloudy pixels.  -->
 
-```{r, echo = FALSE, out.width="100%", fig.cap="An overview of analytical scales used in the mapping platform, including A) the areas of interest defining the minimum mapping geography (solid black lines; dotted lines indicate boundaries of 1 degree grid), the B) 0.05 degree grid used for creating image composite tiles, and the C) 0.005 degree resolution reference grid used for collecting training data and distributed computing.", fig.align='center'}
+```{r, echo = FALSE, out.width="100%", fig.cap="The reference system used in the mapping platform, including A) numbered areas of interest (AOIs) that define the minimum mapping geography (solid black lines; dotted lines indicate boundaries of 1 degree grid), B) the 0.05 degree tile used for compositing imagery, and C) the 0.005 degree resolution reference grid used for collecting training data and distributed computing.", fig.align='center'}
 knitr::include_graphics('figures/figure2.png')
 ```
 The temporal compositing process is applied to the ARD imagery for the time period of interest, which in the case of this study is one of two multi-month seasons, the primary growing and dry seasons for a single agricultural year. Imagery from two seasons helps to improve the performance of cropland classifiers [@Debatsgeneralizedcomputervision2016], while having the seasons in same year helps to minimize differences caused by land change. For each pixel in each image in each ARD temporal stack for a given season, we calculate two weights, with the first being:
@@ -312,7 +313,7 @@ Feature extraction and the conversion of image features is handled by a combinat
 #### Classification
 Once the features from the training sites are extracted into `RasterFrames`, these are combined with their corresponding labels and passed to the machine learning classifier, a `SparkMLlib` implementation of RandomForest [@BreimanRandomForests2001]. \textcolor{red}{The model is trained with a balanced sample and a tree depth of 15 and total tree number of 80, which initial testing showed to provide a reasonable balance between computational time and performance.}
 
-After fitting, the model is applied to the features of the model validation set, and a set of accuracy metrics are calculated, including ordinary binary accuracy and the true skill statistic [@AlloucheAssessingaccuracyspecies2006], which is considered to be more effective than the Kappa statistic in that it controls for class prevalence. 
+After fitting, the model is applied to the features of the model validation set, and a set of accuracy metrics are calculated, including ordinary binary accuracy, the F1 score, and the area under the curve of the Receiver Operating Characteristic [@Pontiustotaloperatingcharacteristic2014]. 
 
 ### The active learning loop
 After fitting and model evaluation a second prediction process is undertaken that initiates the active learning process. The feature extraction process is repeated for the rest of the mapping geography that falls outside of the training and validation sets, but applied to a subset of randomly drawn pixels from each cell in order to reduce computational demand. The fitted model is then applied to these features in order to calculate the posterior probability of cropland presence, and an uncertainty criterion [@DebatsIntegratingactivelearning2017] is calculated for each grid cell:
@@ -361,6 +362,17 @@ Prior to initiating active learning in each AOI, we grouped them into three zone
 
 To evaluate the results, we undertook a number of analyses. 
 
+### Image quality assessment
+```{r, echo=FALSE}
+data("image_quality")
+tile_quality <- image_quality %>% filter(kml_type == "F") %>% 
+  group_by(name, season, worker_id) %>% 
+  summarize(tile = min(tile), Score = sum(score) / 12) %>% ungroup() 
+tilen <- tile_quality %>% distinct(tile) %>% count() %>% pull(n)
+```
+
+We evaluated the overall quality of the resulting seasonal image composites across the region using a random selection of `r tilen`, which we graded according to a four category quality score that evaluated the degree of residual 1) cloud and 2) cloud shadow, 3) the number of visible scene boundary artifacts, and 4) the proportion of the image in which resolution was degraded below the 3-4 m PlanetScope resolution (e.g. because of between-date image mis-registrations). Each category was qualitatively ranked from 0-3, with 0 being the lowest quality, and 3 the highest (see SI for complete protocol), making the highest possible score 12. We rescaled scores to fall between 0 and 1. 
+
 ### Accuracy assessment
 
 The accuracy assessment procedure described in section 2.2 was used strictly to assess performance gains in the active learning loop, according to suggested  best practices [@ElmesAccountingtrainingdata2020]. To independently assess the categorical accuracy of final map products, we followed guidelines provided by [@StehmanKeyissuesrigorous2019] to create a map reference sample. To develop this sample, we first made a stratified random sample of grid cells across the entire country, using the mapped field boundaries to define the two strata. Next, a primary supervisor examined the image composites in each randomly selected cell, and placed a square polygon of ~0.1 ha on the primary class intersecting the centerpoint of the cell. The square was shifted so that it was contained entirety with the intersected class: cropland or non-cropland. Where the supervisor was uncertain about the class label, one of two additional classes were selected: likely cropland or likely non-cropland. After placing these polygons, the supervisor removed their classes from the polygons and sent them to three separate experts, who labelled the polygons according to their interpretation of the underlying imagery. The four sets of labels were then combined and the overall agreement between them was calculated. This agreement provided the upper bound on knowable map accuracy. See the SI for further details on the creation and analysis of the map reference sample. 
@@ -386,11 +398,32 @@ km2 <- format(km2, big.mark = ",", scientific = FALSE)
 We developed maps for all of Ghana (`r km2` km$^2$). Ghana has several agro-ecologically distinct regions, ranging from the primarily grain and vegetable crop producing regions in the northern savannas to tree crop-dominated system in the forested southwest, where cocoa and oil palm are among the dominant crops. For these latter regions, we did not attempt to classify tree crops, and instead mapped clearings that potentially contain field crops or recently felled or newly replanted tree crops. Our rationale for this decision was that the resolution of PlanetScope imagery is insufficient to distinguish such crops from the surrounding forest, and clear field boundaries are typically not visible in cocoa crops. 
 
 ## Image catalog
-We generated a complete image catalog for the `r nrow(tiles)` tiles intersecting Ghana, spanning `r km2` km$^2$. This entailed processing all PlanetScope imagery intersecting the total extent of these tiles for the periods May-September, 2018 (the growing season) and December, 2018 to February, 2019 (the subsequent dry season). The longer period was necessary for the growing season because of the high frequency of cloud cover, which severely limits the number of clear scenes over any given area. For cloudier regions (AOIs 10, 11, 13, 14, 16) we started the dry season window in November. The compositing processes was applied to render the resulting seasonally contrasting image pairs for each tile (**Figure Xa**). We also collected and composited imagery for one of the 16 AOIs for the two seasons of the 2019 agricultural year. All images were converted into Raster Foundry slippy maps for presentation in *labeller*. 
+```{r, echo=FALSE}
+tqual_mu <- image_quality$tile %>%
+  group_by(season, tile) %>% 
+  summarize(score = mean(Score)) %>% 
+  ungroup()
+tqual_sum <- tqual_mu %>% 
+  group_by(season) %>% 
+  summarize(mu = mean(score), sd = sd(score))
+tqmu <- tqual_sum %>% pull(mu) %>% round(2)
+names(tqmu) <- tqual_sum %>% pull(season)
 
-We evaluated the overall quality of the resulting composites across the region using a random selection of 100 tiles, which we graded according to a four category quality score that evaluated the degree of residual 1) cloud and 2) cloud shadow, 3) the number of visible scene boundary artifacts, and 4) the proportion of the image in which resolution was degraded below the 3-4 m PlanetScope resolution, due to between-date image mis-registrations. Each category was qualitatively ranked from 0-3, with 0 being the lowest quality, and 3 the highest (see SI for complete protocol), thus the highest possible score was 12. The results showed that the majority of the sampled composites (**X%; Fig Xb**) received a score of **X** or higher (**Y and Z%**), as rated by four independent observers (mean standard deviation of observer scores was **XX**). Image quality varied spatially and temporally, with the lower quality images found during in the growing season period and the Southwest corner, where the substantially greater cloud cover resulting in a much lower density of available PlanetScope imagery for each time period (**Fig Xc**). Overall, the available image density and quality of composites were closely related (see SI for full details).  
+tqual_ct <- tqual_mu %>% group_by(season) %>% 
+  mutate(gt85 = ifelse(score > 0.85, 1, 0)) %>% 
+  summarize(n = n(), n85 = sum(gt85)) %>% 
+  mutate(prop = n85 / n)
+tqct <- tqual_ct %>% pull(prop) * 100
+names(tqct) <- tqual_ct %>% pull(season)
+```
 
-```{r, echo = FALSE, out.width="70%", fig.cap="The location and quality scores of 100 randomly selected tiles for the growing (A) and off-growing season (B), and the corresponding distributions of the quality scores for each season, respectively (C and D) [This a hypothetical placeholder figure].", fig.align='center'}
+We generated a complete image catalog for the `r nrow(tiles)` tiles intersecting Ghana, spanning `r km2` km$^2$. This entailed processing all PlanetScope imagery intersecting the total extent of these tiles for the periods May-September, 2018 (the growing season) and December, 2018 to February, 2019 (the subsequent dry season). The longer period was necessary for the growing season because of the high frequency of cloud cover, which severely limits the number of clear scenes over any given area. For cloudier regions (AOIs 10, 11, 13, 14, 16) we started the dry season window in November. The compositing processes was applied to render the resulting seasonally contrasting image pairs for each tile. We also composited imagery for AOI 8 (Figure \ref{fig:aois}A) for the two seasons of the 2019 agricultural year. All images were converted into Raster Foundry slippy maps for presentation in *labeller*. 
+
+An assessment with two observers (see SI for observer details) found that average quality per growing season composite tile was `r tqmu["gs"]`, with `r tqct["gs"]` percent having scores $\geq$ 0.85, while the average quality of dry season composites was `r tqmu["os"]` (`r tqct["os"]` percent $\geq$ 0.85). Composite quality in both seasons was highest in the northern half of the country and lowest in the southwest (Figure \ref{fig:imqual}A), where the substantially greater cloud cover resulted in a much lower density of available PlanetScope imagery for each time period. 
+
+<!-- Overall, the available image density and quality of composites were closely related (see SI for full details).   -->
+
+```{r imqual, echo = FALSE, out.width="70%", fig.cap="The location and quality scores of 100 randomly selected tiles for the growing (A) and off-growing season (B), and the corresponding distributions of the quality scores for each season, respectively (C and D) [This a hypothetical placeholder figure].", fig.align='center'}
 knitr::include_graphics('figures/figure4.png')
 ```
 
@@ -443,19 +476,65 @@ This accuracy of the labellers was assessed `r tsites$tot[2]` times against `r l
 After each site was mapped by four labellers, consensus labels were generated. **The average risk for each consensus label was *X* (see SI)**.  
 
 ### Model performance
-The gain in model performance was assessed for each AOI and for each iteration using a variety of metrics, including overall accuracy, area under the curve of the Receiver Operating Characteristic (AUC), and the F1 score (Figure \ref{fig:alperformance}). 
+```{r, echo=FALSE}
+data("iteration_metrics")
+delta_func <- function(x, rnd = 4) round((x - lag(x)) / lag(x), rnd)
 
+# Difference iteration 0 to 3
+imet_mu03 <- iteration_metrics %>% 
+  filter(AOI == "All") %>%
+  filter(Iteration %in% c(0, 3)) %>%
+  filter(!grepl("_change", Metric)) %>% 
+  group_by(Metric) %>% 
+  mutate(dscore = delta_func(Score)) %>% 
+  ungroup() %>% 
+  mutate(dscore = round(dscore * 100, 1))
+
+imet_mu0 <- imet_mu03 %>% filter(Iteration == 0) %>% 
+  mutate(Score = round(Score, 3))
+imet_mu3 <- imet_mu03 %>% filter(Iteration == 3) %>% 
+  mutate(Score = round(Score, 3))
+
+# differences per iteration
+imet_dmu <- iteration_metrics %>% 
+  filter(AOI == "All" & Iteration > 0) %>%
+  filter(grepl("_change", Metric)) %>% 
+  mutate(Metric = gsub("_change", "", Metric)) %>% 
+  mutate(Score = round(Score * 100, 1)) %>% 
+  filter(Metric %in% c("Accuracy", "AUC", "F1"))
+
+imet_dmu1 <- imet_dmu %>% filter(Iteration == 1) %>% 
+  mutate(dscore = round(Score, 3))
+imet_dmu2 <- imet_dmu %>% filter(Iteration == 2) %>% 
+  mutate(dscore = round(Score, 3))
+imet_dmu3 <- imet_dmu %>% filter(Iteration == 3) %>% 
+  mutate(dscore = round(Score, 3))
+
+# AOI score ranges
+imet_min <- iteration_metrics %>% group_by(AOI) %>%
+  filter(Iteration == max(Iteration) & !grepl("change", Metric)) %>%
+  filter(Metric %in% c("Accuracy", "AUC", "F1")) %>% 
+  ungroup() %>% 
+  group_by(Metric) %>% 
+  filter(Score == min(Score)) %>% 
+  mutate(AOI = gsub("labeller", "", AOI), Score = round(Score, 3))
+
+imet_max <- iteration_metrics %>% group_by(AOI) %>%
+  filter(Iteration == max(Iteration) & !grepl("change", Metric)) %>%
+  filter(Metric %in% c("Accuracy", "AUC", "F1")) %>% 
+  ungroup() %>% 
+  group_by(Metric) %>% 
+  filter(Score == max(Score)) %>% 
+  mutate(AOI = gsub("labeller", "", AOI), Score = round(Score, 3))
+```
+
+
+The gain in model performance was assessed for each AOI against several accuracy metrics. The average accuracy, AUC, and F1 at Iteration 0 were `r imet_mu0 %>% filter(Metric == "Accuracy") %>% pull(Score)`, `r imet_mu0 %>% filter(Metric == "AUC") %>% pull(Score)`, and `r imet_mu0 %>% filter(Metric == "F1") %>% pull(Score)`, respectively, increasing to `r imet_mu3 %>% filter(Metric == "Accuracy") %>% pull(Score)`, `r imet_mu3 %>% filter(Metric == "AUC") %>% pull(Score)`, and `r imet_mu3 %>% filter(Metric == "F1") %>% pull(Score)` by Iteration 3 (Figure \ref{fig:alperformance}). These differences represent respective gains of `r imet_mu3 %>% filter(Metric == "Accuracy") %>% pull(dscore)`, `r imet_mu3 %>% filter(Metric == "AUC") %>% pull(dscore)`, and
+`r imet_mu3 %>% filter(Metric == "F1") %>% pull(dscore)` for the three metrics. The largest gains in each metric were registered on Iteration 1, averaging `r imet_dmu1 %>% filter(Metric == "Accuracy") %>% pull(Score)`, `r imet_dmu1 %>% filter(Metric == "AUC") %>% pull(Score)`, and `r imet_dmu1 %>% filter(Metric == "F1") %>% pull(Score)` percent for accuracy, AUC, and F1. The lowest gains were received on Iteration 3 for accuracy (`r imet_dmu3 %>% filter(Metric == "Accuracy") %>% pull(Score)`%) and F1 (`r imet_dmu3 %>% filter(Metric == "F1") %>% pull(Score)`%), while Iteration 2 showed the lowest average gain for AUC (`r imet_dmu3 %>% filter(Metric == "AUC") %>% pull(Score)`%). The range in scores varied substantially across AOIs and metrics. Accuracy ranged between `r imet_min %>% filter(Metric == "Accuracy") %>% pull(Score)` (AOI `r imet_min %>% filter(Metric == "Accuracy") %>% pull(AOI)`) and `r imet_max %>% filter(Metric == "Accuracy") %>% pull(Score)` (AOI `r imet_max %>% filter(Metric == "Accuracy") %>% pull(AOI)`), while AUC varied from `r imet_min %>% filter(Metric == "AUC") %>% pull(Score)` (AOI `r imet_min %>% filter(Metric == "AUC") %>% pull(AOI)`) and `r imet_max %>% filter(Metric == "AUC") %>% pull(Score)` (AOI `r imet_max %>% filter(Metric == "AUC") %>% pull(AOI)`), and F1 from `r imet_min %>% filter(Metric == "F1") %>% pull(Score)` (AOI `r imet_min %>% filter(Metric == "F1") %>% pull(AOI)`) and `r imet_max %>% filter(Metric == "F1") %>% pull(Score)` (AOI `r imet_max %>% filter(Metric == "F1") %>% pull(AOI)`).
 
 ```{r alperformance, echo = FALSE, out.width="100%", fig.cap="Scores for overall Accuracy, area under the curve of the Receiver Operating Characteristic, and the F1 score resulting for the Random Forest model after each iteration of the active learning loop for each AOI (gray lines), as well as the mean score per iteration across all AOIs (black lines).", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/figure5.png')
 ```
-
-
-The average performance associated 
-
-**[Fill in with intro]**. The average number of iterations per active learning process was **4**, as overall performance gains, as assessed against validation sets, saturated quickly (see **Figure X** in SI). 
-
-The average computational time per iteration per AOI was *6 hours*. **Training time. Interaction time**
 
 ## Map accuracy
 ### Categorical accuracy
