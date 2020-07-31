@@ -2,6 +2,11 @@
 ## 1. Stratifying validation sample
 ## 2. Analyzing field statistics
 
+library(raster)
+library(sf)
+library(dplyr)
+library(here)
+
 # Datasets
 # grid, tiles, etc
 mgrid <- raster(
@@ -25,7 +30,6 @@ tilesr <- fasterize::fasterize(tiles, r, field = "aoi1")
 tilesr005 <- disaggregate(tilesr, fact = 10)
 tilesr005_sf <- stars::st_as_stars(tilesr005) %>% st_as_sf() %>%
   rename(aoi1 = layer)
-
 
 #------------------------------------------------------------------------------#
 # Point based stratification for map reference sample selection
@@ -145,5 +149,97 @@ fareas <- foreach(i = segment_files$order, .combine = stack) %dopar% {
 
 writeRaster(fdensity, filename = here("external/data/field_density005.tif"))
 
-
 # usethis::use_data("data_from_segmenter")
+
+#------------------------------------------------------------------------------#
+# extract and summarize field stats for validation sites
+library(dplyr)
+library(ggplot2)
+library(activemapper)
+library(doMC)
+
+data("top_label_data")
+
+gcs = "+proj=longlat +datum=WGS84 +no_defs"
+top_label_grids <- top_label_data$stats %>% select(name, x, y) %>%
+  data.table::as.data.table() %>%
+  rmapaccuracy::point_to_gridpoly(xy = ., 0.005 / 2, gcs, gcs)
+top_label_grids <- top_label_data$stats %>% select(aoi, name) %>%
+  left_join(., top_label_grids)
+top_label_grids <- top_label_grids %>%
+  mutate(aoi = as.numeric(gsub("labeller", "", aoi))) %>%
+  arrange(aoi)
+
+# Read in segments, drop old AOI3
+segment_files <- dir(here("external/data/results/segments/merged"),
+                     pattern = "boundarymerge", full.names = TRUE)
+iid <- as.numeric(gsub("[[:alpha:]]|_|\\.", "", basename(segment_files)))
+segment_files <- tibble(file = segment_files, order = iid) %>% arrange(iid)
+segment_files <- segment_files %>% filter(!grepl("aoi3_*.*merge.geojson", file))
+
+
+logf <- here("external/logs/field_stats.log")
+aois <- unique(top_label_grids$aoi)
+
+registerDoMC(cores = 7)
+fld_stats <- foreach(x = 1:length(aois)) %dopar% {
+# fld_stats <- lapply(1:length(aois), function(x) {  # x <- 3
+
+  cat(glue::glue("Starting labeller{x} at {Sys.time()}"), file = logf,
+      sep = "\n", append = TRUE)
+
+  # pull grids
+  grids <- top_label_grids %>% filter(aoi == !!aois[x]) %>% st_as_sf()
+  flds <- segment_files %>% filter(order == x) %>% pull(file) %>%
+    read_sf()
+
+  # intersect segments with grids (to get fields for validation sites with
+  # fields), and then grids with fields filtering for NA to get empty validation
+  # sites
+  fld_int <- st_join(flds, grids, left = FALSE)
+  grid_int <- st_join(grids, flds) %>% filter(is.na(id))
+
+  # calculate area stats
+  fld_stats <- fld_int %>%
+    mutate(area = as.numeric(units::set_units(st_area(.), "ha"))) %>%
+    as_tibble() %>%
+    group_by(name) %>%
+    summarize(n = n(), Mean = mean(area), StDev = sd(area)) %>%
+    mutate(aoi = x) %>%
+    select(aoi, !!names(.))
+  grid_stats <- grid_int %>% as_tibble() %>%
+    select(aoi, name) %>%
+    mutate(aoi = x, n = n(), Mean = 0, StDev = NA) %>%
+    select(aoi, !!names(.))
+
+  grids_xy <- grids %>% st_centroid() %>%
+    mutate(x = st_coordinates(.)[, 1],
+           y = st_coordinates(.)[, 2]) %>%
+    as_tibble() %>%
+    select(aoi, name, x, y)
+
+  # combine and get grid center coordinates back
+  segment_stats <- grids_xy %>%
+    left_join(., bind_rows(fld_stats, grid_stats))
+
+  cat(glue::glue("aoi {x} complete"),
+      file = logf, sep = "\n", append = TRUE)
+  cat(glue::glue(""), file = logf, sep = "\n", append = TRUE)
+
+  return(segment_stats)
+}
+
+field_validation_stats <- do.call(rbind, fld_stats) %>%
+  mutate(aoi = paste0("labeller", aoi))
+
+usethis::use_data(field_validation_stats)
+#
+#   i <- 50
+#   nm <- unique(fld_int$name)[i]
+#   fld_int %>% filter(name == nm) %>%
+#     ggplot() + geom_sf() +
+#     geom_sf(data = grids %>% filter(name == nm), fill = "transparent") +
+#     geom_sf(data = fld_int %>% filter(name == nm) %>% slice(1), fill = "red")
+
+
+

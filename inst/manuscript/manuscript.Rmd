@@ -545,12 +545,14 @@ Based on this reference sample, we found that the average accuracy of the pixel-
 <!-- and an accuracy surface interpolated from the average cell-wise accuracies calculated between the predicted map and validation labels.  -->
 
 ```{r, echo = FALSE, out.width="80%", fig.cap="The overall, user's, and producer's accuracies (indicated by fill color) for each of the 16 mapping zones (zones numbers are shown on maps) [This a hypothetical placeholder figure].", fig.align='center'}
-knitr::include_graphics('figures/figure5.png')
+knitr::include_graphics('figures/si_mapping_blocks.png')
 ```
 
 The accuracy patterns generally align with the difficulty of the labelling task, that is, **the southwestern regions were hardest for workers to interpret, as shown by Figure 5.**
 
-### 
+### Segmentation accuracy
+To evaluate the accuracy of the segmented field boundaries, we calculate the mean and standard deviation of the most accurate (for the given AOI) labeller's maps for validation sites, calculated the mean and standard deviation of area, and compared these statistics to those derived from the model-generated segments for those sites (Figure X). 
+
 
 ## System evaluation
 ### Label quality and map accuracy
