@@ -520,7 +520,9 @@ top_validation_maps <- top_validation_maps %>%
   as_tibble()
 
 # and summary statistics
-top_validation_stats <- top_validation_maps %>%
+# for fields
+top_validation_flds <- top_validation_maps %>%
+  filter(!is.na(field)) %>%
   group_by(name) %>%
   summarize(aoi = unique(aoi), wid = unique(wid), hit_id = unique(hit_id),
             assignment_id = unique(assignment_id), n = n(),
@@ -529,12 +531,23 @@ top_validation_stats <- top_validation_maps %>%
   select(-fwts) %>%
   select(aoi, name, x, y, hit_id, assignment_id, wid, n, Mean, StDev)
 
+# non fields
+top_validation_noflds <- top_validation_maps %>%
+  filter(is.na(field)) %>%
+  mutate(n = 0, Mean = 0, StDev = NA) %>%
+  left_join(., mgrid, by = "name") %>%
+  select(-fwts) %>%
+  select(aoi, name, x, y, hit_id, assignment_id, wid, n, Mean, StDev)
+
+# bind
+top_validation_stats <- bind_rows(top_validation_flds, top_validation_noflds)
+
 # combine into list
 top_label_data <- list(
   "maps" = top_validation_maps, "stats" = top_validation_stats,
   "scores" = worker_scores
 )
 
-usethis::use_data(top_label_data)
+usethis::use_data(top_label_data, overwrite = TRUE)
 
 

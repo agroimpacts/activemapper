@@ -269,7 +269,22 @@ ggsave(pth("figures/figure5.png"),
        width = 7, height = 4, units = "in", dpi = 300)
 ```
 
+### Figure 6: Categorical map accuracy
 
+### Figure 7: Segmentation statistics
+```{r segstats, eval=FALSE}
+data("top_label_data")
+data("field_validation_stats")
+
+human <- top_label_data$stats %>% 
+  rename(hun = n, humu = Mean, hustd = StDev) %>% 
+  select(-contains("id"))
+machine <- field_validation_stats %>% 
+  rename(man = n, mamu = Mean, mastd = StDev)
+left_join(human, machine) %>% View()
+machine %>% arrange(aoi) %>% View()
+
+```
 
 
 ### Figure S4: Initial training site distribution

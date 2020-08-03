@@ -1,7 +1,7 @@
 Package: activemapper
 Type: Package
 Title: For analytics on activemapper data
-Version: 0.0.1-20
+Version: 0.0.1-21
 Author: Lyndon Estes
 Maintainer: Lyndon Estes <lestes@clarku.edu>
 Description: Some functions to simplify pulling and analyzing data from the 
