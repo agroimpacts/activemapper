@@ -199,7 +199,7 @@ p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
                         labels = leglabs) + 
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
   theme_linedraw() + 
-  theme(legend.position="bottom", 
+  theme(legend.position = "bottom", 
         strip.background = element_rect(fill = "white"), 
         strip.text = element_text(colour = "black"), 
         panel.grid = element_blank(),
@@ -270,21 +270,6 @@ ggsave(pth("figures/figure5.png"),
 ```
 
 ### Figure 6: Categorical map accuracy
-
-### Figure 7: Segmentation statistics
-```{r segstats, eval=FALSE}
-data("top_label_data")
-data("field_validation_stats")
-
-human <- top_label_data$stats %>% 
-  rename(hun = n, humu = Mean, hustd = StDev) %>% 
-  select(-contains("id"))
-machine <- field_validation_stats %>% 
-  rename(man = n, mamu = Mean, mastd = StDev)
-left_join(human, machine) %>% View()
-machine %>% arrange(aoi) %>% View()
-
-```
 
 
 ### Figure S4: Initial training site distribution
@@ -473,3 +458,82 @@ ggsave("manuscript/figures/figure4.png", width = 5, height = 5,
 ```
 
 
+### Figure S7: Segmentation statistics
+```{r segstats, eval=FALSE}
+data("top_label_data")
+data("field_validation_stats")
+
+human <- top_label_data$stats %>%
+  mutate(mu_prop = NA, type = "Validation") %>%
+  select(-contains("id"))
+machine <- field_validation_stats %>%
+  mutate(type = "Segmentation")
+humachine <- bind_rows(human, machine) %>% 
+  mutate(aoi = as.numeric(gsub("labeller", "", aoi))) %>% 
+  arrange(aoi)
+
+# Summarize AOI-wise averages (field size)
+humachine_sum <- humachine %>% group_by(aoi, type) %>% 
+  summarize(Median = median(Mean), Mean = mean(Mean)) %>% 
+  ungroup() %>% 
+  tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat")
+# field number
+humachine_sum_n <- humachine %>% group_by(aoi, type) %>% 
+  summarize(Median = median(n), Mean = mean(n)) %>% 
+  ungroup() %>% 
+  tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat")
+
+# plots
+fcols <- c(Segmentation = rgb(0, 0, 1, alpha = 0.5),
+          Validation = rgb(1, 0, 0, alpha = 0.5))
+brks <- seq(0, 30, 5)
+theme_fun <- function(x) {
+  theme_linedraw() + 
+  theme(legend.position = "bottom", legend.text = element_text(size = 11),
+        strip.background = element_rect(fill = "white"), 
+        strip.text = element_text(size = 11, colour = "black"),  
+        axis.text.x = element_text(size = 11, hjust = 1, vjust = 0.5, 
+                                   angle = 90), 
+        axis.text.y = element_text(size = 11))
+}
+
+# Field size
+p <- ggplot(humachine) + 
+  geom_density(aes(x = Mean, y = ..count.., fill = type), col = "transparent", 
+               linetype = "blank") +  
+  geom_vline(data = humachine_sum, 
+             aes(xintercept = value, color = type, linetype = Stat), 
+             size = 0.5) +
+  scale_x_continuous(expand = c(0.03, 0.03), breaks = brks, limits = c(0, 30)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_color_manual(name = "", values = c("blue", "red"), guide = FALSE) + 
+  scale_fill_manual(name = "", values = fcols) +  
+  # scale_linetype_manual(name = "", values = c("dashed", "solid")) +  
+  scale_linetype("") +  
+  facet_wrap(vars(aoi)) + 
+  xlab("Field size (ha)") + ylab("Count") + 
+  theme_fun()
+ggsave(pth("figures/si_validation_stats_fha.png"), 
+       width = 7, height = 7, units = "in", dpi = 300)
+
+# field number
+brks <- seq(0, 20, 5)
+p2 <- ggplot(humachine) + 
+  geom_density(aes(x = n, y = ..count.., fill = type), col = "transparent", 
+               linetype = "blank") +  
+  geom_vline(data = humachine_sum_n, 
+             aes(xintercept = value, color = type, linetype = Stat), 
+             size = 0.5) +
+  scale_x_continuous(expand = c(0.03, 0.03), breaks = brks, limits = c(0, 20)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 40)) +
+  scale_color_manual(name = "", values = c("blue", "red"), guide = FALSE) + 
+  scale_fill_manual(name = "", values = fcols) +  
+  # scale_linetype_manual(name = "", values = c("dashed", "solid")) +  
+  scale_linetype("") +  
+  facet_wrap(vars(aoi)) + 
+  xlab("Number of fields") + ylab("Count") + 
+  theme_fun()
+ggsave(pth("figures/si_validation_stats_fn.png"), 
+       width = 7, height = 7, units = "in", dpi = 300)
+
+```

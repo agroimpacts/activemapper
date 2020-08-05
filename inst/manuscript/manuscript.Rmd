@@ -113,6 +113,7 @@ csl: ecology.csl
 library(knitr)
 library(citr)
 library(dplyr)
+library(activemapper)
 
 #opts_knit$set(root.dir=normalizePath('../'))
 
@@ -296,7 +297,7 @@ Once all training sites are completed, they are randomly partitioned into traini
 Upon completion of the labels, *labeller* automatically launches an ephemeral Elastic Map Reduce cluster consisting of tens of instances, depending on the size of the mapping geography. 
 
 #### Feature extraction
-The first step is the extraction of additional features from the growing season/non-growing season PlanetScope imagery. Previous work showed that a large number of simple features that summarize the statistical properties of reflectance and vegetatiation indices in local neighborhoods are highly effective for classifying smallholder croplands [@Debatsgeneralizedcomputervision2016]. We followed this logic in this study, but opted for a smaller feature space to accomodate the storage and memory requirements of mapping geography that were several orders of magnitude larger. Here, we used a set of 24 features, comprising the eight original composite bands (four from each season), an 11X11 mean of each band, as well as the standard deviation of each band within a 5X5 window (Table 1).
+The first step is the extraction of additional features from the growing season/non-growing season PlanetScope imagery. Previous work showed that a large number of simple features that summarize the statistical properties of reflectance and vegetatation indices in local neighborhoods are highly effective for classifying smallholder croplands [@Debatsgeneralizedcomputervision2016]. We followed this logic in this study, but opted for a smaller feature space to accomodate the storage and memory requirements of mapping geography that were several orders of magnitude larger. Here, we used a set of 24 features, comprising the eight original composite bands (four from each season), an 11X11 mean of each band, as well as the standard deviation of each band within a 5X5 window (Table 1).
 
 
 \begin{center}Table 1. List of features.\end{center}
@@ -313,7 +314,7 @@ Feature extraction and the conversion of image features is handled by a combinat
 #### Classification
 Once the features from the training sites are extracted into `RasterFrames`, these are combined with their corresponding labels and passed to the machine learning classifier, a `SparkMLlib` implementation of RandomForest [@BreimanRandomForests2001]. \textcolor{red}{The model is trained with a balanced sample and a tree depth of 15 and total tree number of 80, which initial testing showed to provide a reasonable balance between computational time and performance.}
 
-After fitting, the model is applied to the features of the model validation set, and a set of accuracy metrics are calculated, including ordinary binary accuracy, the F1 score, and the area under the curve of the Receiver Operating Characteristic [@Pontiustotaloperatingcharacteristic2014]. 
+After fitting, the model is applied to the features of the model validation set, and a set of performance metrics are calculated, including ordinary binary accuracy, the F1 score (the geometric mean of user's and producer's accuracy), and the area under the curve of the Receiver Operating Characteristic [@Pontiustotaloperatingcharacteristic2014]. 
 
 ### The active learning loop
 After fitting and model evaluation a second prediction process is undertaken that initiates the active learning process. The feature extraction process is repeated for the rest of the mapping geography that falls outside of the training and validation sets, but applied to a subset of randomly drawn pixels from each cell in order to reduce computational demand. The fitted model is then applied to these features in order to calculate the posterior probability of cropland presence, and an uncertainty criterion [@DebatsIntegratingactivelearning2017] is calculated for each grid cell:
@@ -362,7 +363,7 @@ Prior to initiating active learning in each AOI, we grouped them into three zone
 
 To evaluate the results, we undertook a number of analyses. 
 
-### Image quality assessment
+### Image quality
 ```{r, echo=FALSE}
 data("image_quality")
 tile_quality <- image_quality %>% filter(kml_type == "F") %>% 
@@ -373,13 +374,25 @@ tilen <- tile_quality %>% distinct(tile) %>% count() %>% pull(n)
 
 We evaluated the overall quality of the resulting seasonal image composites across the region using a random selection of `r tilen`, which we graded according to a four category quality score that evaluated the degree of residual 1) cloud and 2) cloud shadow, 3) the number of visible scene boundary artifacts, and 4) the proportion of the image in which resolution was degraded below the 3-4 m PlanetScope resolution (e.g. because of between-date image mis-registrations). Each category was qualitatively ranked from 0-3, with 0 being the lowest quality, and 3 the highest (see SI for complete protocol), making the highest possible score 12. We rescaled scores to fall between 0 and 1. 
 
-### Accuracy assessment
+### Map assessment
+#### Validation performance
+To assess the gain in RandomForest performance due to active learning loop, we assessed the change in accuracy, F1, and AUC (see 2.2.3.2) between each iteration and between the first and last iterations for each AOI. We then compared the magnitude of these iteration-wise changes to those that occurred when each batch of new training sites was randomly selected [@DebatsIntegratingactivelearning2017]. 
 
-The accuracy assessment procedure described in section 2.2 was used strictly to assess performance gains in the active learning loop, according to suggested  best practices [@ElmesAccountingtrainingdata2020]. To independently assess the categorical accuracy of final map products, we followed guidelines provided by [@StehmanKeyissuesrigorous2019] to create a map reference sample. To develop this sample, we first made a stratified random sample of grid cells across the entire country, using the mapped field boundaries to define the two strata. Next, a primary supervisor examined the image composites in each randomly selected cell, and placed a square polygon of ~0.1 ha on the primary class intersecting the centerpoint of the cell. The square was shifted so that it was contained entirety with the intersected class: cropland or non-cropland. Where the supervisor was uncertain about the class label, one of two additional classes were selected: likely cropland or likely non-cropland. After placing these polygons, the supervisor removed their classes from the polygons and sent them to three separate experts, who labelled the polygons according to their interpretation of the underlying imagery. The four sets of labels were then combined and the overall agreement between them was calculated. This agreement provided the upper bound on knowable map accuracy. See the SI for further details on the creation and analysis of the map reference sample. 
+#### Independent accuracy assessment
+The accuracy assessment procedure described above was not strictly independent because it was re-used the same validation sites over multiple iterations [@ElmesAccountingtrainingdata2020]. To independently assess the accuracy of final map products, we followed guidelines provided by [@StehmanKeyissuesrigorous2019] to create a separate map reference sample. To develop this sample, we first used the segmented field boundaries to define a cropland and non-cropland stratum for Ghana, and then randomly selected a sample of the centroids of grid cells intersecting each stratum. Next, a primary supervisor examined the image composites in each randomly selected cell, and placed a square polygon of ~0.1 ha on the primary class intersecting the centerpoint of the cell. The square was shifted so that it was contained entirety with the intersected class: cropland or non-cropland. Where the supervisor was uncertain about the class label, one of two additional classes were selected: likely cropland or likely non-cropland. After placing these polygons, the supervisor removed their classes from the polygons and sent them to three separate experts, who labelled the polygons according to their interpretation of the underlying imagery. The four sets of labels were then combined and the overall agreement between them was calculated. This agreement provided the upper bound on knowable map accuracy. See the SI for further details on the creation and analysis of the map reference sample. These points were then intersected with both the RandomForest probability images and the segmented field boundaries, and confusion matrixes between the map reference sample labels and the extracted map classes was constructed to assess the categorical accuracy of each map product.  
 
-To assess the accuracy of the segmented field boundaries, we compared the size class distributions of the segmented field boundaries against those of the  workers' digitized polygons at map validation sites. We calculated the differences in the measures of central tendency (mean, median, mode) between the two datasets within each validation site, and at the scale of the AOI.  
+To assess the accuracy of the segmented field boundaries, we compared the size class distributions of the segmented field boundaries against those of the  workers' digitized polygons at map validation sites. We selected the field polygons from the most accurate labeller to digitize each of the 100 validation sites in each AOI, and calculated the site-wise average area and number of polygons. We then calculated the same statistics from the segmented boundaries that intersected each validation grid. We compared the distributions and proximity of two measures of central tendency (mean and median) calculated from the two datasets for each AOI, and across all AOIs.  
 
-To further evaluate the capacities of different components of the system, we performed several further experiments. In the first experiment, we evaluated the degree to which training label quality impacts final map accuracy, by comparing maps created by training the RandomForest algorithm with labels created by the least accurate worker, the most accurate worker, as well as those trained with the consensus labels. This test aligns with Tier 1 standards for accounting for the impact of training data error on final map accuracy [@ElmesAccountingtrainingdata2020]. Next, we evaluated the degree to which training sample selection via active learning impacted map accuracy relative to random selection of additional training sites. Lastly, we repeated the entire map development and map assessment process for one AOI for the 2019 agricultural year, in order to assess the ability of the system to create annually updated maps and detect inter-annual change. 
+## The impact of training data error
+To quantify the potential deleterious impact of training data error on our map results, we compared maps created by training the RandomForest algorithm with three sets of labels: 1) those from the lowest scoring worker to map each training site, 2) those from the most accurate worker, and 3) those trained as usual with the consensus labels. We then quantified the prediction performance against the validation sites, and compared the differences in performance metrics for each variant. This assessment follows recommended Tier 1 (i.e. best practice) standards to account for training data errors in machine learning-based Earth Observation applications [@ElmesAccountingtrainingdata2020].  
+
+```{r, echo=FALSE}
+load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
+kml_types <- instance_tbls$kml_data %>% filter(aoi == "labeller8v2") %>% 
+  group_by(kml_type) %>% count() %>% filter(kml_type == "Q") %>% pull(n)
+```
+
+As a final test of training data quality on map accuracy, we retrained the model for AOI 8 for 2018 using new labels that were generated against an updated training reference library (n = `r kml_types`), and compared the performance of this model against the previous version of the model.  
 
 <!-- Related to this, we evaluated two different versions of the active learning uncertainty criterion to evaluate the impact on performance gain.  -->
 
@@ -387,7 +400,7 @@ To further evaluate the capacities of different components of the system, we per
 
 ## The characteristics of Ghanaian cropland
 Using the final mapped results, we calculated the estimated area of arable cropland in Ghana, as well as the characteristics of field sizes through the country. We further used the uncertainty information encoded in the cropland probability images produced by the Random Forest classifier to provide further insight into the characteristics of cropland active-fallow cycles.  
- 
+
 # Results
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 tiles <- sf::read_sf(system.file("extdata/ghana_tiles.geojson", 
@@ -395,10 +408,11 @@ tiles <- sf::read_sf(system.file("extdata/ghana_tiles.geojson",
 km2 <- round(as.numeric(units::set_units(sum(sf::st_area(tiles)), "km2")))
 km2 <- format(km2, big.mark = ",", scientific = FALSE)
 ```
-We developed maps for all of Ghana (`r km2` km$^2$). Ghana has several agro-ecologically distinct regions, ranging from the primarily grain and vegetable crop producing regions in the northern savannas to tree crop-dominated system in the forested southwest, where cocoa and oil palm are among the dominant crops. For these latter regions, we did not attempt to classify tree crops, and instead mapped clearings that potentially contain field crops or recently felled or newly replanted tree crops. Our rationale for this decision was that the resolution of PlanetScope imagery is insufficient to distinguish such crops from the surrounding forest, and clear field boundaries are typically not visible in cocoa crops. 
+We developed maps for all of Ghana (`r km2` km$^2$). Ghana has several agro-ecologically distinct regions, ranging from the primarily grain and vegetable crop producing regions in the northern savannas to tree crop-dominated system in the forested southwest, where cocoa and oil palm are among the dominant crops. For these latter regions, we did not attempt to classify tree crops, and instead mapped clearings that potentially contain field crops or newly felled or replanted tree crops. We made this decision because the resolution of PlanetScope imagery is insufficient to distinguish tree crops from the surrounding forest, and clear field boundaries are typically not visible in cocoa crops. 
 
-## Image catalog
+## Image catalog and quality
 ```{r, echo=FALSE}
+data("image_quality")
 tqual_mu <- image_quality$tile %>%
   group_by(season, tile) %>% 
   summarize(score = mean(Score)) %>% 
@@ -451,7 +465,6 @@ validate_total <- train_val_sites$active %>% as_tibble() %>%
   filter(usage == "validate") %>% distinct(name) %>% count()
 ```
 
-
 After initial training, the active learning process was run for 3 iterations for 12 of the 16 AOIs, resulting in `r typicaln` labels per AOI (Figure S2A). AOIs 10 and 14 stopped after one and two iterations, respectively, as they started with high initial validation accuracies (>83%) and showed little subsequent improvement, thus were trained with `r aoi10n` -  `r aoi14n` samples. AOI 15 was run for 4 iterations and had a training sample size of `r aoi15n`, while AOI 3 underwent a second active learning cycle because the model produced during the first cycle was inaccurate (see SI). In this second run, `r aoi3init`  initial training sites randomly selected within the AOI were used (Figure S2A), followed by 2 subsequent active learning subsequent iterations, resulting in a training sample of `r aoi3n`. The total number of unique training and validation sites across the country were `r initial_total + active_total` and `r validate_total`, respectively.   
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
@@ -475,7 +488,7 @@ This accuracy of the labellers was assessed `r tsites$tot[2]` times against `r l
 
 After each site was mapped by four labellers, consensus labels were generated. **The average risk for each consensus label was *X* (see SI)**.  
 
-### Model performance
+### Validation performance
 ```{r, echo=FALSE}
 data("iteration_metrics")
 delta_func <- function(x, rnd = 4) round((x - lag(x)) / lag(x), rnd)
@@ -536,6 +549,9 @@ The gain in model performance was assessed for each AOI against several accuracy
 knitr::include_graphics('figures/figure5.png')
 ```
 
+We compared the gain in performance at AOIs 1, 8, and 15 against models trained for those same locations using the initial random draw of 500, followed by increments of 100 randomly selected points per iteration. 
+
+
 ## Map accuracy
 ### Categorical accuracy
 To assess the overall accuracy of the final maps, we used our map reference sample to evaluate the accuracy of classifications derived from thresholding the posterior probabilities produced by the RandomForest model, as well as the segmented field boundary maps. First, we evaluated the inter-rater agreement between reference supervisors in labeling reference polygons. The average inter-rater agreement was **X%, with a standard deviation of Y% (see Figure X in SI)**, which provides the upper bound on achievable map accuracy. 
@@ -551,7 +567,53 @@ knitr::include_graphics('figures/si_mapping_blocks.png')
 The accuracy patterns generally align with the difficulty of the labelling task, that is, **the southwestern regions were hardest for workers to interpret, as shown by Figure 5.**
 
 ### Segmentation accuracy
-To evaluate the accuracy of the segmented field boundaries, we calculate the mean and standard deviation of the most accurate (for the given AOI) labeller's maps for validation sites, calculated the mean and standard deviation of area, and compared these statistics to those derived from the model-generated segments for those sites (Figure X). 
+```{r, echo=FALSE}
+# validation statistics
+data("top_label_data")
+data("field_validation_stats")
+
+human <- top_label_data$stats %>%
+  mutate(mu_prop = NA, type = "val") %>%
+  select(-contains("id"))
+machine <- field_validation_stats %>%
+  mutate(type = "seg")
+humachine <- bind_rows(human, machine) %>% 
+  mutate(aoi = as.numeric(gsub("labeller", "", aoi))) %>% 
+  arrange(aoi)
+
+huma_aois <- humachine %>% group_by(aoi, type) %>% 
+  summarize(med = median(Mean), mu = mean(Mean)) %>% 
+  ungroup()
+lrgst <- huma_aois %>% select(-med) %>% filter(aoi %in% c(2, 3, 7, 15)) %>% 
+  tidyr::pivot_wider(names_from = type, values_from = "mu") %>% 
+  filter(seg %in% range(seg))
+lrgstlow <- lrgst %>% filter(seg == min(seg))
+lrgsthigh <- lrgst %>% filter(seg == max(seg))
+
+# overall stats
+huma_sum <- humachine %>% group_by(type) %>% 
+  summarize(med = median(Mean), sd = sd(Mean), min = min(Mean), 
+            max = max(Mean), mu = mean(Mean)) %>% 
+  select(type, mu, med, sd, min, max)
+segha <- huma_sum %>% filter(type == "seg") %>% pull(mu) %>% round(2)
+valha <- huma_sum %>% filter(type == "val") %>% pull(mu) %>% round(2)
+seghamed <- huma_sum %>% filter(type == "seg") %>% pull(med) %>% round(2)
+valhamed <- huma_sum %>% filter(type == "val") %>% pull(med) %>% round(2)
+seghasd <- huma_sum %>% filter(type == "seg") %>% pull(sd) %>% round(2)
+valhasd <- huma_sum %>% filter(type == "val") %>% pull(sd) %>% round(2)
+
+huma_sumn <- humachine %>% group_by(type) %>% 
+  summarize(med = median(n), sd = sd(n), min = min(n), max = max(n), 
+            mu = mean(n)) %>% 
+  select(type, mu, med, sd, min, max)
+segn <- huma_sumn %>% filter(type == "seg") %>% pull(mu) %>% round(2)
+valn <- huma_sumn %>% filter(type == "val") %>% pull(mu) %>% round(2)
+segnmed <- huma_sumn %>% filter(type == "seg") %>% pull(med) %>% round(2)
+valnmed <- huma_sumn %>% filter(type == "val") %>% pull(med) %>% round(2)
+segnsd <- huma_sumn %>% filter(type == "seg") %>% pull(sd) %>% round(2)
+valnsd <- huma_sumn %>% filter(type == "val") %>% pull(sd) %>% round(2)
+```
+The comparisons of digitized versus segmented field boundaries showed that the mean field size across all 1600 validation sites averaged `r round(segha, 2)` ha (StDev = `r round(seghasd, 2)`), which was `r round((segha - valha) / valha * 100) / 100` times larger than the `r round(valha, 2)` ha (StDev = `r round(valhasd, 2)`) mean area of labeller-digitized polygons. This discrepancy was primarily caused by segmentation results in four AOIs (2, 3, 7, and 15; Figure S5), where segments averaged between `r round(lrgstlow$seg, 2)` and `r round(lrgsthigh$seg, 2)` ha, compared to `r round(lrgstlow$val, 2)` - `r round(lrgsthigh$val, 2)` for the corresponding hand-digitized polygons. In contrast, the median segmented field area was closer to that of digitized polygons (`r seghamed` for segments versus `r valhamed` for labeller polygons). The number of segmented fields per validation site averaged `r segn` (median = `r segnmed`; StDev = `r segnsd`) compared to `r valn` (median = `r valnmed`; StDev = `r valnsd`) for digitized polygons (Figure S6). 
 
 
 ## System evaluation
