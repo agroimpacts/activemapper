@@ -341,6 +341,13 @@ The distribution of data collection effort and scores from training reference si
 knitr::include_graphics('figures/si_training_qual_n.png')
 ```
 
+### Validation
+The differences in accuracy, AUC, and F1 between the active learning process and the random retraining at each iteration for AOIs 1, 8, and 15 (Figure \ref{fig:randomvactive}). Small differences due to random variations in the RandomForest models are the reason for the non-zero differences at iteration 0, when both models were trained with the same level set.   
+```{r randomvactive, echo = FALSE, out.width="90%", fig.cap="The percent difference in performance metrics per iteration for AOIs 1, 8, and 15 (grey lines with numbers indicating AOI; the black line indicates average difference across the three AOIs) when comparing models trained using active learning versus those trained using randomly selected sites. Postive percentages indicate superior performance by active learning, negative percentages the inverse.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_random_vs_active.png')
+```
+
+
 ## Map accuracy 
 ### Categorical
 [To fill]

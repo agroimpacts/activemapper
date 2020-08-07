@@ -18,6 +18,7 @@ library(ggplot2)
 library(here)
 library(RColorBrewer)
 library(activemapper)
+pth <- function(x) file.path(here("inst/manuscript"), x)
 ```
 
 Creation of figures for main manuscript and the supplementary information. 
@@ -27,7 +28,6 @@ Creation of figures for main manuscript and the supplementary information.
 The preparation of datasets used here and which install with the `activemapper` package, is shown in `data-raw/data_[from|to]_instaces.R`. These are loaded in here. 
 
 ```{r, eval=FALSE}
-pth <- function(x) file.path(here("inst/manuscript"), x)
 
 res <- 0.005
 res_supergrid <- 1
@@ -232,14 +232,14 @@ ggsave(pth("figures/figure4.png"),
 data("iteration_metrics")
 
 # Plots
-cols <- c(rep("grey", length(unique(iteration_metrics$AOI)) -1), "black")
-lsize <- c(rep(0.3, length(unique(iteration_metrics$AOI)) -1), 1)
 V1 <- c("Accuracy", "AUC", "F1")
 
 # prepare data
-# remove labeller from AOI
+# remove labeller from AOI and select AOIs 1-16
+aois <- c(paste0("labeller", 1:16), "All")
 imetrics <- iteration_metrics %>% 
   filter(Metric %in% V1) %>% 
+  filter(AOI %in% aois) %>% 
   mutate(AOI = gsub("labeller", "", AOI))
 
 # select out final iteration for each AOI
@@ -247,23 +247,27 @@ mx_metrics <- imetrics %>% group_by(AOI) %>%
   filter(Iteration == max(Iteration)) %>% filter(Metric %in% V1)
 
 # plot
+cols <- c(rep("grey", length(unique(imetrics$AOI)) -1), "black")
+lsize <- c(rep(0.3, length(unique(imetrics$AOI)) -1), 1)
 p <- ggplot(imetrics) + 
   geom_line(aes(Iteration, Score, color = AOI, size = AOI)) +
-  geom_point(data =  mx_metrics, aes(Iteration, Score, color = AOI), 
-             size = 1) +
+  geom_point(data = mx_metrics, aes(Iteration, Score, color = AOI), 
+             size = 1.2) +
   ggrepel::geom_text_repel(
     data = mx_metrics %>% filter(AOI != "All"), 
     aes(label = AOI, x = Iteration, y = Score), col = "grey50", 
-    segment.color = "grey80", point.padding = 0.05 
+    segment.color = "grey60", point.padding = 0.1, min.segment.length = 0.2,
+    segment.size = 0.2, size = 3   
   ) +
   scale_color_manual(values = cols, guide = FALSE) +
   scale_size_manual(values = lsize, guide = FALSE) + 
-  scale_y_continuous(breaks = seq(0.2, 1, 0.1), expand = c(0, 0), 
+  scale_x_continuous(expand = c(0.01, 0.01)) + 
+  scale_y_continuous(breaks = seq(0.2, 1, 0.1), expand = c(0.01, 0.01), 
                      limits = c(0.2, 1)) + 
   facet_wrap(vars(Metric), ncol = 3) + 
   theme_linedraw() + 
   theme(strip.background = element_rect(fill = "white"), 
-        theme(strip.text = element_text(colour = "black"))
+        strip.text = element_text(colour = "black"))
 
 ggsave(pth("figures/figure5.png"), 
        width = 7, height = 4, units = "in", dpi = 300)
@@ -381,7 +385,7 @@ ggsave(pth("figures/si_training_qual_n.png"), width = 4,
        height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figure S6: Consenus label (Bayesian) risk
+### Figure S6: Consensus label (Bayesian) risk
 
 [Not complete: checking values]
 ```{r, eval=FALSE}
@@ -416,49 +420,72 @@ ggsave("manuscript/figures/si_map_reference_sample.png", width = 4,
 
 ```
 
-
-
-
+### Figure S7: Random versus active sampling
 ```{r, eval=FALSE}
-# randomly select cells, as if those used to assess image quality
-set.seed(1)
-tiles_ss <- tiles %>% sample_n(100)
+data("iteration_metrics")
 
-# set up dummy values of quality, using rainfall as example and regression with
-# some random noise added
-rftiles <- unlist(extract(rftot, tiles_ss))  # rainfall
-tiles_ss <- tiles_ss %>% mutate(rf = rftiles) %>% select(aoi, tile, rf)
-rflm <- coef(lm(c(8, 1) ~ range(tiles_ss$rf)))  # regression 1 to 8
-qual_preds <- rflm[1] + rflm[2] * tiles_ss$rf  # predict
-set.seed(7) 
-qual_preds <- round(qual_preds *  # random noise
-                      runif(length(qual_preds), min = 0.7, max = 1.3))
-qual_preds <- ifelse(qual_preds > 5, 5, qual_preds)  # force to 5
-tiles_ss <- tiles_ss %>% mutate(Quality = factor(qual_preds)) %>% 
-  select(aoi, tile, rf, Quality)
+# Plots
+V1 <- c("Accuracy", "AUC", "F1")
 
-# random assignment of 1-5 by rainfall
-p1 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
-  geom_sf(data = tiles, fill = "grey85", col = "grey", size = 0.3) +
-  geom_sf(data = ghana, fill = "transparent", col = "grey", size = 0.3) +
-  geom_sf(data = tiles_ss, 
-          mapping = aes(fill = Quality, color = Quality)) +   
-  scale_fill_brewer(palette = "RdBu") + scale_color_brewer(palette = "RdBu") + 
-  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
-  theme_void()
-p2 <- ggplot(tiles_ss) + 
-  geom_histogram(aes(x = Quality), bins = 5, stat = "count", col = "grey", 
-                 fill = "blue") + 
-  xlab("Quality of composite") + ylab("N tiles") + 
-  cowplot::theme_cowplot(font_size = 12)
-g <- cowplot::plot_grid(p1, p1, p2, p2, nrow = 2, scale = c(1, 1, 0.9), 
-                        labels = LETTERS[1:4], label_x = 0.05)
-ggsave("manuscript/figures/figure4.png", width = 5, height = 5, 
-       units = "in", dpi = 300)
+# prepare data
+# remove labeller from AOI and select AOIs 1-16
+aois <- c(paste0("labeller", c(1, 8, 15, "1r", "8r", "15r")))
+imetrics <- iteration_metrics %>% 
+  filter(Metric %in% V1 & AOI %in% aois) %>% 
+  mutate(AOI = gsub("labeller", "", AOI)) %>% 
+  mutate(type = case_when(
+    AOI %in% c(1, 8, 15) ~ "active", 
+    AOI %in% c("1r", "8r", "15r") ~ "random"
+  )) %>% 
+  mutate(AOI = gsub("r", "", AOI)) %>% 
+  tidyr::pivot_wider(names_from = "type", values_from = "Score") %>% 
+  mutate(delta = (active - random) / random * 100) 
+
+imetrics_all <- imetrics %>% filter(Iteration < 4) %>% 
+  group_by(Iteration, Metric) %>% 
+  summarize(active = mean(active), random = mean(random), 
+            delta = mean(delta)) %>%
+  ungroup() %>% mutate(AOI = "All") %>% 
+  select(AOI, Iteration, Metric, active, random, delta)
+imetrics <- bind_rows(imetrics, imetrics_all)
+
+# select out final iteration for each AOI
+mx_metrics <- imetrics %>% group_by(AOI) %>% 
+  filter(Iteration == max(Iteration)) %>% filter(Metric %in% V1)
+
+# plot
+cols <- c(rep("grey50", length(unique(imetrics$AOI)) -1), "black")
+lsize <- c(rep(0.3, length(unique(imetrics$AOI)) -1), 1)
+p <- ggplot(imetrics) + 
+  geom_hline(yintercept = 0, linetype = "dotted", col = "grey40") +
+  geom_line(aes(Iteration, delta, color = AOI, size = AOI)) +
+  geom_point(data = mx_metrics, aes(Iteration, delta, color = AOI), 
+             size = 1.2) +
+  ggrepel::geom_text_repel(
+    data = mx_metrics %>% filter(AOI != "All"), 
+    aes(label = AOI, x = Iteration, y = delta), col = "grey50", 
+    segment.color = "grey60", point.padding = 0.2, min.segment.length = 0.2,
+    segment.size = 0.2, size = 3, nudge_x = 0 
+  ) +
+  scale_color_manual(values = cols, guide = FALSE) +
+  scale_size_manual(values = lsize, guide = FALSE) + 
+  scale_x_continuous(expand = c(0.01, 0.01)) + 
+  scale_y_continuous(expand = c(0.01, 0.01), breaks = seq(-8, 4, 1)) + 
+  ylab("% difference") +                    
+  facet_wrap(vars(Metric), ncol = 3) +
+  theme_linedraw() + 
+  theme(panel.grid.minor.x = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        strip.text = element_text(colour = "black"))
+
+ggsave(pth("figures/si_random_vs_active.png"), 
+       width = 6, height = 4, units = "in", dpi = 300)
+
 ```
 
 
-### Figure S7: Segmentation statistics
+
+### Figure S8: Segmentation statistics
 ```{r segstats, eval=FALSE}
 data("top_label_data")
 data("field_validation_stats")

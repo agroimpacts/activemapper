@@ -47,9 +47,6 @@ author:
 - name: Meridia
   affilnum: '6'
 
-- name: Azavea
-  affilnum: '7'
-
 affiliation:
 
 - affilnum: 1
@@ -67,11 +64,8 @@ affiliation:
 - affilnum: 5
   affil: SpatialCollective
 
-- affilnum: 5
+- affilnum: 6
   affil: Meridia
-
-- affilnum: 5
-  affil: Azavea
 
 output:
 
@@ -376,7 +370,7 @@ We evaluated the overall quality of the resulting seasonal image composites acro
 
 ### Map assessment
 #### Validation performance
-To assess the gain in RandomForest performance due to active learning loop, we assessed the change in accuracy, F1, and AUC (see 2.2.3.2) between each iteration and between the first and last iterations for each AOI. We then compared the magnitude of these iteration-wise changes to those that occurred when each batch of new training sites was randomly selected [@DebatsIntegratingactivelearning2017]. 
+To assess the gain in RandomForest performance due to active learning, we assessed the change in accuracy, F1, and AUC (see 2.2.3.2) between each iteration and between the first and last iterations for each AOI. To assess whether active learning improved the performance relative to a purely random approach to selecting new training sites, we ran an additional test at a subset of AOIs (1, 8, and 15). We first randomly selected and labelled 300-400 sites in each AOI. After initial training of AOIs 1, 8, and 15 with their initial pools of 500 training sites (Cluster 1 for AOI 1 and Cluster 2 for AOIs 8 and 15), we then retrained the model for each AOI by progressively adding 100 of the new randomly selected labels, evaluating model performance against the validation set after each retraining. We repeated this process so that the number of retrainings and training samples matched those from the active learning process for each AOI. We then compared the difference in accuracy, AUC, and F1 between these randomly trained models and those trained with active learning [@DebatsIntegratingactivelearning2017]. 
 
 #### Independent accuracy assessment
 The accuracy assessment procedure described above was not strictly independent because it was re-used the same validation sites over multiple iterations [@ElmesAccountingtrainingdata2020]. To independently assess the accuracy of final map products, we followed guidelines provided by [@StehmanKeyissuesrigorous2019] to create a separate map reference sample. To develop this sample, we first used the segmented field boundaries to define a cropland and non-cropland stratum for Ghana, and then randomly selected a sample of the centroids of grid cells intersecting each stratum. Next, a primary supervisor examined the image composites in each randomly selected cell, and placed a square polygon of ~0.1 ha on the primary class intersecting the centerpoint of the cell. The square was shifted so that it was contained entirety with the intersected class: cropland or non-cropland. Where the supervisor was uncertain about the class label, one of two additional classes were selected: likely cropland or likely non-cropland. After placing these polygons, the supervisor removed their classes from the polygons and sent them to three separate experts, who labelled the polygons according to their interpretation of the underlying imagery. The four sets of labels were then combined and the overall agreement between them was calculated. This agreement provided the upper bound on knowable map accuracy. See the SI for further details on the creation and analysis of the map reference sample. These points were then intersected with both the RandomForest probability images and the segmented field boundaries, and confusion matrixes between the map reference sample labels and the extracted map classes was constructed to assess the categorical accuracy of each map product.  
@@ -493,6 +487,8 @@ After each site was mapped by four labellers, consensus labels were generated. *
 data("iteration_metrics")
 delta_func <- function(x, rnd = 4) round((x - lag(x)) / lag(x), rnd)
 
+V1 <- c("Accuracy", "AUC", "F1")
+
 # Difference iteration 0 to 3
 imet_mu03 <- iteration_metrics %>% 
   filter(AOI == "All") %>%
@@ -514,7 +510,7 @@ imet_dmu <- iteration_metrics %>%
   filter(grepl("_change", Metric)) %>% 
   mutate(Metric = gsub("_change", "", Metric)) %>% 
   mutate(Score = round(Score * 100, 1)) %>% 
-  filter(Metric %in% c("Accuracy", "AUC", "F1"))
+  filter(Metric %in% V1)
 
 imet_dmu1 <- imet_dmu %>% filter(Iteration == 1) %>% 
   mutate(dscore = round(Score, 3))
@@ -524,32 +520,104 @@ imet_dmu3 <- imet_dmu %>% filter(Iteration == 3) %>%
   mutate(dscore = round(Score, 3))
 
 # AOI score ranges
-imet_min <- iteration_metrics %>% group_by(AOI) %>%
+imin <- iteration_metrics %>% 
+  filter(AOI %in% paste0("labeller", 1:16)) %>% group_by(AOI) %>%
   filter(Iteration == max(Iteration) & !grepl("change", Metric)) %>%
-  filter(Metric %in% c("Accuracy", "AUC", "F1")) %>% 
+  filter(Metric %in% V1) %>% 
   ungroup() %>% 
   group_by(Metric) %>% 
   filter(Score == min(Score)) %>% 
   mutate(AOI = gsub("labeller", "", AOI), Score = round(Score, 3))
 
-imet_max <- iteration_metrics %>% group_by(AOI) %>%
+imax <- iteration_metrics %>% 
+  filter(AOI %in% paste0("labeller", 1:16)) %>% group_by(AOI) %>%
   filter(Iteration == max(Iteration) & !grepl("change", Metric)) %>%
-  filter(Metric %in% c("Accuracy", "AUC", "F1")) %>% 
+  filter(Metric %in% V1) %>% 
   ungroup() %>% 
   group_by(Metric) %>% 
   filter(Score == max(Score)) %>% 
   mutate(AOI = gsub("labeller", "", AOI), Score = round(Score, 3))
+
+# summarize and condense for easier in line extraction
+# iteration 0 and 0-3 metrics
+imu0 <- lapply(V1, function(x) {
+  imu <- round(imet_mu0 %>% filter(Metric == x) %>% pull(Score), 3)
+  idf <- round(imet_mu0 %>% filter(Metric == x) %>% pull(dscore), 3)
+  ix <- list("score" = imu, "diff" = idf)
+  ix
+})
+names(imu0) <- V1
+
+imu3 <- lapply(V1, function(x) {
+  imu <- round(imet_mu3 %>% filter(Metric == x) %>% pull(Score), 3)
+  idf <- round(imet_mu3 %>% filter(Metric == x) %>% pull(dscore), 3)
+  ix <- list("score" = imu, "diff" = idf)
+  ix
+})
+names(imu3) <- V1
+
+# iteration-wise diffs
+idmu <- lapply(list(imet_dmu1, imet_dmu2, imet_dmu3), function(x) {
+  l <- lapply(V1, function(y) {
+    imu <- round(x %>% filter(Metric == y) %>% pull(Score), 3)
+    idf <- round(x %>% filter(Metric == y) %>% pull(dscore), 3)
+    ix <- list("score" = imu, "diff" = idf)
+    ix
+  })
+  names(l) <- V1
+  l
+})
+names(idmu) <- paste0("I", 1:3)
 ```
 
-
-The gain in model performance was assessed for each AOI against several accuracy metrics. The average accuracy, AUC, and F1 at Iteration 0 were `r imet_mu0 %>% filter(Metric == "Accuracy") %>% pull(Score)`, `r imet_mu0 %>% filter(Metric == "AUC") %>% pull(Score)`, and `r imet_mu0 %>% filter(Metric == "F1") %>% pull(Score)`, respectively, increasing to `r imet_mu3 %>% filter(Metric == "Accuracy") %>% pull(Score)`, `r imet_mu3 %>% filter(Metric == "AUC") %>% pull(Score)`, and `r imet_mu3 %>% filter(Metric == "F1") %>% pull(Score)` by Iteration 3 (Figure \ref{fig:alperformance}). These differences represent respective gains of `r imet_mu3 %>% filter(Metric == "Accuracy") %>% pull(dscore)`, `r imet_mu3 %>% filter(Metric == "AUC") %>% pull(dscore)`, and
-`r imet_mu3 %>% filter(Metric == "F1") %>% pull(dscore)` for the three metrics. The largest gains in each metric were registered on Iteration 1, averaging `r imet_dmu1 %>% filter(Metric == "Accuracy") %>% pull(Score)`, `r imet_dmu1 %>% filter(Metric == "AUC") %>% pull(Score)`, and `r imet_dmu1 %>% filter(Metric == "F1") %>% pull(Score)` percent for accuracy, AUC, and F1. The lowest gains were received on Iteration 3 for accuracy (`r imet_dmu3 %>% filter(Metric == "Accuracy") %>% pull(Score)`%) and F1 (`r imet_dmu3 %>% filter(Metric == "F1") %>% pull(Score)`%), while Iteration 2 showed the lowest average gain for AUC (`r imet_dmu3 %>% filter(Metric == "AUC") %>% pull(Score)`%). The range in scores varied substantially across AOIs and metrics. Accuracy ranged between `r imet_min %>% filter(Metric == "Accuracy") %>% pull(Score)` (AOI `r imet_min %>% filter(Metric == "Accuracy") %>% pull(AOI)`) and `r imet_max %>% filter(Metric == "Accuracy") %>% pull(Score)` (AOI `r imet_max %>% filter(Metric == "Accuracy") %>% pull(AOI)`), while AUC varied from `r imet_min %>% filter(Metric == "AUC") %>% pull(Score)` (AOI `r imet_min %>% filter(Metric == "AUC") %>% pull(AOI)`) and `r imet_max %>% filter(Metric == "AUC") %>% pull(Score)` (AOI `r imet_max %>% filter(Metric == "AUC") %>% pull(AOI)`), and F1 from `r imet_min %>% filter(Metric == "F1") %>% pull(Score)` (AOI `r imet_min %>% filter(Metric == "F1") %>% pull(AOI)`) and `r imet_max %>% filter(Metric == "F1") %>% pull(Score)` (AOI `r imet_max %>% filter(Metric == "F1") %>% pull(AOI)`).
+The gain in model performance was assessed for each AOI against several accuracy metrics. The average accuracy, AUC, and F1 at iteration 0 were `r imu0$Accuracy$score`, `r imu0$AUC$score`, and `r imu0$F1$score`, respectively, increasing to `r imu3$Accuracy$score`, `r imu3$AUC$score`, and `r imu3$F1$score` by iteration 3 (Figure \ref{fig:alperformance}). These differences represent respective gains of `r imu3$Accuracy$diff`, `r imu3$AUC$diff`, and `r imu3$F1$diff` percent for the three metrics. The largest gains in each metric were registered on iteration 1, averaging `r idmu$I1$Accuracy$score`, `r idmu$I1$AUC$score`, and `r idmu$I1$F1$score` percent for accuracy, AUC, and F1. The lowest gains were received on Iteration 3 for accuracy (`r idmu$I3$Accuracy$score`%) and F1 (`r idmu$I3$F1$score`%), while AUC gains were least on iteration 2 (`r idmu$I2$AUC$score`%). The range in scores varied substantially across AOIs and metrics. Accuracy ranged between `r imin[imin$Metric == "Accuracy", ]$Score` (AOI `r imin[imin$Metric == "Accuracy", ]$AOI`) and `r imax[imax$Metric == "Accuracy", ]$Score` (AOI `r imax[imax$Metric == "Accuracy", ]$AOI`), while AUC varied from `r imin[imin$Metric == "AUC", ]$Score` (AOI `r imin[imin$Metric == "AUC", ]$AOI`) and `r imax[imax$Metric == "AUC", ]$Score` (AOI `r imax[imax$Metric == "AUC", ]$AOI`), and F1 from `r imin[imin$Metric == "F1", ]$Score` (AOI `r imin[imin$Metric == "F1", ]$AOI`) and `r imax[imax$Metric == "F1", ]$Score` (AOI `r imax[imax$Metric == "F1", ]$AOI`).
 
 ```{r alperformance, echo = FALSE, out.width="100%", fig.cap="Scores for overall Accuracy, area under the curve of the Receiver Operating Characteristic, and the F1 score resulting for the Random Forest model after each iteration of the active learning loop for each AOI (gray lines), as well as the mean score per iteration across all AOIs (black lines).", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/figure5.png')
 ```
 
-We compared the gain in performance at AOIs 1, 8, and 15 against models trained for those same locations using the initial random draw of 500, followed by increments of 100 randomly selected points per iteration. 
+```{r, echo=FALSE}
+# random versus active data
+data("iteration_metrics")
+
+# process data: remove labeller from AOI and select AOIs 1-16
+V1 <- c("Accuracy", "AUC", "F1")
+aois <- c(paste0("labeller", c(1, 8, 15, "1r", "8r", "15r")))
+imetrics <- iteration_metrics %>% 
+  filter(Metric %in% V1 & AOI %in% aois) %>% 
+  mutate(AOI = gsub("labeller", "", AOI)) %>% 
+  mutate(type = case_when(
+    AOI %in% c(1, 8, 15) ~ "active", 
+    AOI %in% c("1r", "8r", "15r") ~ "random"
+  )) %>% 
+  mutate(AOI = gsub("r", "", AOI)) %>% 
+  tidyr::pivot_wider(names_from = "type", values_from = "Score") %>% 
+  mutate(delta = (active - random) / random * 100) 
+imetrics_all <- imetrics %>% 
+  filter(Iteration < 4) %>% 
+  group_by(Iteration, Metric) %>% 
+  summarize(active = mean(active), random = mean(random), 
+            delta = mean(delta)) %>%
+  ungroup() %>% mutate(AOI = "All") %>% 
+  select(AOI, Iteration, Metric, active, random, delta)
+
+ixl <- lapply(1:3, function(x) {
+  ix <- imetrics_all %>% filter(Iteration == x) %>% pull(delta)
+  ix <- round(ix, 1)
+  names(ix) <- V1
+  ix
+})
+names(ixl) <- as.roman(1:3)
+
+i1acc <- imetrics %>% 
+  filter(Iteration == 1 & Metric == "Accuracy") %>% 
+  pull(delta) %>% round(2)
+names(i1acc) <- imetrics %>% distinct(AOI) %>% pull()
+
+u <- function(x) unname(x)
+```
+
+The training tests at AOIs 1, 8, and 15 showed that active learning produced higher performance than randomized model training after three iterations, with accuracy, AUC, and F1 being respectively `r u(ixl$III["Accuracy"])`, `r u(ixl$III["AUC"])`, and `r u(ixl$III["F1"])` percent higher after three iterations (Figure S5). However, there was more variability in earlier iterations, with average score differences of `r u(ixl$I["Accuracy"])` (accuracy), `r u(ixl$I["AUC"])` (AUC), and `r u(ixl$I["F1"])` percent (F1) after iteration 1, and `r u(ixl$II["Accuracy"])` (accuracy), `r u(ixl$II["AUC"])` (AUC), and `r u(ixl$II["F1"])` (F1) percent after iteration 2. The lower accuracy under active leaving was caused by results at AOI 15, where accuracy gain was `r abs(u(i1acc["15"]))` percent lower under active training (although accuracy slightly between iterations; see Figure \ref{fig:alperformance}). In comparison, active learning accuracies after iteration 1 were `r u(i1acc["1"])` and `r u(i1acc["8"])` percent higher than random training for AOIs 1 and 8, respectively.
 
 
 ## Map accuracy
