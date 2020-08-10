@@ -372,13 +372,8 @@ We evaluated the overall quality of the resulting seasonal image composites acro
 #### Validation performance
 To assess the gain in RandomForest performance due to active learning, we assessed the change in accuracy, F1, and AUC (see 2.2.3.2) between each iteration and between the first and last iterations for each AOI. To assess whether active learning improved the performance relative to a purely random approach to selecting new training sites, we ran an additional test at a subset of AOIs (1, 8, and 15). We first randomly selected and labelled 300-400 sites in each AOI. After initial training of AOIs 1, 8, and 15 with their initial pools of 500 training sites (Cluster 1 for AOI 1 and Cluster 2 for AOIs 8 and 15), we then retrained the model for each AOI by progressively adding 100 of the new randomly selected labels, evaluating model performance against the validation set after each retraining. We repeated this process so that the number of retrainings and training samples matched those from the active learning process for each AOI. We then compared the difference in accuracy, AUC, and F1 between these randomly trained models and those trained with active learning [@DebatsIntegratingactivelearning2017]. 
 
-#### Independent accuracy assessment
-The accuracy assessment procedure described above was not strictly independent because it was re-used the same validation sites over multiple iterations [@ElmesAccountingtrainingdata2020]. To independently assess the accuracy of final map products, we followed guidelines provided by [@StehmanKeyissuesrigorous2019] to create a separate map reference sample. To develop this sample, we first used the segmented field boundaries to define a cropland and non-cropland stratum for Ghana, and then randomly selected a sample of the centroids of grid cells intersecting each stratum. Next, a primary supervisor examined the image composites in each randomly selected cell, and placed a square polygon of ~0.1 ha on the primary class intersecting the centerpoint of the cell. The square was shifted so that it was contained entirety with the intersected class: cropland or non-cropland. Where the supervisor was uncertain about the class label, one of two additional classes were selected: likely cropland or likely non-cropland. After placing these polygons, the supervisor removed their classes from the polygons and sent them to three separate experts, who labelled the polygons according to their interpretation of the underlying imagery. The four sets of labels were then combined and the overall agreement between them was calculated. This agreement provided the upper bound on knowable map accuracy. See the SI for further details on the creation and analysis of the map reference sample. These points were then intersected with both the RandomForest probability images and the segmented field boundaries, and confusion matrixes between the map reference sample labels and the extracted map classes was constructed to assess the categorical accuracy of each map product.  
-
-To assess the accuracy of the segmented field boundaries, we compared the size class distributions of the segmented field boundaries against those of the  workers' digitized polygons at map validation sites. We selected the field polygons from the most accurate labeller to digitize each of the 100 validation sites in each AOI, and calculated the site-wise average area and number of polygons. We then calculated the same statistics from the segmented boundaries that intersected each validation grid. We compared the distributions and proximity of two measures of central tendency (mean and median) calculated from the two datasets for each AOI, and across all AOIs.  
-
-## The impact of training data error
-To quantify the potential deleterious impact of training data error on our map results, we compared maps created by training the RandomForest algorithm with three sets of labels: 1) those from the lowest scoring worker to map each training site, 2) those from the most accurate worker, and 3) those trained as usual with the consensus labels. We then quantified the prediction performance against the validation sites, and compared the differences in performance metrics for each variant. This assessment follows recommended Tier 1 (i.e. best practice) standards to account for training data errors in machine learning-based Earth Observation applications [@ElmesAccountingtrainingdata2020].  
+#### Evaluating the impact of training data error
+To quantify the potential impact of training data error on our map results, we compared maps created by training the RandomForest algorithm with three sets of labels: 1) those from the lowest scoring worker to map each training site, 2) those from the most accurate worker, and 3) those trained as usual with the consensus labels. We then quantified the prediction performance against the validation sites, and compared the differences in performance metrics for each variant. This assessment follows recommended Tier 1 (i.e. best practice) standards to account for training data errors in machine learning-based Earth Observation applications [@ElmesAccountingtrainingdata2020].  
 
 ```{r, echo=FALSE}
 load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
@@ -388,12 +383,18 @@ kml_types <- instance_tbls$kml_data %>% filter(aoi == "labeller8v2") %>%
 
 As a final test of training data quality on map accuracy, we retrained the model for AOI 8 for 2018 using new labels that were generated against an updated training reference library (n = `r kml_types`), and compared the performance of this model against the previous version of the model.  
 
+
+#### Accuracy assessment
+The accuracy assessment procedure described above was not strictly independent because it was re-used the same validation sites over multiple iterations [@ElmesAccountingtrainingdata2020]. To independently assess the accuracy of final map products, we followed guidelines provided by [@StehmanKeyissuesrigorous2019] to create a separate map reference sample. To develop this sample, we first used the segmented field boundaries to define a cropland and non-cropland stratum for Ghana, and then randomly selected a sample of the centroids of grid cells intersecting each stratum. Next, a primary supervisor examined the image composites in each randomly selected cell, and placed a square polygon of ~0.1 ha on the primary class intersecting the centerpoint of the cell. The square was shifted so that it was contained entirety with the intersected class: cropland or non-cropland. Where the supervisor was uncertain about the class label, one of two additional classes were selected: likely cropland or likely non-cropland. After placing these polygons, the supervisor removed their classes from the polygons and sent them to three separate experts, who labelled the polygons according to their interpretation of the underlying imagery. The four sets of labels were then combined and the overall agreement between them was calculated. This agreement provided the upper bound on knowable map accuracy. See the SI for further details on the creation and analysis of the map reference sample. These points were then intersected with both the RandomForest probability images and the segmented field boundaries, and confusion matrixes between the map reference sample labels and the extracted map classes was constructed to assess the categorical accuracy of each map product.  
+
+To assess the accuracy of the segmented field boundaries, we compared the size class distributions of the segmented field boundaries against those of the  workers' digitized polygons at map validation sites. We selected the field polygons from the most accurate labeller to digitize each of the 100 validation sites in each AOI, and calculated the site-wise average area and number of polygons. We then calculated the same statistics from the segmented boundaries that intersected each validation grid. We compared the distributions and proximity of two measures of central tendency (mean and median) calculated from the two datasets for each AOI, and across all AOIs.  
+
 <!-- Related to this, we evaluated two different versions of the active learning uncertainty criterion to evaluate the impact on performance gain.  -->
 
 <!-- Finally, we evaluated production performance in terms of speed of labelling and accuracy of results by comparing the generation time (label creation, training, and then classification) and accuracy of maps trained by 1) our core team of 10-12 experienced workers, and 2) a team of 100 novice workers from three different countries.  --> 
 
-## The characteristics of Ghanaian cropland
-Using the final mapped results, we calculated the estimated area of arable cropland in Ghana, as well as the characteristics of field sizes through the country. We further used the uncertainty information encoded in the cropland probability images produced by the Random Forest classifier to provide further insight into the characteristics of cropland active-fallow cycles.  
+## Assessing the characteristics of Ghanaian cropland
+Using the final mapped results, we calculated the estimated area of arable cropland in Ghana, as well as the characteristics of field sizes through the country. We also used the uncertainty information encoded in the cropland probability images produced by the Random Forest classifier to provide further insight into the characteristics of cropland active-fallow cycles.  
 
 # Results
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
@@ -619,6 +620,41 @@ u <- function(x) unname(x)
 
 The training tests at AOIs 1, 8, and 15 showed that active learning produced higher performance than randomized model training after three iterations, with accuracy, AUC, and F1 being respectively `r u(ixl$III["Accuracy"])`, `r u(ixl$III["AUC"])`, and `r u(ixl$III["F1"])` percent higher after three iterations (Figure S5). However, there was more variability in earlier iterations, with average score differences of `r u(ixl$I["Accuracy"])` (accuracy), `r u(ixl$I["AUC"])` (AUC), and `r u(ixl$I["F1"])` percent (F1) after iteration 1, and `r u(ixl$II["Accuracy"])` (accuracy), `r u(ixl$II["AUC"])` (AUC), and `r u(ixl$II["F1"])` (F1) percent after iteration 2. The lower accuracy under active leaving was caused by results at AOI 15, where accuracy gain was `r abs(u(i1acc["15"]))` percent lower under active training (although accuracy slightly between iterations; see Figure \ref{fig:alperformance}). In comparison, active learning accuracies after iteration 1 were `r u(i1acc["1"])` and `r u(i1acc["8"])` percent higher than random training for AOIs 1 and 8, respectively.
 
+### The impact of training data error
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data("consensus_high_low")
+V1 <- c("Accuracy", "AUC", "F1")
+delta_func <- function(x, y, rnd = 1) round((x - y) / y * 100, rnd)
+
+# calculate mean across AOIs and join. Convert to factor and reorder for
+# plotting
+consensus_high_low_mu <- consensus_high_low %>% 
+  group_by(Strategy, Metric) %>% 
+  summarize(Score = mean(Score)) %>% 
+  ungroup()
+
+metdiffs <- lapply(V1, function(x) {  # x <- "F1"
+  cn <- consensus_high_low_mu %>% 
+    filter(Strategy == "Consensus" & Metric == x) %>% pull(Score)
+  h <- consensus_high_low_mu %>% filter(Strategy == "High" & Metric == x) %>% 
+    pull(Score)
+  l <- consensus_high_low_mu %>% filter(Strategy == "Low" & Metric == x) %>% 
+    pull(Score)
+  cnh <- delta_func(cn, h)
+  cnl <- delta_func(cn, l)
+  hl <- delta_func(h, l)
+  list(cons = round(cn, 3), high = round(h, 3), low = round(l, 3), 
+       chdelt = cnh, cldelt = cnl, hldelt = hl) 
+})
+names(metdiffs) <- V1
+```
+
+The potential impact of training data errors on map quality was assessed in four AOIs (1, 2, 8, and 15). The results of these tests showed that the average accuracy, AUC, and F1 scores for models trained with the consensus labels were respectively `r metdiffs$Accuracy$cons`, `r metdiffs$AUC$cons`, and `r metdiffs$F1$cons` (Figure \ref{fig:trainingimpact}). Models trained with the most accurate worker's labers had scores that were just `r metdiffs$AUC$chdelt` - `r metdiffs$Accuracy$chdelt` percent higher than models trained with the most accurate worker's lablers (accuracy = `r metdiffs$Accuracy$high`'; AUC = `r metdiffs$AUC$high`; F1 = `r metdiffs$F1$high`), but were `r metdiffs$AUC$cldelt` - `r metdiffs$Accuracy$cldelt` higher than models trained with the least accurate worker's labels (accuracy = `r metdiffs$Accuracy$low`; AUC = `r metdiffs$AUC$low`; F1 = `r metdiffs$F1$low`). 
+
+```{r trainingimpact, echo = FALSE, out.width="100%", fig.cap="Scores for overall Accuracy, area under the curve of the Receiver Operating Characteristic, and the F1 score resulting from Random Forest models trained with consensus labels, and labels made by the most and least accurate worker to label each site. Comparisons were made for AOIs 1, 2, 8, and 15, denoted by grey symbols, while the mean scores across these AOIs are shown for each metric.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/figure6.png')
+```
+
 
 ## Map accuracy
 ### Categorical accuracy
@@ -742,6 +778,10 @@ To evaluate whether active learning is more effective than a purely random appro
 - Label quality
   - Accuracy asssessment at training reference sites maybe over-inflated. Each worker saw training reference site multiple times. Need larger number of reference samples
   - Training reference to training ratio was artificially inflated. Workers not always notified when training labels complete, and thus only served training reference sites. 
+
+- The impact of training data error on map quality:
+  - Label quality makes a large difference. 
+  - Although these differences were assessed against the validation sites, which were themselves consensus labels, there are real differences in quality that can be seen in the resulting probability images, where probabilities from the model trained with the least accurate worker's labels are clearly less certain (Figure S6).
 
 - Left unquantified is how much training on base maps matters
 - Image quality:

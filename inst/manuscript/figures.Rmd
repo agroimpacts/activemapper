@@ -273,7 +273,43 @@ ggsave(pth("figures/figure5.png"),
        width = 7, height = 4, units = "in", dpi = 300)
 ```
 
-### Figure 6: Categorical map accuracy
+### Figure 6: The impact of training data error
+```{r, eval=FALSE}
+data("consensus_high_low")
+
+V1 <- c("Accuracy", "AUC", "F1")
+
+# calculate mean across AOIs and join. Convert to factor and reorder for
+# plotting
+consensus_high_low_mu <- consensus_high_low %>% 
+  group_by(Strategy, Metric) %>% 
+  summarize(Score = mean(Score)) %>% 
+  ungroup() %>% 
+  mutate(AOI = "Mean") %>% 
+  bind_rows(consensus_high_low, .) %>% 
+  filter(Metric %in% V1) %>% 
+  mutate(AOI = factor(AOI)) %>% 
+  mutate(AOI = forcats::fct_reorder(AOI, ord))
+
+cols <- c("grey50", "grey60", "grey70", "grey80", "black")
+sizes <- c(rep(1.5, 4), 2)
+shapes <- c(3, 4, 8, 10, 16)
+p <- ggplot(consensus_high_low_mu) + 
+  geom_point(aes(x = Strategy, y = Score, color = AOI, size = AOI, 
+                 shape = AOI)) + 
+  ylim(0.4, 1) + xlab("Labelling strategy") + 
+  scale_color_manual(values = cols) +
+  scale_size_manual(values = sizes) + 
+  scale_shape_manual(values = shapes) + 
+  facet_wrap(~Metric) + 
+  theme_linedraw() + 
+  theme(legend.position = "bottom", 
+        strip.background = element_rect(fill = "white"), 
+        strip.text = element_text(colour = "black"))
+ggsave(pth("figures/figure6.png"), height = 4, width = 6, dpi = 300)
+```
+
+### Figure 7: Categorical map accuracy
 
 
 ### Figure S4: Initial training site distribution
@@ -483,9 +519,35 @@ ggsave(pth("figures/si_random_vs_active.png"),
 
 ```
 
+### Figure S8: Training data error impact on probability images
+```{r, eval = FALSE}
+probpal <- viridis::viridis
+cprob <- raster(here::here("external/prob/image_c294_r532.tif"))
+hprob <- raster(here::here("external/prob/image_c294_r532_high.tif"))
+lprob <- raster(here::here("external/prob/image_c294_r532_low.tif"))
+
+png(pth("figures/si_label_strategy_probs.png"), height = 2.5,
+    width = 8, res = 300, units = "in", bg = "transparent")
+par(mfrow = c(1, 3), mar = c(0, 0.5, 0, 1.75), oma = c(0, 0, 0, 2))
+plot(as(extent(cprob), "SpatialPolygons"), lty = 0)
+plot(cprob, lty = 0, add = TRUE, legend = FALSE, zlim = c(0, 100),
+     col = probpal(20))
+mtext("A", side = 3, line = -2.5, adj = -0.02, cex = 1)
+plot(as(extent(cprob), "SpatialPolygons"), lty = 0, cex.main = 2)
+plot(hprob, lty = 0, add = TRUE, legend = FALSE, zlim = c(0, 100),
+     col = probpal(20))
+mtext("B", side = 3, line = -2.5, adj = -0.02, cex = 1)
+plot(as(extent(cprob), "SpatialPolygons"), lty = 0)
+plot(lprob, lty = 0, add = TRUE, zlim = c(0, 100),
+     legend.width = 1, legend.shrink = 0.5, col = probpal(20))
+mtext("C", side = 3, line = -2.5, adj = -0.02, cex = 1)
+dev.off()
+
+```
 
 
-### Figure S8: Segmentation statistics
+
+### Figure S9: Segmentation statistics
 ```{r segstats, eval=FALSE}
 data("top_label_data")
 data("field_validation_stats")
