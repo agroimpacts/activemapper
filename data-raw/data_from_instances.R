@@ -113,15 +113,16 @@ dbnames <- paste0(
 )
 
 nonspatial_tables <- c("accuracy_data", "assignment_data", "assignment_history",
-                       "configuration", "hit_data", "incoming_names",
-                       "iteration_metrics", "qual_accuracy_data",
+                       "categories", "configuration", "hit_data",
+                       "incoming_names", "iteration_metrics",
+                       "qual_accuracy_data",
                        "qual_assignment_data", "worker_data", "users")
 
 # credentials
 params <- yaml::yaml.load_file(here::here("common/config.yaml"))
-dinfo <- params$mapper
+dinfo <- params$labeller
 
-db_tables <- lapply(dbnames, function(x) {  # x <- dbnames[7]
+instance_dbases <- lapply(dbnames, function(x) {  # x <- dbnames[7]
   con <- DBI::dbConnect(RPostgreSQL::PostgreSQL(), host = host,
                         dbname = x, user = dinfo$db_username,
                         password = dinfo$db_password)
@@ -169,10 +170,10 @@ db_tables <- lapply(dbnames, function(x) {  # x <- dbnames[7]
   return(tbls)
 })
 # dbnames[dbnames == "labellertrainsouth92019"] <- "labellertrainsouth"
-names(db_tables) <- dbnames  # rename labellertrainsouth92019 to old name
+names(instance_dbases) <- dbnames  # rename labellertrainsouth92019 to old name
 
 # short-term save
-save(db_tables, file = "external/data/aois/dbases/instance_dbases.rda")
+save(instance_dbases, file = "external/data/aois/dbases/instance_dbases.rda")
 # load("external/data/aois/dbases/instance_dbases.rda")
 
 # check for drift in values across dates (check.R)
@@ -182,13 +183,13 @@ save(db_tables, file = "external/data/aois/dbases/instance_dbases.rda")
 
 load("external/data/aois/dbases/instance_dbases.rda")
 
-tbl_names <- names(db_tables$labeller)
+tbl_names <- names(instance_dbases$labeller)
 instance_tbls <- lapply(tbl_names, function(x) {  # x <- tbl_names[11]
   print(x)
-  instance_tbl <- lapply(names(db_tables), function(yy) {
-    # yy <- names(db_tables)[1]
+  instance_tbl <- lapply(names(instance_dbases), function(yy) {
+    # yy <- names(instance_dbases)[1]
     print(glue::glue("...{yy}"))
-    dat <- db_tables[[yy]][[x]]
+    dat <- instance_dbases[[yy]][[x]]
     if(is.data.frame(dat)) {
       dat <- as_tibble(dat) %>% mutate(aoi = yy) %>% select(aoi, !!names(.))
     }
@@ -284,7 +285,7 @@ load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
 mgrid <- data.table::fread(
   system.file("extdata/ghana_grid.csv", package = "activemapper")
 )
-train_val <- readr::read_csv(here("inst/extdata/train_val_sites.csv"))
+train_val <- readr::read_csv(here::here("inst/extdata/train_val_sites.csv"))
 
 # Initial random training draw
 initial_train_pts <- train_val %>% filter(grepl("static", file)) %>%
@@ -393,6 +394,8 @@ usethis::use_data(label_summary, overwrite = TRUE)
 #------------------------------------------------------------------------------#
 # Consensus labelling conflicts (needs updating when consensus conflicts are
 # fixed)
+
+# reading in from separate script
 
 load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
 
@@ -559,7 +562,6 @@ usethis::use_data(top_label_data, overwrite = TRUE)
 library(aws.s3)
 library(glue)
 
-
 fnames <- unlist(lapply(paste0(c('low', 'high'), ".csv"), function(x) {
   paste0(glue("planet/incoming_metrics_{c(1, 2, 8, 15)}_"), x)
 }))
@@ -609,7 +611,6 @@ consensus_high_low <- high_low_metrics %>%
 usethis::use_data(consensus_high_low, overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
-# Get high-low-consensus trained probability images for figure
 
 
 

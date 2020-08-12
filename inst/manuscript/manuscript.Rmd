@@ -483,6 +483,10 @@ This accuracy of the labellers was assessed `r tsites$tot[2]` times against `r l
 
 After each site was mapped by four labellers, consensus labels were generated. **The average risk for each consensus label was *X* (see SI)**.  
 
+
+To further evaluate label quality, we assessed the degree of similarity between worker polygons with the field boundaries collected by our ground validation team. Overall, we found that on average a worker's field boundary interpreted from a PlanetScope image had only an **X%** agreement (as determined by area of intersection over union) with the corresponding field-mapped boundary, and the average field size mapped by a worker was on average **X% smaller/larger** than those mapped on the ground. 
+
+
 ### Validation performance
 ```{r, echo=FALSE}
 data("iteration_metrics")
@@ -649,11 +653,13 @@ metdiffs <- lapply(V1, function(x) {  # x <- "F1"
 names(metdiffs) <- V1
 ```
 
-The potential impact of training data errors on map quality was assessed in four AOIs (1, 2, 8, and 15). The results of these tests showed that the average accuracy, AUC, and F1 scores for models trained with the consensus labels were respectively `r metdiffs$Accuracy$cons`, `r metdiffs$AUC$cons`, and `r metdiffs$F1$cons` (Figure \ref{fig:trainingimpact}). Models trained with the most accurate worker's labers had scores that were just `r metdiffs$AUC$chdelt` - `r metdiffs$Accuracy$chdelt` percent higher than models trained with the most accurate worker's lablers (accuracy = `r metdiffs$Accuracy$high`'; AUC = `r metdiffs$AUC$high`; F1 = `r metdiffs$F1$high`), but were `r metdiffs$AUC$cldelt` - `r metdiffs$Accuracy$cldelt` higher than models trained with the least accurate worker's labels (accuracy = `r metdiffs$Accuracy$low`; AUC = `r metdiffs$AUC$low`; F1 = `r metdiffs$F1$low`). 
+The potential impact of training data errors on map quality was assessed in four AOIs (1, 2, 8, and 15). The results of these tests showed that the average accuracy, AUC, and F1 scores for models trained with the consensus labels were respectively `r metdiffs$Accuracy$cons`, `r metdiffs$AUC$cons`, and `r metdiffs$F1$cons` (Figure \ref{fig:trainingimpact}). Models trained with the most accurate worker's labels had scores that were just `r metdiffs$AUC$chdelt` - `r metdiffs$Accuracy$chdelt` percent higher than models trained with the most accurate worker's lablers (accuracy = `r metdiffs$Accuracy$high`'; AUC = `r metdiffs$AUC$high`; F1 = `r metdiffs$F1$high`), but were `r metdiffs$AUC$cldelt` - `r metdiffs$Accuracy$cldelt` higher than models trained with the least accurate worker's labels (accuracy = `r metdiffs$Accuracy$low`; AUC = `r metdiffs$AUC$low`; F1 = `r metdiffs$F1$low`). 
 
 ```{r trainingimpact, echo = FALSE, out.width="100%", fig.cap="Scores for overall Accuracy, area under the curve of the Receiver Operating Characteristic, and the F1 score resulting from Random Forest models trained with consensus labels, and labels made by the most and least accurate worker to label each site. Comparisons were made for AOIs 1, 2, 8, and 15, denoted by grey symbols, while the mean scores across these AOIs are shown for each metric.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/figure6.png')
 ```
+
+A second measure of the impact of training data error can be obtained by comparing the average label risk per AOI against the model performance metrics.... 
 
 
 ## Map accuracy
@@ -719,26 +725,7 @@ valnsd <- huma_sumn %>% filter(type == "val") %>% pull(sd) %>% round(2)
 ```
 The comparisons of digitized versus segmented field boundaries showed that the mean field size across all 1600 validation sites averaged `r round(segha, 2)` ha (StDev = `r round(seghasd, 2)`), which was `r round((segha - valha) / valha * 100) / 100` times larger than the `r round(valha, 2)` ha (StDev = `r round(valhasd, 2)`) mean area of labeller-digitized polygons. This discrepancy was primarily caused by segmentation results in four AOIs (2, 3, 7, and 15; Figure S5), where segments averaged between `r round(lrgstlow$seg, 2)` and `r round(lrgsthigh$seg, 2)` ha, compared to `r round(lrgstlow$val, 2)` - `r round(lrgsthigh$val, 2)` for the corresponding hand-digitized polygons. In contrast, the median segmented field area was closer to that of digitized polygons (`r seghamed` for segments versus `r valhamed` for labeller polygons). The number of segmented fields per validation site averaged `r segn` (median = `r segnmed`; StDev = `r segnsd`) compared to `r valn` (median = `r valnmed`; StDev = `r valnsd`) for digitized polygons (Figure S6). 
 
-
-## System evaluation
 ### Label quality and map accuracy
-```{r, echo=FALSE}
-load(here::here("external/data/label_experiment_metrics.rda"))
-consensus <- scores %>% filter(Label == "Consensus") %>% 
-  select(AUC, Accuracy, TSS) 
-high <- scores %>% filter(Label == "High") %>% select(AUC, Accuracy, TSS) 
-low <- scores %>% filter(Label == "Low") %>% select(AUC, Accuracy, TSS)
-auc <- high$AUC / low$AUC - 1
-tss <- (high$TSS + 1) / (low$TSS + 1) - 1
-acc <- high$Accuracy / low$Accuracy - 1
-cauc <- consensus$AUC / high$AUC - 1
-ctss <- (consensus$TSS + 1) / (high$TSS + 1) - 1
-cacc <- consensus$Accuracy / high$Accuracy - 1
-```
-
-We used the validation labels to evaluate the accuracy of maps generated in three AOIs (1, 8, and 15; **Figure X**) with the least and most accurate workers' labels, and then compared the resulting scores to accuracy assessed using the consensus labels (**Figure 6**). On average, there was a substantial difference between maps trained with the most and least accurate workers' labels, with the former being on average `r round(mean(acc) * 100, 1)` percent higher (range `r round(min(acc) * 100, 1)`-`r round(max(acc) * 100, 1)`%) in terms of accuracy, `r round(mean(tss) * 100, 1)` percent higher (range `r round(min(tss) * 100, 1)`-`r round(max(tss) * 100, 1)`%) in skill (measured with TSS, which ranges from -1 to 1). Maps generated with consensus labels were on average `r round(mean(cacc) * 100, 1)` percent more accurate (range `r round(min(cacc) * 100, 1)`-`r round(max(cacc) * 100, 1)`%) and `r round(mean(ctss) * 100, 1)` (range `r round(min(ctss) * 100, 1)`-`r round(max(ctss) * 100, 1)`% more skillful. AUC scores showed similar average differences to TSS with respect to both comparisons; on average `r round(mean(auc) * 100, 1)` higher when comparing maps generated with the most and least accurate labels, and `r round(mean(cauc) * 100, 1)` percent more skillful when comparing maps genereated with consensus labels compared to those with the most accurate worker's labels. Although these comparisons were assessed against consensus-generated validation labels, a visual assessment of probability images generated from each labelling strategy shows markedly greater uncertainty between consensus and high accuracy label-generated maps relative to those generated with low accuracy (**see Figure SX in SI**). 
-
-
 ```{r, echo = FALSE, out.width="100%", fig.cap="Difference in overall, user's, and producer's accuracy between maps made with consensus labels, the least accurate worker's, and most accurate worker's labels.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/figure6.png')
 # library(tidyverse)
@@ -755,19 +742,6 @@ knitr::include_graphics('figures/figure6.png')
 #   theme(panel.grid.major.y = element_line(colour = "grey80", linetype = 3))
 ```
 
-To further evaluate label quality, we assessed the degree of similarity between worker polygons with the field boundaries collected by our ground validation team. Overall, we found that on average a worker's field boundary interpreted from a PlanetScope image had only an **X%** agreement (as determined by area of intersection over union) with the corresponding field-mapped boundary, and the average field size mapped by a worker was on average **X% smaller/larger** than those mapped on the ground. **However, these discrepancies are not necessarily an indication of how far workers were from the "truth", but may instead be at least partially an indication of how different the perspectives are as to what constitutes a field when looking at an image versus seeing it from the ground (which in many cases was based on the field team's judgement, rather than farmer guidance).** 
-
-
-### Is active learning any better than random? 
-To evaluate whether active learning is more effective than a purely random approach to training site selection, we retrained the RandomForest model on the same three AOIs (1, 8, 15) using sites that were selected purely at random for all iterations after the initial training draw. After the mapping team labelled these sites, we subsequently retrained the models with each increment of randomly selected sites, and evaluated prediction performance against the original validation set. 
-
-
-
-
-
-### Segmentation quality
-- field size class distributions
-- Improvement of accuracy
 
 ## Ghana's croplands
 - Average field size
@@ -778,10 +752,13 @@ To evaluate whether active learning is more effective than a purely random appro
 - Label quality
   - Accuracy asssessment at training reference sites maybe over-inflated. Each worker saw training reference site multiple times. Need larger number of reference samples
   - Training reference to training ratio was artificially inflated. Workers not always notified when training labels complete, and thus only served training reference sites. 
+  - Image-interpreted versus ground labels: **However, these discrepancies are not necessarily an indication of how far workers were from the "truth", but may instead be at least partially an indication of how different the perspectives are as to what constitutes a field when looking at an image versus seeing it from the ground (which in many cases was based on the field team's judgement, rather than farmer guidance).** 
+  
 
 - The impact of training data error on map quality:
   - Label quality makes a large difference. 
-  - Although these differences were assessed against the validation sites, which were themselves consensus labels, there are real differences in quality that can be seen in the resulting probability images, where probabilities from the model trained with the least accurate worker's labels are clearly less certain (Figure S6).
+  - Although these comparisons were assessed against consensus-generated validation labels, a visual assessment of probability images generated from each labelling strategy shows markedly greater uncertainty between consensus and most accurate individual labels maps relative to those generated with the lowest quality labels are clearly less certain (Figure S6). 
+  
 
 - Left unquantified is how much training on base maps matters
 - Image quality:

@@ -14,6 +14,7 @@ output:
 library(raster)
 library(sf)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(here)
 library(RColorBrewer)
@@ -236,10 +237,10 @@ V1 <- c("Accuracy", "AUC", "F1")
 
 # prepare data
 # remove labeller from AOI and select AOIs 1-16
-aois <- c(paste0("labeller", 1:16), "All")
+aoinms <- c(paste0("labeller", 1:16), "All")
 imetrics <- iteration_metrics %>% 
   filter(Metric %in% V1) %>% 
-  filter(AOI %in% aois) %>% 
+  filter(AOI %in% aoinms) %>% 
   mutate(AOI = gsub("labeller", "", AOI))
 
 # select out final iteration for each AOI
@@ -429,7 +430,7 @@ data("label_consensus")
 label_consensus_pts <- label_consensus %>% 
   rename(Risk = consensus_conflict) %>% 
   st_as_sf(coords = c("x", "y"), crs = 4326)
-label_consensus %>% distinct(aoi)
+# label_consensus %>% distinct(aoi)
 
 xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
