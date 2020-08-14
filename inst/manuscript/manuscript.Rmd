@@ -280,7 +280,7 @@ If the worker's completed assignment was a labelling task, their maps remain sto
 P(\theta|\mathrm{D})=\sum_{i=1}^{n}\mathrm{P}(\mathrm{W_i}|\mathrm{D})\mathrm{P}(\mathrm{\theta}|\mathrm{D}, \mathrm{W_i})
 \end{equation}
 
-Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and $W_i$ is an individual worker.  P($\theta$|D) is therefore the probability that the actual cover type is what the workers who labelled it says it is, while P(W$_i$|D) is the worker's average score over the accuracy assessment assignments they have mapped to date, and P(W$\theta$|D, *W$_i$*) is the worker's label for that pixel. This approach therefore uses the overall accuracy of each worker to weight their labels as they are combined with other workers' labels for a given pixel (see SI for further details). **The "risk" of the final consensus label is then assessed, which measures the proportion of pixels in the label exceeding a Bayesian risk threshold (see SI), and thus provides an additional measure of label quality.** 
+Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and $W_i$ is an individual worker.  P($\theta$|D) is therefore the probability that the actual cover type is what the workers who labelled it says it is, while P(W$_i$|D) is the worker's average score over the accuracy assessment assignments they have mapped to date, and P(W$\theta$|D, *W$_i$*) is the worker's label for that pixel. This approach therefore uses the overall accuracy of each worker to weight their labels as they are combined with other workers' labels for a given pixel (see SI for further details). As a further measure of confidence in the final consensus label, its average Bayes Risk is calculated (see SI). This measure ranges between 0 and 1, with 0 indicating full agreement between labellers for all pixels (n = 40000) in the label, and 1 indicating complete disagreement.  
 
 Once all training sites are completed, they are randomly partitioned into training and validation sets according to predetermined proportions. 
 
@@ -383,7 +383,6 @@ kml_types <- instance_tbls$kml_data %>% filter(aoi == "labeller8v2") %>%
 
 As a final test of training data quality on map accuracy, we retrained the model for AOI 8 for 2018 using new labels that were generated against an updated training reference library (n = `r kml_types`), and compared the performance of this model against the previous version of the model.  
 
-
 #### Accuracy assessment
 The accuracy assessment procedure described above was not strictly independent because it was re-used the same validation sites over multiple iterations [@ElmesAccountingtrainingdata2020]. To independently assess the accuracy of final map products, we followed guidelines provided by [@StehmanKeyissuesrigorous2019] to create a separate map reference sample. To develop this sample, we first used the segmented field boundaries to define a cropland and non-cropland stratum for Ghana, and then randomly selected a sample of the centroids of grid cells intersecting each stratum. Next, a primary supervisor examined the image composites in each randomly selected cell, and placed a square polygon of ~0.1 ha on the primary class intersecting the centerpoint of the cell. The square was shifted so that it was contained entirety with the intersected class: cropland or non-cropland. Where the supervisor was uncertain about the class label, one of two additional classes were selected: likely cropland or likely non-cropland. After placing these polygons, the supervisor removed their classes from the polygons and sent them to three separate experts, who labelled the polygons according to their interpretation of the underlying imagery. The four sets of labels were then combined and the overall agreement between them was calculated. This agreement provided the upper bound on knowable map accuracy. See the SI for further details on the creation and analysis of the map reference sample. These points were then intersected with both the RandomForest probability images and the segmented field boundaries, and confusion matrixes between the map reference sample labels and the extracted map classes was constructed to assess the categorical accuracy of each map product.  
 
@@ -481,10 +480,42 @@ The distribution of training and validation sample collection effort was divided
 
 This accuracy of the labellers was assessed `r tsites$tot[2]` times against `r length(unique(label_summary$scores$name))` unique training reference sites (Figure S3A), with each labeller assessed an average of `r tsites$mu[2]` times at a rate of 1 training reference site for every `r round(1 / (tsites$mu[2] / tsites$mu[1]), 2)` training site mapped. The average of each labeller's average accuracy score was `r round(mean(label_summary$score_stats$Mean), 2)` (range `r round(min(label_summary$score_stats$Mean), 2)` to `r round(max(label_summary$score_stats$Mean), 2)`; see Figure S3B for detailed score distributions). 
 
-After each site was mapped by four labellers, consensus labels were generated. **The average risk for each consensus label was *X* (see SI)**.  
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data("label_risk")
+murisk <- label_risk$stats %>% group_by(usage) %>% 
+  summarize(Risk = round(mean(Risk), 3)) %>% 
+  tidyr::pivot_wider(names_from = usage, values_from = Risk)
+mintrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
+  filter(Risk == min(Risk))
+maxtrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
+  filter(Risk == max(Risk))
+minvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
+  filter(Risk == min(Risk))
+maxvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
+  filter(Risk == max(Risk))
+
+# label clusters
+cl1 <- label_risk$stats %>% filter(aoi %in% 1:6) %>% group_by(usage) %>% 
+  summarize(Risk = round(mean(Risk), 3))
+cl2 <- label_risk$stats %>% filter(aoi %in% c(7:9, 12, 15)) %>% 
+  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
+cl3 <- label_risk$stats %>% filter(aoi %in% c(10:11, 13:14, 16)) %>% 
+  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
+
+# training clusters
+cl2arisk <- label_risk$stats %>% filter(aoi %in% c("Cl2a")) %>% pull(Risk) %>% 
+  round(3)
+cl2brisk <- label_risk$stats %>% filter(aoi %in% c("Cl2b")) %>% pull(Risk) %>% 
+  round(3)
+  
 
 
-To further evaluate label quality, we assessed the degree of similarity between worker polygons with the field boundaries collected by our ground validation team. Overall, we found that on average a worker's field boundary interpreted from a PlanetScope image had only an **X%** agreement (as determined by area of intersection over union) with the corresponding field-mapped boundary, and the average field size mapped by a worker was on average **X% smaller/larger** than those mapped on the ground. 
+
+```
+
+After each site was mapped by four labellers, consensus labels were generated. The Bayesian Risk (see SI) of each training and validation label was calculated as an additional measure of label quality. The average risk was `r murisk$Train` for training labels and `r murisk$Validate` for validation labels. Risk was highest in the northern cluster (AOIs 1-6; Figure S5), falling between `r cl1$Risk[1]` for training and `r cl1$Risk[2]` for validation labels (Figure S6), and lowest in the southwestern cluster (AOIs 10, 11, 13, 14, 16; training risk = `r cl3$Risk[1]`; validation risk = `r cl3$Risk[2]`). Label risk in the central/eastern cluster (AOIs 7-9, 12, 15) was slightly lower (training = `r cl2$Risk[1]`; validation = `r cl2$Risk[2]`) than in the north. Greater labeller experience also appeared to reduce risk, as the mean risk for the second mapping of Cluster 2's 500 initial training sites was `r cl2brisk`, compared to `r cl2arisk` for the first mapping.
+
+**[To further evaluate label quality, we assessed the degree of similarity between worker polygons with the field boundaries collected by our ground validation team. Overall, we found that on average a worker's field boundary interpreted from a PlanetScope image had only an *X%* agreement (as determined by area of intersection over union) with the corresponding field-mapped boundary, and the average field size mapped by a worker was on average *X% smaller/larger* than those mapped on the ground.]** 
 
 
 ### Validation performance

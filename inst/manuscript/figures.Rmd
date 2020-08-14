@@ -29,7 +29,6 @@ Creation of figures for main manuscript and the supplementary information.
 The preparation of datasets used here and which install with the `activemapper` package, is shown in `data-raw/data_[from|to]_instaces.R`. These are loaded in here. 
 
 ```{r, eval=FALSE}
-
 res <- 0.005
 res_supergrid <- 1
 num_supergrid <- res_supergrid / res
@@ -313,7 +312,7 @@ ggsave(pth("figures/figure6.png"), height = 4, width = 6, dpi = 300)
 ### Figure 7: Categorical map accuracy
 
 
-### Figure S4: Initial training site distribution
+### Figure S3: Initial training site distribution
 Figure showing distribution of initial 500 samples per cluster, as well as distribution of points per iteration.  
 ```{r trainingsites, eval=FALSE}
 data("train_val_sites")
@@ -367,7 +366,7 @@ ggsave(pth("figures/si_training_validation_pts.png"), width = 4,
 
 ```
 
-### Figure S5: Label count and quality
+### Figure S4: Label count and quality
 ```{r labelquality, eval=FALSE}
 data("label_summary")
 
@@ -422,40 +421,89 @@ ggsave(pth("figures/si_training_qual_n.png"), width = 4,
        height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figure S6: Consensus label (Bayesian) risk
+### Figures S5 and S6: Consensus label (Bayesian) risk
 
-[Not complete: checking values]
-```{r, eval=FALSE}
-data("label_consensus")
-label_consensus_pts <- label_consensus %>% 
-  rename(Risk = consensus_conflict) %>% 
+Plots of mean risk in space, divided into training and validation sites
+
+```{r riskpoints, eval=FALSE}
+data("label_risk")
+
+# Training/validation points
+label_risk_pts <- label_risk$pts %>% 
   st_as_sf(coords = c("x", "y"), crs = 4326)
 # label_consensus %>% distinct(aoi)
+# label_risk %>% filter(is.na(meanrisk))
+
+# # prepare for histograms
+# clusters <- paste0("labeller", c("", "trainsouth", "trainsouthnl", "trainsw"))
+# new_cluster_nms <- paste0("Cl", c("1", "2a", "2b", "3"))
+# 
+# label_risk_tb <- as_tibble(label_risk_pts) %>% 
+#   mutate(aoi = case_when(
+#     aoi == clusters[1] ~ "-3",
+#     aoi == clusters[2] ~ "-2",
+#     aoi == clusters[3] ~ "-1",
+#     aoi == clusters[4] ~ "0", 
+#     TRUE ~ gsub("labeller", "", aoi) 
+#   )) %>% 
+#   mutate(ord = as.numeric(aoi)) %>% arrange(aoi) %>% 
+#   mutate(aoi = case_when(
+#     aoi == "-3" ~ new_cluster_nms[1], 
+#     aoi == "-2" ~ new_cluster_nms[2],
+#     aoi == "-1" ~ new_cluster_nms[3],
+#     aoi %in% "0" ~ new_cluster_nms[4], 
+#     TRUE ~ aoi 
+#   )) %>% 
+#   mutate(aoi = forcats::fct_reorder(aoi, ord))
+# 
+# # summarize
+# label_risk_stats <- label_risk_tb %>% group_by(aoi, usage) %>% 
+#   summarize(Risk = mean(Risk, na.rm = TRUE)) %>% 
+#   ungroup()
+
 
 xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
-pal <- colorRampPalette(rev(brewer.pal(9, "RdBu")))
+pal <- colorRampPalette(rev(RColorBrewer::brewer.pal(9, "RdBu")))
+zlim <- c(0, round(max(label_risk_pts$Risk, na.rm = TRUE), 1))
 
 p <- ggplot(africa) + 
   geom_sf(fill = "gray97", color = "grey", size = 0.25) +
   geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) +
-  geom_sf(data = label_consensus_pts, aes(color = Risk, fill = Risk), 
+  geom_sf(data = label_risk_pts, aes(color = Risk, fill = Risk), 
           size = 0.1) +
-  scale_color_gradientn(colours = pal(20)) + 
-  scale_fill_gradientn(colours = pal(20)) +
+  facet_wrap(~usage) + 
+  scale_color_gradientn(colours = pal(20), limits = zlim) + 
+  scale_fill_gradientn(colours = pal(20), limits = zlim) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   guides(fill = guide_colorbar(nbin = 20), color = FALSE) +
   theme_void() + 
   theme(legend.key = element_rect(fill = "grey85", color = "transparent"))
-p
-label_consensus %>% rename(Risk = consensus_conflict) %>% 
-  ggplot() + geom_histogram(aes(x = Risk)) + 
-  facet_wrap(vars(aoi))
-
-ggsave("manuscript/figures/si_map_reference_sample.png", width = 4, 
-       height = 4, units = "in", dpi = 300, bg = "transparent")
-
+ggsave(pth("figures/si_label_risk_map.png"), width = 7, 
+       height = 5, units = "in", dpi = 300, bg = "transparent")
 ```
+
+Risk histograms. 
+```{r riskhists, eval=FALSE}
+p <- ggplot(label_risk$pts) + 
+  geom_histogram(aes(x = Risk), fill = "grey50", bins = 20) + 
+  geom_vline(data = label_risk$stats, aes(xintercept = Risk), size = 0.5, 
+             linetype = 1) + 
+  scale_y_continuous(expand = c(0, 0), breaks = seq(0, 150, 25), 
+                     labels = c("", 25, "", 75, "", 125, ""), 
+                     limits = c(0, 150)) + 
+  ylab("Number of sites") + 
+  facet_grid(aoi ~ usage) +
+  theme_linedraw() + 
+  theme(strip.background = element_rect(fill = "white"), 
+        strip.text = element_text(size = 9, colour = "black"),  
+        axis.text.x = element_text(size = 9, hjust = 1, vjust = 0.5, 
+                                   angle = 90), 
+        axis.text.y = element_text(size = 7))
+ggsave(pth("figures/si_label_risk_hists.png"), width = 3, 
+       height = 9, units = "in", dpi = 300, bg = "transparent")
+```
+
 
 ### Figure S7: Random versus active sampling
 ```{r, eval=FALSE}

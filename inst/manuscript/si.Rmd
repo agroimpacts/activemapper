@@ -23,7 +23,6 @@ fontsize: 11pt
 geometry: margin=1in
 linenumbers: false
 spacing: doublespacing
-footerdate: yes
 # abstract: The abstract can go either here or below
 keywords: rmarkdown, reproducible science
 bibliography: 
@@ -40,7 +39,7 @@ csl: ecology.csl
         \setcounter{figure}{0}
         \renewcommand{\thefigure}{S\arabic{figure}}%
      }
-
+     
 ```{r setup, include=FALSE, cache=FALSE, message = FALSE}
 library(knitr)
 library(citr)
@@ -192,15 +191,14 @@ Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their over
 
 With $\mathrm{P(\theta|D, W_i)}$ being either 0 or 1. In labelling, if the consensus result for a pixel is: $\mathrm{P(\theta = field|D)}$ > 0.5, then we assign that pixel to the field category, otherwise to the no field category. 
 
-After creating the consensus label, the degree of confidence in the resulting label value can be expressed in terms of Bayesian risk. Risk is calculated as:
+After creating the consensus label, the degree of confidence in the resulting label value is measured by Bayes Risk:
 
 \begin{equation} \label{eq:pixelrisk}
 \mathrm{r=C(1 - L) + (1 - C)L}
 \end{equation}
 
-Where *C* is the consensus probability that a given pixel is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. The risk values across the entire sample site can be processed in two ways to provide useful information about the confidence in the consensus label for that site. The first is a simple average of all risk values in the site, where the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling. A second approach is to calculate the proportion of pixels having risk values that exceed a certain threshold. This second approach is currently implemented in our system, using a threshold value of 0.4. 
+Where *C* is the consensus probability that a given pixel is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. The risk values across the entire sample site can be processed in two ways to provide useful information about the confidence in the consensus label for that site. The first is a simple average of all risk values in the site, where the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling. A second approach is to calculate the proportion of pixels having risk values that exceed a certain threshold. 
 
-Where *C* is the consensus probability that a given pixel *j* is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. *R* is thus the average risk across all pixels at a given site, and the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling.  
 
 ```{r riskcurve, echo = FALSE, fig.align='center', out.width="70%", message=FALSE, warning=FALSE, fig.cap="Bayesian risk values (Y-axis) for consensus values (X axis) ranging from 0 to 1 (0 indicates no consensus that a pixel falls into the field class, 1 means complete consensus) for field and non-field consensus labels."}
 knitr::include_graphics('figures/si_label_risk.png')
@@ -340,6 +338,18 @@ The distribution of data collection effort and scores from training reference si
 ```{r trainqual, echo = FALSE, out.width="60%", fig.cap="The A) distributions of scores at training reference sites for each labeller (means indicated by X in boxplots), and B) the number of training and training reference sites completed by each labeller. Labellers' identities are anonymized.", fig.align='center', message=FALSE, results='hold'}
 knitr::include_graphics('figures/si_training_qual_n.png')
 ```
+
+The average Bayes Risk of each training and validation site is shown in Figure \ref{fig:labelrisk}, as well as the distribution of risk values per AOI and the initial training clusters (Figure \ref{fig:labelriskhist}). The three initial clusters include the second mapping of Cluster 2. 
+
+```{r labelrisk, echo = FALSE, out.width="80%", fig.cap="The average Bayes Risk of each training and validation site in Ghana.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_label_risk_map.png')
+```
+
+
+```{r labelriskhist, echo = FALSE, out.width="45%", fig.cap="The distribution of Bayes Risk values for training (left column) and validation (right column) sites in each AOI, with the average value indicated by vertical lines. The first three rows (panel titles beginning with 'Cl') indicate distributions of Bayes Risk in the initial training clusters, including the first ('Cl2a') and second ('Cl2b') mappings of Cluster 2.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_label_risk_hists.png')
+```
+
 
 ### Validation
 The differences in accuracy, AUC, and F1 between the active learning process and the random retraining at each iteration for AOIs 1, 8, and 15 (Figure \ref{fig:randomvactive}). Small differences due to random variations in the RandomForest models are the reason for the non-zero differences at iteration 0, when both models were trained with the same level set.   
