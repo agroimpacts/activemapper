@@ -773,8 +773,12 @@ knitr::include_graphics('figures/figure6.png')
 #   theme(panel.grid.major.y = element_line(colour = "grey80", linetype = 3))
 ```
 
-
 ## Ghana's croplands
+Two separate maps of cropland were produced for each AOI, one derived from the cropland probability map, and the other from the segmented field boundaries. 
+
+
+
+
 - Average field size
 - Cropland percentage
 - Comparison against other products (croplands.org; Sentinel Landcover)

@@ -336,7 +336,7 @@ consensus_map_creation2 <- function(kml_data, hit_data, assignment_data,
 #' @param results Output list from consensus_map_creation
 #' @param params Parameter file read in from common/
 #' @param s3bucket Name of s3bucket, read from db
-#' @param dupdate Update the table in database with risk results. Default = TRUE
+#' @param dbupdate Update the database with risk results or not. Default = TRUE
 #' @param output_riskmap Save output risk map?
 #' @param coninfo Database connection information from mapper_connect()
 #' @details This function will not save a consensus map to s3 if s3bucket is
