@@ -1,6 +1,8 @@
 # top label data: maps and statistics from the most accurate labeller to map
 # validation sites
 
+library(dplyr)
+
 #------------------------------------------------------------------------------#
 # Extract maps for validation sites of most accurate labeller for each AOI
 load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
