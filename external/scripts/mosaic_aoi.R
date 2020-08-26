@@ -74,10 +74,34 @@ xys_aoi <- xys_tiles %>% filter(aoi1 == selected_aoi2)
 
 # run mosaic
 # path variables for all selected images in bucket
-pths <- glue::glue("/vsis3/{bucket}{selected_aoi}/{xys_aoi$image}")
-# testss <- xys_aoi5 %>% filter(c %in% 320:325, r %in% 560:565) %>% pull(fname)
-# testss <- paste0(here::here("external/prob/aoi5/"), testss)
-# gdalUtils::mosaic_rasters(gdalfile = testss, dst_dataset = ofile,
+# pths <- glue::glue("/vsis3/{bucket}{selected_aoi}/{xys_aoi$image}")
+pths <- glue::glue("s3://{bucket}{selected_aoi}/{xys_aoi$image}")
+
+# run this test first
+# test subset
+testss <- xys_aoi %>% filter(c %in% 320:325, r %in% 560:565) %>% pull(image)
+dir.create(here::here(glue::glue("external/images/{selected_aoi}")))
+dir.create(here::here("external/images/mosaics"))
+
+testpthsin <- glue::glue("s3://{bucket}{selected_aoi}/{testss}")
+testpthsout <- here::here(glue::glue("external/images/{selected_aoi}/{testss}"))
+
+# get images
+for(i in 1:length(testpthsin)) {
+  aws_cp_str <- glue::glue("aws s3 cp {testpthsin[i]} {testpthsout[i]}")
+  # print(paste("Copying", testpthsin[i]))
+  system(aws_cp_str)
+}
+
+# run mosaic
+testfile <- here::here("external/images/mosaics/test_mosaic.tif")
+
+gdalUtils::mosaic_rasters(gdalfile = testpthsout, dst_dataset = testfile,
+                          verbose = TRUE)
+# raster::plot(raster::raster(testfile))
+
+# system("aws s3 ls s3://activemapper/classified-images/5_whole/")
+# gdalUtils::mosaic_rasters(gdalfile = testpths, dst_dataset = testfile,
 #                           verbose = TRUE)
 
 system.time(gdalUtils::mosaic_rasters(gdalfile = pths, dst_dataset = ofile,
