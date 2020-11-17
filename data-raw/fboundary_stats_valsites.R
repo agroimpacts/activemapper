@@ -1,12 +1,12 @@
 # Extract and summarize digitized and segmented field boundary statistics over
 # validation sites
-
 library(dplyr)
 library(ggplot2)
 library(activemapper)
 library(doMC)
+library(here)
 
-data("top_label_data")
+load(system.file("extdata", "top_label_data.rda", package = "activemapper"))
 
 gcs = "+proj=longlat +datum=WGS84 +no_defs"
 top_label_grids <- top_label_data$stats %>% select(name, x, y) %>%
@@ -35,7 +35,7 @@ aois <- unique(top_label_grids$aoi)
 
 # loop over aois to process field/grid intersections
 registerDoMC(cores = 7)
-fld_stats <- foreach(x = 1:length(aois)) %dopar% { # x <- 8 #7 #3 #7 #5
+fld_stats <- foreach(x = 1:length(aois)) %dopar% { # x <- 3 #8 #7 #3 #7 #5
   # fld_stats <- lapply(1:length(aois), function(x) {  # x <- 13
 
   cat(glue::glue("Starting labeller{x} at {Sys.time()}"), file = logf,
@@ -111,13 +111,14 @@ fld_stats <- foreach(x = 1:length(aois)) %dopar% { # x <- 8 #7 #3 #7 #5
   # calculate area stats
   fld_stats <- fld_int_areas %>% as_tibble() %>%
     group_by(name) %>%
-    summarize(aoi = unique(aoi), n = n(), Mean = mean(area), StDev = sd(area),
+    summarize(aoi = unique(aoi), n = n(), Mean = mean(area),
+              Median = median(area), StDev = sd(area),
               mu_prop = mean(prop_in)) %>%
     select(aoi, !!names(.))
 
   grid_stats <- grids %>% as_tibble() %>% select(-geom) %>%
     filter(!name %in% unique(fld_int_areas$name)) %>%
-    mutate(n = 0, Mean = 0, StDev = NA, mu_prop = NA)
+    mutate(n = 0, Mean = 0, Median = 0, StDev = NA, mu_prop = NA)
 
   all_stats <- bind_rows(fld_stats, grid_stats) %>% arrange(name)
 
@@ -135,7 +136,7 @@ fld_stats <- foreach(x = 1:length(aois)) %dopar% { # x <- 8 #7 #3 #7 #5
   #   ggplot() + geom_sf() +
   #   geom_sf(data = grids %>% filter(name == nm), fill = "transparent") +
   #   geom_sf(data = fld_int %>% filter(name == nm), fill = "red") +
-  #   geom_sf(data = fld_istion %>% filter(name == nm), fill = "blue") +
+  #   geom_sf(data = fld_isect %>% filter(name == nm), fill = "blue") +
   #   geom_sf(data = fld_dif %>% filter(name == nm), fill = "orange")
 
   cat(glue::glue("aoi {x} complete"),
@@ -151,11 +152,13 @@ fld_stats <- foreach(x = 1:length(aois)) %dopar% { # x <- 8 #7 #3 #7 #5
 field_validation_stats <- lapply(fld_stats, function(x) x$stats) %>%
   do.call(rbind, .) %>% mutate(aoi = paste0("labeller", aoi))
 
-# to data
-usethis::use_data(field_validation_stats, overwrite = TRUE)
+# save
+# stats
+# usethis::use_data(field_validation_stats, overwrite = TRUE)
+save(field_validation_stats,
+     file = here("inst/extdata/field_validation_stats.rda"))
 
-# save out rest to inst/extdata
+# other results
 segment_validation_data <- lapply(fld_stats, function(x) x[1:4])
 save(segment_validation_data,
-     file = here::here("inst/extdata/segment_validation_data.rda"))
-
+     file = here("inst/extdata/segment_validation_data.rda"))

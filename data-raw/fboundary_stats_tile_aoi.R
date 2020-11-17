@@ -156,5 +156,8 @@ tile_aoi_validation_stats <- list(
   "aoi" = do.call(rbind, lapply(val_stats, function(x) x$aoi))
 )
 
-usethis::use_data(tile_aoi_validation_stats, overwrite = TRUE)
+# usethis::use_data(tile_aoi_validation_stats, overwrite = TRUE)
+save(tile_aoi_validation_stats,
+     file = here::here("inst/extdata/tile_aoi_validation_stats.rda"))
+
 

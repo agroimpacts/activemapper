@@ -1,7 +1,7 @@
 # top label data: maps and statistics from the most accurate labeller to map
 # validation sites
-
 library(dplyr)
+library(sf)
 
 #------------------------------------------------------------------------------#
 # Extract maps for validation sites of most accurate labeller for each AOI
@@ -70,19 +70,19 @@ top_validation_flds <- top_validation_maps %>%
   filter(!is.na(field)) %>%
   group_by(name) %>%
   summarize(aoi = unique(aoi), wid = unique(wid), hit_id = unique(hit_id),
-            assignment_id = unique(assignment_id), n = n(),
-            Mean = mean(area), StDev = sd(area)) %>%
+            assignment_id = unique(assignment_id), n = n(), Mean = mean(area),
+            Median = median(area), StDev = sd(area)) %>%
   left_join(., mgrid, by = "name") %>%
   select(-fwts) %>%
-  select(aoi, name, x, y, hit_id, assignment_id, wid, n, Mean, StDev)
+  select(aoi, name, x, y, hit_id, assignment_id, wid, n, Mean, Median, StDev)
 
 # non fields
 top_validation_noflds <- top_validation_maps %>%
   filter(is.na(field)) %>%
-  mutate(n = 0, Mean = 0, StDev = NA) %>%
+  mutate(n = 0, Mean = 0, Median = 0, StDev = NA) %>%
   left_join(., mgrid, by = "name") %>%
   select(-fwts) %>%
-  select(aoi, name, x, y, hit_id, assignment_id, wid, n, Mean, StDev)
+  select(aoi, name, x, y, hit_id, assignment_id, wid, n, Mean, Median, StDev)
 
 # bind
 top_validation_stats <- bind_rows(top_validation_flds, top_validation_noflds)
@@ -93,5 +93,6 @@ top_label_data <- list(
   "scores" = worker_scores
 )
 
-usethis::use_data(top_label_data, overwrite = TRUE)
+# usethis::use_data(top_label_data, overwrite = TRUE)
+save(top_label_data, file = here::here("inst/extdata/top_label_data.rda"))
 
