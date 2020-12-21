@@ -114,7 +114,7 @@ humachine_tile_sum <- humachine_tile %>% group_by(aoi, type) %>%
   select(scale, aoi, type, measure, !!names(.))
 
 # combine with tile-wise averages
-humachine_tile_sum <- sum_func(humachine_grid_sum, "tile", "area")
+humachine_tile_sum <- sum_func(humachine_tile_sum, "tile", "area")
 
 # field count
 humachine_tile_sum_n <- humachine_tile %>% group_by(aoi, type) %>%
@@ -125,7 +125,7 @@ humachine_tile_sum_n <- humachine_tile %>% group_by(aoi, type) %>%
   select(scale, aoi, type, measure, !!names(.))
 
 # combine with tile-wise averages
-humachine_tile_sum_n <- sum_func(humachine_grid_sum, "tile", "n")
+humachine_tile_sum_n <- sum_func(humachine_tile_sum_n, "tile", "n")
 
 # # median and means across AOIs - evaluated against validation tiles
 # # area

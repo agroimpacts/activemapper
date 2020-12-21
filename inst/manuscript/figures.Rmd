@@ -738,30 +738,45 @@ dev.off()
 ```
 
 
-### Figure S9: Segmentation statistics
-```{r segstats, eval=FALSE}
-data("top_label_data")
-data("field_validation_stats")
+### Figure S9: Segmentation statistics (grid scale)
 
+[Check whether the means need to be weighted or not]
+[Check whether need to redo median]
+```{r segstats, eval=FALSE}
+# data("top_label_data")
+# data("field_validation_stats")
+data("segment_quality_stats")
+# data
+datnms <- c("top_label_data", "field_validation_stats",
+            "tile_aoi_validation_stats")
+for(i in datnms) {
+  load(system.file(glue::glue("extdata/{i}.rda"), package = "activemapper"))
+}
+
+# extract distributions
 human <- top_label_data$stats %>%
   mutate(mu_prop = NA, type = "Validation") %>%
   select(-contains("id"))
 machine <- field_validation_stats %>%
   mutate(type = "Segmentation")
-humachine <- bind_rows(human, machine) %>% 
-  mutate(aoi = as.numeric(gsub("labeller", "", aoi))) %>% 
+humachine <- bind_rows(human, machine) %>%
+  mutate(aoi = as.numeric(gsub("labeller", "", aoi))) %>%
   arrange(aoi)
 
-# Summarize AOI-wise averages (field size)
-humachine_sum <- humachine %>% group_by(aoi, type) %>% 
-  summarize(Median = median(Mean), Mean = mean(Mean)) %>% 
-  ungroup() %>% 
-  tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat")
-# field number
-humachine_sum_n <- humachine %>% group_by(aoi, type) %>% 
-  summarize(Median = median(n), Mean = mean(n)) %>% 
-  ungroup() %>% 
-  tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat")
+squal <- segment_quality_stats %>% 
+  filter(scale == "grid" & aoi != "All") %>% 
+  mutate(aoi = as.numeric(aoi))
+# 
+# # Summarize AOI-wise averages (field size)
+# humachine_sum <- humachine %>% group_by(aoi, type) %>% 
+#   summarize(Median = median(Mean), Mean = mean(Mean)) %>% 
+#   ungroup() %>% 
+#   tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat")
+# # field number
+# humachine_sum_n <- humachine %>% group_by(aoi, type) %>% 
+#   summarize(Median = median(n), Mean = mean(n)) %>% 
+#   ungroup() %>% 
+#   tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat")
 
 # plots
 fcols <- c(Segmentation = rgb(0, 0, 1, alpha = 0.5),
@@ -781,7 +796,7 @@ theme_fun <- function(x) {
 p <- ggplot(humachine) + 
   geom_density(aes(x = Mean, y = ..count.., fill = type), col = "transparent", 
                linetype = "blank") +  
-  geom_vline(data = humachine_sum, 
+  geom_vline(data = squal %>% filter(measure == "area"), 
              aes(xintercept = value, color = type, linetype = Stat), 
              size = 0.5) +
   scale_x_continuous(expand = c(0.03, 0.03), breaks = brks, limits = c(0, 30)) +
@@ -793,7 +808,7 @@ p <- ggplot(humachine) +
   facet_wrap(vars(aoi)) + 
   xlab("Field size (ha)") + ylab("Count") + 
   theme_fun()
-ggsave(pth("figures/si_validation_stats_fha.png"), 
+ggsave(pth("figures/si_validation_stats_fha2.png"), 
        width = 7, height = 7, units = "in", dpi = 300)
 
 # field number
@@ -801,7 +816,7 @@ brks <- seq(0, 20, 5)
 p2 <- ggplot(humachine) + 
   geom_density(aes(x = n, y = ..count.., fill = type), col = "transparent", 
                linetype = "blank") +  
-  geom_vline(data = humachine_sum_n, 
+  geom_vline(data = squal %>% filter(measure == "n"), 
              aes(xintercept = value, color = type, linetype = Stat), 
              size = 0.5) +
   scale_x_continuous(expand = c(0.03, 0.03), breaks = brks, limits = c(0, 20)) +
@@ -813,7 +828,117 @@ p2 <- ggplot(humachine) +
   facet_wrap(vars(aoi)) + 
   xlab("Number of fields") + ylab("Count") + 
   theme_fun()
-ggsave(pth("figures/si_validation_stats_fn.png"), 
+ggsave(pth("figures/si_validation_stats_fn2.png"), 
        width = 7, height = 7, units = "in", dpi = 300)
 
 ```
+
+<!-- ### Figure S10: Segmentation statistics, tile scale -->
+<!-- ```{r, eval=FALSE} -->
+<!-- data("tile_aoi_validation_stats") -->
+
+<!-- humachine <- tile_aoi_validation_stats$tile %>%  -->
+<!--   mutate(type = ifelse(grepl("segments", type), "Segmentation", type), -->
+<!--          type = ifelse(grepl("validation", type), "Validation", type)) %>%  -->
+<!--   select(type, aoi, tile, area_mu, area_med, n_mu) %>%  -->
+<!--   rename(Mean = area_mu, Median = area_med) -->
+
+<!-- humachine_sum <- humachine %>% group_by(aoi, type) %>%  -->
+<!--   summarize(Median = median(Mean), Mean = mean(Mean)) %>%  -->
+<!--   ungroup() %>%  -->
+<!--   tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat") -->
+
+<!-- humachine_sum_n <- humachine %>% group_by(aoi, type) %>%  -->
+<!--   summarize(Median = median(n_mu), Mean = mean(n_mu)) %>%  -->
+<!--   ungroup() %>%  -->
+<!--   tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat") -->
+
+<!-- # Field size -->
+<!-- brks <- seq(0, 20, 5) -->
+<!-- p <- ggplot(humachine) +  -->
+<!--   geom_density(aes(x = Mean, y = ..count.., fill = type), col = "transparent",  -->
+<!--                linetype = "blank") +   -->
+<!--   geom_vline(data = humachine_sum,  -->
+<!--              aes(xintercept = value, color = type, linetype = Stat),  -->
+<!--              size = 0.5) + -->
+<!--   scale_x_continuous(expand = c(0.03, 0.03), breaks = brks, limits = c(0, 20)) + -->
+<!--   scale_y_continuous(expand = c(0, 0)) + -->
+<!--   scale_color_manual(name = "", values = c("blue", "red"), guide = FALSE) +  -->
+<!--   scale_fill_manual(name = "", values = fcols) +   -->
+<!--   # scale_linetype_manual(name = "", values = c("dashed", "solid")) +   -->
+<!--   scale_linetype("") +   -->
+<!--   facet_wrap(vars(aoi)) +  -->
+<!--   xlab("Field size (ha)") + ylab("Count") +  -->
+<!--   theme_fun() -->
+<!-- ggsave(pth("figures/si_tile_validation_stats_fha.png"),  -->
+<!--        width = 7, height = 7, units = "in", dpi = 300) -->
+
+<!-- # field number -->
+<!-- brks <- seq(0, 20, 5) -->
+<!-- p2 <- ggplot(humachine) +  -->
+<!--   geom_density(aes(x = n_mu, y = ..count.., fill = type), col = "transparent",  -->
+<!--                linetype = "blank") +   -->
+<!--   geom_vline(data = humachine_sum_n,  -->
+<!--              aes(xintercept = value, color = type, linetype = Stat),  -->
+<!--              size = 0.5) + -->
+<!--   scale_x_continuous(expand = c(0.03, 0.03), breaks = brks, limits = c(0, 20)) + -->
+<!--   scale_y_continuous(expand = c(0, 0)) + #, limits = c(0, 40)) + -->
+<!--   scale_color_manual(name = "", values = c("blue", "red"), guide = FALSE) +  -->
+<!--   scale_fill_manual(name = "", values = fcols) +   -->
+<!--   # scale_linetype_manual(name = "", values = c("dashed", "solid")) +   -->
+<!--   scale_linetype("") +   -->
+<!--   facet_wrap(vars(aoi)) +  -->
+<!--   xlab("Number of fields") + ylab("Count") +  -->
+<!--   theme_fun() -->
+<!-- ggsave(pth("figures/si_tile_validation_stats_fn.png"),  -->
+<!--        width = 7, height = 7, units = "in", dpi = 300) -->
+<!-- ``` -->
+
+<!-- ### Figure S11: Segmentation statistics: grid, tile, and AOI scales -->
+
+<!-- Read back in segments to get distributions -->
+<!-- ```{r, eval = FALSE} -->
+<!-- data("tile_aoi_validation_stats") -->
+
+<!-- # # Read in segments, drop old AOI3 -->
+<!-- # segment_files <- dir(here("external/data/results/segments/merged"), -->
+<!-- #                      pattern = "boundarymerge", full.names = TRUE) -->
+<!-- # iid <- as.numeric(gsub("[[:alpha:]]|_|\\.", "", basename(segment_files))) -->
+<!-- # segment_files <- tibble(file = segment_files, order = iid) %>% arrange(iid) -->
+<!-- # segment_files <- segment_files %>% filter(!grepl("aoi3_*.*merge.geojson", file)) -->
+<!-- #  -->
+<!-- # # area and quiet func -->
+<!-- # ha <- function(x) as.numeric(units::set_units(st_area(x), "ha")) -->
+<!-- # quiet <- function(x) suppressWarnings(suppressMessages(x)) -->
+
+<!-- humachine_sum <- tile_aoi_validation_stats$aoi %>%  -->
+<!--   select(type, aoi, area_mu, area_med) %>%  -->
+<!--   rename(Mean = area_mu, Median = area_med) %>%  -->
+<!--   tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat") %>%  -->
+<!--   tidyr::pivot_wider(names_from = type, values_from = value) -->
+
+<!-- aoi_wide <- tile_aoi_validation_stats$aoi %>% group_by(type) %>%  -->
+<!--   summarize(Mean = weighted.mean(area_mu, w = n),  -->
+<!--             Median = weighted.mean(area_med, w = n)) %>%  -->
+<!--   tidyr::pivot_longer(cols = Median:Mean, names_to = "Stat") %>%  -->
+<!--   tidyr::pivot_wider(names_from = type, values_from = value) %>%  -->
+<!--   mutate(aoi = "All") %>% select(aoi, !!names(.)) -->
+
+<!-- p <- ggplot(humachine_sum) + -->
+<!--   geom_point(aes(x = segments, y = validation)) +  -->
+<!--   geom_point(data = aoi_wide, aes(x = segments, y = validation), color = "red") +  -->
+<!--   scale_x_continuous(limits = c(0, 8)) +  -->
+<!--   scale_y_continuous(limits = c(0, 8)) +  -->
+<!--   ggrepel::geom_text_repel( -->
+<!--     aes(label = aoi, x = segments, y = validation), col = "grey50",  -->
+<!--     segment.color = "grey60", point.padding = 0.1, min.segment.length = 0.2, -->
+<!--     segment.size = 0.2, size = 3    -->
+<!--   ) +  -->
+<!--   xlab("Segmentation field size (ha)") + ylab("Validation field size (ha)") +  -->
+<!--   geom_abline(slope = 1) + facet_wrap(vars(Stat)) +  -->
+<!--   theme_linedraw() +  -->
+<!--   theme(strip.background = element_rect(fill = "white"),  -->
+<!--         strip.text = element_text(colour = "black")) -->
+
+<!-- ``` -->
+
