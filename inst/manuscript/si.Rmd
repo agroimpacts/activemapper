@@ -311,7 +311,7 @@ We then
 \clearpage
 # Results
 ## Image quality
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 data("image_quality")
 wqual_diff <- image_quality$img %>% filter(kml_type == "F") %>%
   group_by(name, season, worker_id) %>%
@@ -364,6 +364,47 @@ Probability images resulting from Random Forest models trained with labels gener
 knitr::include_graphics('figures/si_label_strategy_probs.png')
 ```
 
+The association between the average label risk per AOI and several model performance metrics, assessed using Spearman Rank Correlation, is shown in Table \ref{tab:labelrisk_v_metrics}.
+
+```{r labelrisk_v_metrics, echo=FALSE}
+data("label_risk")
+data("iteration_metrics")
+
+risk <- label_risk$stats %>% 
+  filter(usage == "Train") %>% 
+  filter(aoi %in% 1:16) %>% 
+  select(-usage)
+
+mets <- c("Accuracy", "AUC", "F1", "TSS", "Precision", "Recall", "FPR")
+metrics <- iteration_metrics %>% 
+  filter(Metric %in% mets) %>% 
+  mutate(AOI = as.factor(gsub("labeller", "", AOI))) %>% 
+  filter(AOI %in% 1:16) %>% 
+  # pivot_wider(names_from = Metric, values_from = Score) %>% 
+  group_by(AOI) %>% filter(Iteration == max(Iteration)) %>% 
+  select(-Iteration)
+
+risk_metrics <- left_join(risk, metrics, by = c("aoi" = "AOI"))
+
+cor_fun <- function(df) {
+  cor.test(df$Risk, df$Score, method = "spearman") %>% broom::tidy()
+}
+
+risk_corr <- lapply(unique(risk_metrics$Metric), function(x) {
+  dat <- risk_metrics %>% filter(Metric == x)
+  cor_fun(dat) %>% mutate(Metric = x)
+}) %>% do.call(rbind, .) %>% 
+  select(estimate, Metric) %>% 
+  rename(r = estimate)
+nms <- risk_corr$Metric
+risk_corr <- round(t(risk_corr[, 1]), 3)
+colnames(risk_corr) <- nms
+
+cap <- glue::glue("Spearman's Rank correlation between the average label risk per AOI and a variety of model performance metrics.")
+kable(risk_corr, format = "latex", booktabs = "T", caption = cap) %>% 
+  kable_styling(full_width = TRUE, latex_options = c("hold_position")) #%>% 
+  # column_spec(1, width = "8cm")
+```
 
 ## Map accuracy 
 ### Categorical
@@ -372,11 +413,11 @@ knitr::include_graphics('figures/si_label_strategy_probs.png')
 ### Field area and number
 To mean, median, and distributions of the average area of segmented field boundaries over the 100 validation sites in each AOI are compared to the areas of the polygons digitized by the most accurate labeller over the same sites in Figure \ref{fig:areavalidation}. The same statistics for average number of segments versus average number of labelled polygons across validation sites in each AOI are shown in Figure \ref{fig:numbervalidation}.      
 ```{r areavalidation, echo = FALSE, out.width="100%", fig.cap="The distributions of the average areas (in hectares) of segmented field boundaries (shown in blue) at the 100 validation sites per AOI, compared with the average areas of field boundaries digitized (shown in red) by the most accurate worker to label each site. Vertical lines indicate the mean and median of each distribution.", fig.align='center', message=FALSE, results='hold'}
-knitr::include_graphics('figures/si_validation_stats_fha.png')
+knitr::include_graphics('figures/si_validation_stats_fha2.png')
 ```
 
 ```{r numbervalidation, echo = FALSE, out.width="100%", fig.cap="The distributions of the average number of segmented field boundaries (shown in blue) at the 100 validation sites per AOI, compared with the average number of digitized polygons (shown in red) by the most accurate worker to label each site. The mean and median of each distribution is shown. Vertical lines indicate the mean and median of each distribution.", fig.align='center', message=FALSE, results='hold'}
-knitr::include_graphics('figures/si_validation_stats_fn.png')
+knitr::include_graphics('figures/si_validation_stats_fn2.png')
 ```
 
 

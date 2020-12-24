@@ -9,4 +9,4 @@ Description: Some functions to simplify pulling and analyzing data from the
 License: Apache2
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.1

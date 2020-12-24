@@ -20,10 +20,7 @@ author:
 - name: Ron Eastman
   affilnum: '1'
   
-- name: Sitian Xiong
-  affilnum: '1'
-
-- name: Tammy Woodard
+- name: Qi Zhang
   affilnum: '1'
 
 - name: Boka Luo
@@ -701,87 +698,174 @@ Based on this reference sample, we found that the average accuracy of the pixel-
 
 <!-- and an accuracy surface interpolated from the average cell-wise accuracies calculated between the predicted map and validation labels.  -->
 
-```{r, echo = FALSE, out.width="80%", fig.cap="The overall, user's, and producer's accuracies (indicated by fill color) for each of the 16 mapping zones (zones numbers are shown on maps) [This a hypothetical placeholder figure].", fig.align='center'}
-knitr::include_graphics('figures/si_mapping_blocks.png')
-```
+<!-- ```{r, echo = FALSE, out.width="80%", fig.cap="The overall, user's, and producer's accuracies (indicated by fill color) for each of the 16 mapping zones (zones numbers are shown on maps) [This a hypothetical placeholder figure].", fig.align='center'} -->
+<!-- knitr::include_graphics('figures/si_mapping_blocks.png') -->
+<!-- ``` -->
 
 The accuracy patterns generally align with the difficulty of the labelling task, that is, **the southwestern regions were hardest for workers to interpret, as shown by Figure 5.**
 
 ### Segmentation accuracy
 ```{r, echo=FALSE}
 # validation statistics
-data("top_label_data")
-data("field_validation_stats")
+data("segment_quality_stats")
 
+datnms <- c("top_label_data", "field_validation_stats")#,
+            # "tile_aoi_validation_stats")
+for(i in datnms) {
+  load(system.file(glue::glue("extdata/{i}.rda"), package = "activemapper"))
+}
+
+# extract distributions
 human <- top_label_data$stats %>%
-  mutate(mu_prop = NA, type = "val") %>%
+  mutate(mu_prop = NA, type = "Validation") %>%
   select(-contains("id"))
 machine <- field_validation_stats %>%
-  mutate(type = "seg")
-humachine <- bind_rows(human, machine) %>% 
-  mutate(aoi = as.numeric(gsub("labeller", "", aoi))) %>% 
-  arrange(aoi)
+  mutate(type = "Segmentation")
 
-huma_aois <- humachine %>% group_by(aoi, type) %>% 
-  summarize(med = median(Mean), mu = mean(Mean)) %>% 
-  ungroup()
-lrgst <- huma_aois %>% select(-med) %>% filter(aoi %in% c(2, 3, 7, 15)) %>% 
-  tidyr::pivot_wider(names_from = type, values_from = "mu") %>% 
-  filter(seg %in% range(seg))
-lrgstlow <- lrgst %>% filter(seg == min(seg))
-lrgsthigh <- lrgst %>% filter(seg == max(seg))
+# calculate SDs
+humac_sds <- bind_rows(
+  human %>% summarize(value = sd(Mean)) %>% 
+    mutate(type = "v", stat = "sd_ha_mu"), 
+  human %>% summarize(value = sd(Median)) %>% 
+    mutate(type = "v", stat = "sd_ha_med"), 
+  human %>% summarize(value = sd(n)) %>% 
+    mutate(type = "v", stat = "sd_n_mu"), 
+  machine %>% summarize(value = sd(Mean)) %>% 
+    mutate(type = "s", stat = "sd_ha_mu"), 
+  machine %>% summarize(value = sd(Median)) %>% 
+    mutate(type = "s", stat = "sd_ha_med"), 
+  machine %>% summarize(value = sd(n)) %>% 
+    mutate(type = "s", stat = "sd_n_mu") 
+)
 
-# overall stats
-huma_sum <- humachine %>% group_by(type) %>% 
-  summarize(med = median(Mean), sd = sd(Mean), min = min(Mean), 
-            max = max(Mean), mu = mean(Mean)) %>% 
-  select(type, mu, med, sd, min, max)
-segha <- huma_sum %>% filter(type == "seg") %>% pull(mu) %>% round(2)
-valha <- huma_sum %>% filter(type == "val") %>% pull(mu) %>% round(2)
-seghamed <- huma_sum %>% filter(type == "seg") %>% pull(med) %>% round(2)
-valhamed <- huma_sum %>% filter(type == "val") %>% pull(med) %>% round(2)
-seghasd <- huma_sum %>% filter(type == "seg") %>% pull(sd) %>% round(2)
-valhasd <- huma_sum %>% filter(type == "val") %>% pull(sd) %>% round(2)
+# extract distributions
 
-huma_sumn <- humachine %>% group_by(type) %>% 
-  summarize(med = median(n), sd = sd(n), min = min(n), max = max(n), 
-            mu = mean(n)) %>% 
-  select(type, mu, med, sd, min, max)
-segn <- huma_sumn %>% filter(type == "seg") %>% pull(mu) %>% round(2)
-valn <- huma_sumn %>% filter(type == "val") %>% pull(mu) %>% round(2)
-segnmed <- huma_sumn %>% filter(type == "seg") %>% pull(med) %>% round(2)
-valnmed <- huma_sumn %>% filter(type == "val") %>% pull(med) %>% round(2)
-segnsd <- huma_sumn %>% filter(type == "seg") %>% pull(sd) %>% round(2)
-valnsd <- huma_sumn %>% filter(type == "val") %>% pull(sd) %>% round(2)
+# human <- top_label_data$stats %>%
+#   mutate(mu_prop = NA, type = "val") %>%
+#   select(-contains("id"))
+# machine <- field_validation_stats %>%
+#   mutate(type = "seg")
+# humachine <- bind_rows(human, machine) %>% 
+#   mutate(aoi = as.numeric(gsub("labeller", "", aoi))) %>% 
+#   arrange(aoi)
+
+# huma_aois <- humachine %>% group_by(aoi, type) %>% 
+#   summarize(med = median(Mean), mu = mean(Mean)) %>% 
+#   ungroup()
+# lrgst <- huma_aois %>% select(-med) %>% filter(aoi %in% c(2, 3, 7, 15)) %>% 
+#   tidyr::pivot_wider(names_from = type, values_from = "mu") %>% 
+#   filter(seg %in% range(seg))
+seg_stats_grid <- segment_quality_stats %>% filter(scale == "grid")
+lrgst <- seg_stats_grid %>% 
+  filter(aoi %in% c(2, 3, 7, 15)) %>% 
+  tidyr::pivot_wider(names_from = type, values_from = value) %>%
+  filter(Stat == "Mean" & measure == "area")
+
+lrgst_seg <- lrgst %>% summarize(rng = range(Segmentation))
+lrgst_val <- lrgst %>% summarize(rng = range(Validation))
+
+# # overall stats
+# huma_sum <- humachine %>% group_by(type) %>% 
+#   summarize(med = median(Mean), sd = sd(Mean), min = min(Mean), 
+#             max = max(Mean), mu = mean(Mean)) %>% 
+#   select(type, mu, med, sd, min, max)
+
+segha <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "area") %>% 
+  filter(type == "Segmentation" & Stat == "Mean") %>% pull(value) %>% round(2)
+# segha <- huma_sum %>% filter(type == "seg") %>% pull(mu) %>% round(2)
+valha <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "area") %>% 
+  filter(type == "Validation" & Stat == "Mean") %>% pull(value) %>% round(2)
+# valha <- huma_sum %>% filter(type == "val") %>% pull(mu) %>% round(2)
+
+# seghamed <- huma_sum %>% filter(type == "seg") %>% pull(med) %>% round(2)
+# valhamed <- huma_sum %>% filter(type == "val") %>% pull(med) %>% round(2)
+seghamed <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "area") %>% 
+  filter(type == "Segmentation" & Stat == "Median") %>% pull(value) %>% round(2)
+# segha <- huma_sum %>% filter(type == "seg") %>% pull(mu) %>% round(2)
+valhamed <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "area") %>% 
+  filter(type == "Validation" & Stat == "Median") %>% pull(value) %>% round(2)
+
+
+# seghasd <- huma_sum %>% filter(type == "seg") %>% pull(sd) %>% round(2)
+seghasd <- humac_sds %>% filter(type == "s" & stat == "sd_ha_mu") %>% 
+  pull(value) %>% round(2)
+# valhasd <- huma_sum %>% filter(type == "val") %>% pull(sd) %>% round(2)
+valhasd <- humac_sds %>% filter(type == "v" & stat == "sd_ha_mu") %>% 
+  pull(value) %>% round(2)
+
+segnsd <- humac_sds %>% filter(type == "s" & stat == "sd_n_mu") %>% 
+  pull(value) %>% round(2)
+valnsd <- humac_sds %>% filter(type == "v" & stat == "sd_n_mu") %>% 
+  pull(value) %>% round(2)
+
+# huma_sumn <- humachine %>% group_by(type) %>% 
+#   summarize(med = median(n), sd = sd(n), min = min(n), max = max(n), 
+#             mu = mean(n)) %>% 
+#   select(type, mu, med, sd, min, max)
+# segn <- huma_sumn %>% filter(type == "seg") %>% pull(mu) %>% round(2)
+# valn <- huma_sumn %>% filter(type == "val") %>% pull(mu) %>% round(2)
+# segnmed <- huma_sumn %>% filter(type == "seg") %>% pull(med) %>% round(2)
+# valnmed <- huma_sumn %>% filter(type == "val") %>% pull(med) %>% round(2)
+# segnsd <- huma_sumn %>% filter(type == "seg") %>% pull(sd) %>% round(2)
+# valnsd <- huma_sumn %>% filter(type == "val") %>% pull(sd) %>% round(2)
+
+segn <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "n") %>% 
+  filter(type == "Segmentation" & Stat == "Mean") %>% pull(value) %>% round(2)
+valn <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "n") %>% 
+  filter(type == "Validation" & Stat == "Mean") %>% pull(value) %>% round(2)
+
+segnmed <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "n") %>% 
+  filter(type == "Segmentation" & Stat == "Median") %>% pull(value) %>% round(2)
+valnmed <- seg_stats_grid %>% 
+  filter(aoi == "All" & measure == "n") %>% 
+  filter(type == "Validation" & Stat == "Median") %>% pull(value) %>% round(2)
+
+
 ```
-The comparisons of digitized versus segmented field boundaries showed that the mean field size across all 1600 validation sites averaged `r round(segha, 2)` ha (StDev = `r round(seghasd, 2)`), which was `r round((segha - valha) / valha * 100) / 100` times larger than the `r round(valha, 2)` ha (StDev = `r round(valhasd, 2)`) mean area of labeller-digitized polygons. This discrepancy was primarily caused by segmentation results in four AOIs (2, 3, 7, and 15; Figure S5), where segments averaged between `r round(lrgstlow$seg, 2)` and `r round(lrgsthigh$seg, 2)` ha, compared to `r round(lrgstlow$val, 2)` - `r round(lrgsthigh$val, 2)` for the corresponding hand-digitized polygons. In contrast, the median segmented field area was closer to that of digitized polygons (`r seghamed` for segments versus `r valhamed` for labeller polygons). The number of segmented fields per validation site averaged `r segn` (median = `r segnmed`; StDev = `r segnsd`) compared to `r valn` (median = `r valnmed`; StDev = `r valnsd`) for digitized polygons (Figure S6). 
+The comparisons of digitized versus segmented field boundaries showed that the mean field size across all 1600 validation sites averaged `r round(segha, 2)` ha (Median = `r round(seghamed, 2)`; StDev = `r round(seghasd, 2)`), which was `r round((segha - valha) / valha * 100) / 100` times larger than the `r round(valha, 2)` ha (Median = `r round(valhamed, 2)`; StDev = `r round(valhasd, 2)`) mean area of labeller-digitized polygons. This discrepancy was primarily caused by segmentation results in four AOIs (2, 3, 7, and 15; Figure S5), where segments averaged between `r round(lrgst_seg$rng[1], 2)` and `r round(lrgst_seg$rng[2], 2)` ha, compared to `r round(lrgst_val$rng[1], 2)` - `r round(lrgst_val$rng[2], 2)` ha for the corresponding hand-digitized polygons. The number of segmented fields per validation site averaged `r segn` (median = `r segnmed`; StDev = `r segnsd`) compared to `r valn` (median = `r valnmed`; StDev = `r valnsd`) for digitized polygons (Figure S6). 
 
-### Label quality and map accuracy
-```{r, echo = FALSE, out.width="100%", fig.cap="Difference in overall, user's, and producer's accuracy between maps made with consensus labels, the least accurate worker's, and most accurate worker's labels.", fig.align='center', message=FALSE}
-knitr::include_graphics('figures/figure6.png')
-# library(tidyverse)
-# library(cowplot)
-# set.seed(1)
-# acc_tb <- tibble(aoi = c(1:9, 12, 15), 
-#                  Consensus = runif(11, min = 0.75, max = 0.85),
-#                  Highest = runif(11, min = 0.72, max = 0.8),
-#                  Least = runif(11, min = 0.65, max = 0.75))
-# acc_tb <- gather(acc_tb, key = "type", value = "score", -aoi)
-# ggplot(acc_tb) + 
-#   geom_boxplot(aes(x = type, y = score), fill = "grey") + 
-#   xlab("Labelling strategy") + ylab("Accuracy") + 
-#   theme(panel.grid.major.y = element_line(colour = "grey80", linetype = 3))
-```
+<!-- ### Label quality and map accuracy -->
+<!-- ```{r, echo = FALSE, out.width="100%", fig.cap="Difference in overall, user's, and producer's accuracy between maps made with consensus labels, the least accurate worker's, and most accurate worker's labels.", fig.align='center', message=FALSE} -->
+<!-- knitr::include_graphics('figures/figure6.png') -->
+<!-- # library(tidyverse) -->
+<!-- # library(cowplot) -->
+<!-- # set.seed(1) -->
+<!-- # acc_tb <- tibble(aoi = c(1:9, 12, 15),  -->
+<!-- #                  Consensus = runif(11, min = 0.75, max = 0.85), -->
+<!-- #                  Highest = runif(11, min = 0.72, max = 0.8), -->
+<!-- #                  Least = runif(11, min = 0.65, max = 0.75)) -->
+<!-- # acc_tb <- gather(acc_tb, key = "type", value = "score", -aoi) -->
+<!-- # ggplot(acc_tb) +  -->
+<!-- #   geom_boxplot(aes(x = type, y = score), fill = "grey") +  -->
+<!-- #   xlab("Labelling strategy") + ylab("Accuracy") +  -->
+<!-- #   theme(panel.grid.major.y = element_line(colour = "grey80", linetype = 3)) -->
+<!-- ``` -->
 
 ## Ghana's croplands
 Two separate maps of cropland were produced for each AOI, one derived from the cropland probability map, and the other from the segmented field boundaries. 
 
-
-
-
-- Average field size
+Map figure:
+- Panel A: Cropland probability map (0.005 degree resolution)
+  - Panel A insets: Probability close-ups in AOIs 1, 8, 13, 15
+- Panel B: Cropland percentage map (0.005 degree)
+  - Panel B insets: Segment close-ups in AOIs 1, 8, 13, 15
+- Panel C: Median field size
+- Panel D: Field number
+- Median field size
 - Cropland percentage
-- Comparison against other products (croplands.org; Sentinel Landcover)
+
+Stats figure: 
+- Mean field size per AOI
+- Median field size per AOI
+- SD fields per AOI 
+- N field per AOI
 
 # Discussion
 - Label quality

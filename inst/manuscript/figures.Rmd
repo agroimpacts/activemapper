@@ -747,8 +747,8 @@ dev.off()
 # data("field_validation_stats")
 data("segment_quality_stats")
 # data
-datnms <- c("top_label_data", "field_validation_stats",
-            "tile_aoi_validation_stats")
+datnms <- c("top_label_data", "field_validation_stats")#,
+            # "tile_aoi_validation_stats")
 for(i in datnms) {
   load(system.file(glue::glue("extdata/{i}.rda"), package = "activemapper"))
 }
