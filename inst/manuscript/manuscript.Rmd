@@ -687,7 +687,26 @@ The potential impact of training data errors on map quality was assessed in four
 knitr::include_graphics('figures/figure6.png')
 ```
 
-A second measure of the impact of training data error can be obtained by calculating the Spearman Rank Correlation coefficient between the average label risk per AOI versus various model performance metrics.  
+```{r, echo=FALSE}
+data("label_risk_metrics")
+
+cor_fun <- function(df) {
+  cor.test(df$Risk, df$Score, method = "spearman") %>% broom::tidy()
+}
+
+lr_mets <- unique(label_risk_metrics$Metric)
+risk_corr <- lapply(lr_mets[lr_mets != "TSS"], function(x) {
+  dat <- label_risk_metrics %>% filter(Metric == x)
+  cor_fun(dat) %>% mutate(Metric = x)
+}) %>% do.call(rbind, .) %>% 
+  select(estimate, Metric) %>% 
+  rename(r = estimate)
+nms <- risk_corr$Metric
+risk_corr <- round(t(risk_corr[, 1]), 3)
+colnames(risk_corr) <- nms
+```
+
+A second measure of the impact of training data error can be obtained by calculating the between the average training label risk per AOI versus various model performance metrics (Table S3). Accuracy had a strong negative association (Spearman's Rank Correlation =  `r risk_corr[, "Accuracy"]` and AUC had a moderate negative association (r = `r risk_corr[, "AUC"]`), while F1 had a weaker positive association (r = `r risk_corr[, "F1"]`). This sign of the latter is counter-intuitive, but relates to the fact that precision was higher in areas of increasing label risk (`r risk_corr[, "Precision"]`), as did false positive error rates (`r risk_corr[, "FPR"]`). In contrast, recall had little correlation with label risk (`r risk_corr[, "Recall"]`), thus the higher precision drove F1 higher, even in areas with more false positives.  **[work on this]**
 
 
 ## Map accuracy

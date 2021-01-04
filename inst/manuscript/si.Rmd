@@ -367,13 +367,15 @@ knitr::include_graphics('figures/si_label_strategy_probs.png')
 The association between the average label risk per AOI and several model performance metrics, assessed using Spearman Rank Correlation, is shown in Table \ref{tab:labelrisk_v_metrics}.
 
 ```{r labelrisk_v_metrics, echo=FALSE}
+data("label_risk_metrics")
 
 cor_fun <- function(df) {
   cor.test(df$Risk, df$Score, method = "spearman") %>% broom::tidy()
 }
 
-risk_corr <- lapply(unique(risk_metrics$Metric), function(x) {
-  dat <- risk_metrics %>% filter(Metric == x)
+lr_mets <- unique(label_risk_metrics$Metric)
+risk_corr <- lapply(lr_mets[lr_mets != "TSS"], function(x) {
+  dat <- label_risk_metrics %>% filter(Metric == x)
   cor_fun(dat) %>% mutate(Metric = x)
 }) %>% do.call(rbind, .) %>% 
   select(estimate, Metric) %>% 
