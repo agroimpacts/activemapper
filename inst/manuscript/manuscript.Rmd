@@ -687,7 +687,7 @@ The potential impact of training data errors on map quality was assessed in four
 knitr::include_graphics('figures/figure6.png')
 ```
 
-A second measure of the impact of training data error can be obtained by comparing the average label risk per AOI against the model performance metrics.... 
+A second measure of the impact of training data error can be obtained by calculating the Spearman Rank Correlation coefficient between the average label risk per AOI versus various model performance metrics.  
 
 
 ## Map accuracy

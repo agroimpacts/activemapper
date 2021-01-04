@@ -367,24 +367,6 @@ knitr::include_graphics('figures/si_label_strategy_probs.png')
 The association between the average label risk per AOI and several model performance metrics, assessed using Spearman Rank Correlation, is shown in Table \ref{tab:labelrisk_v_metrics}.
 
 ```{r labelrisk_v_metrics, echo=FALSE}
-data("label_risk")
-data("iteration_metrics")
-
-risk <- label_risk$stats %>% 
-  filter(usage == "Train") %>% 
-  filter(aoi %in% 1:16) %>% 
-  select(-usage)
-
-mets <- c("Accuracy", "AUC", "F1", "TSS", "Precision", "Recall", "FPR")
-metrics <- iteration_metrics %>% 
-  filter(Metric %in% mets) %>% 
-  mutate(AOI = as.factor(gsub("labeller", "", AOI))) %>% 
-  filter(AOI %in% 1:16) %>% 
-  # pivot_wider(names_from = Metric, values_from = Score) %>% 
-  group_by(AOI) %>% filter(Iteration == max(Iteration)) %>% 
-  select(-Iteration)
-
-risk_metrics <- left_join(risk, metrics, by = c("aoi" = "AOI"))
 
 cor_fun <- function(df) {
   cor.test(df$Risk, df$Score, method = "spearman") %>% broom::tidy()
@@ -404,6 +386,14 @@ cap <- glue::glue("Spearman's Rank correlation between the average label risk pe
 kable(risk_corr, format = "latex", booktabs = "T", caption = cap) %>% 
   kable_styling(full_width = TRUE, latex_options = c("hold_position")) #%>% 
   # column_spec(1, width = "8cm")
+
+# tp <- 10
+# fp <- 2
+# tn <- 20
+# fn <- 3
+# tss <- (tp * tn - fp * fn) / ((tp + fn) * (fp + tn))
+# mcc <- (tp * tn - fp * fn) / sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+
 ```
 
 ## Map accuracy 
