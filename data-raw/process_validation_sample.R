@@ -114,7 +114,7 @@ cbind(as_tibble(val_sample_1r_sf), tile = val_tiles$tile, val_tile_rcs) %>%
 
 
 # write out
-st_write(ref_labels, here::here("inst/extdata/reference_labels.geojson"))
+st_write(ref_labels, here::here("inst/extdata/map_reference_labels.geojson"))
 
 # # test
 # i <- 2

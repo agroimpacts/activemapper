@@ -26,7 +26,7 @@ Creation of figures for main manuscript and the supplementary information.
 
 ## Base Datasets
 
-The preparation of datasets used here and which install with the `activemapper` package, is shown in `data-raw/data_[from|to]_instaces.R`. These are loaded in here. 
+The preparation of datasets used here and which install with the `activemapper` package, is shown in `data-raw/data_[from|to]_instances.R`. These are loaded in here. 
 
 ```{r, eval=FALSE}
 res <- 0.005
@@ -646,6 +646,43 @@ p <- ggplot(label_risk$pts) +
 ggsave(pth("figures/si_label_risk_hists.png"), width = 3, 
        height = 9, units = "in", dpi = 300, bg = "transparent")
 ```
+
+```{r, eval=FALSE}
+data("label_risk_metrics")
+
+label_risk_metrics %>% 
+  filter(Metric != "TSS") %>%  
+  ggplot() + geom_point(aes(Risk, Score)) + 
+  geom_smooth(aes(Risk, Score), method = "gam") + 
+  facet_wrap(~Metric)
+
+label_risk_metrics %>% select(aoi, Metric, Score) %>% 
+  tidyr::pivot_wider(names_from = "Metric", values_from = "Score") %>% 
+  ggplot() + geom_point(aes(Precision, Accuracy))
+
+label_risk_metrics %>% select(aoi, Metric, Score) %>% 
+  tidyr::pivot_wider(names_from = "Metric", values_from = "Score") %>% 
+  ggplot() + geom_point(aes(Precision, F1))
+
+label_risk_metrics %>% select(aoi, Metric, Score) %>% 
+  tidyr::pivot_wider(names_from = "Metric", values_from = "Score") %>% 
+  ggplot() + geom_point(aes(Recall, F1))
+
+label_risk_metrics %>% select(aoi, Metric, Score) %>% 
+  tidyr::pivot_wider(names_from = "Metric", values_from = "Score") %>% 
+  ggplot() + geom_point(aes(Precision, Recall))
+
+label_risk_metrics %>% select(aoi, Metric, Score) %>% 
+  tidyr::pivot_wider(names_from = "Metric", values_from = "Score") %>% 
+  ggplot() + geom_point(aes(Precision, FPR))
+label_risk_metrics %>% select(aoi, Metric, Score) %>% 
+  tidyr::pivot_wider(names_from = "Metric", values_from = "Score") %>% 
+  ggplot() + geom_point(aes(Recall, FPR))
+
+
+```
+
+
 
 
 ### Figure S7: Random versus active sampling
