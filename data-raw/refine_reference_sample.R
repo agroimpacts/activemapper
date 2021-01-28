@@ -106,7 +106,6 @@ val_tiles <- tiles %>% slice(ints)
 xys <- val_tiles %>% st_centroid() %>% st_coordinates()
 val_tile_rcs <- rowcol_from_xy(xys[, 1], xys[, 2], res = 0.05)
 
-
 # Combine with labels
 cbind(as_tibble(val_sample_1r_sf), tile = val_tiles$tile, val_tile_rcs) %>%
   select(name, assignment_id, worker_id, category, categ_description, tile,
