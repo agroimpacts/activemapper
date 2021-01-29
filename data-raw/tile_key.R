@@ -20,8 +20,8 @@ tile_rcs <- rowcol_from_xy(xys[, 1], xys[, 2], res = 0.05)
 
 # combine into tile, aoi, row, col key
 tile_key <- tibble(
-  as_tibble(tiles_aois), row = tile_rcs[, 1], col = tile_rcs[, 2]
+  as_tibble(tiles_aois), col = tile_rcs[, 1], row = tile_rcs[, 2]
 ) %>% select(aoi, tile, col, row, -geometry)
 
-usethis::use_data(tile_key)
+usethis::use_data(tile_key, overwrite = TRUE)
 
