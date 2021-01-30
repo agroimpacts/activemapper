@@ -42,8 +42,9 @@ img_catalog <- lapply(bucket_prefixes, function(x) { # x <- bucket_prefixes[1]
   #   tidyr::separate(value, sep = c(20, 31),
   #                   into = c("date", "size", "image")) %>%
   #   mutate_all(trimws) %>% mutate(prefix = x)
-
   aoi_id <- gsub("_.*", "", x)
+
+  print(glue::glue("Processing AOI {aoi_id}"))
   # plot(tiles %>% filter(tile %in% tile_ids) %>% st_geometry())
 
   ref_labels_aoi <- ref_labels %>% filter(aoi %in% aoi_id)
@@ -56,7 +57,7 @@ img_catalog <- lapply(bucket_prefixes, function(x) { # x <- bucket_prefixes[1]
   # ref_labels_aoi %>% as_tibble() %>% group_by(tile) %>% count()
   probs <- lapply(1:nrow(ref_labels_aoi), function(y) { # y <- 1
     d <- ref_labels_aoi %>% slice(y)
-    print(d$name)
+    print(glue::glue("..{d$name}"))
     img_nm <- glue::glue("image_c{d$col}_r{d$row}.tif")
     img <- raster(glue::glue("{img_root}{img_nm}"))
     prob <- extract(img, d)[[1]]
@@ -66,6 +67,4 @@ img_catalog <- lapply(bucket_prefixes, function(x) { # x <- bucket_prefixes[1]
   return(probs)
 })
 
-img_catalog_tb <- do.call(rbind, img_catalog) %>% select(prefix, image)
-# img_catalog_tb %>% group_by(image) %>% count() %>%
-#   filter(n > 1)
+save(img_catalog, file = here::here("inst/extdata/image_probs.rda"))
