@@ -22,6 +22,9 @@ tiles <- read_sf(
 )
 gcs <- unname(unlist(st_crs(4326))[2])
 
+# load tile key
+data("tile_key")
+
 # create master_grid extent, get list of probability images, download fpool
 # (for checking)
 
@@ -89,7 +92,8 @@ val_sample_1r <- lapply(unique(val_samples$name), function(x) {
   return(as_tibble(out))
 }) %>% do.call(rbind, .)
 # val_sample_1r <- do.call(rbind, val_sample_1r)
-all(sapply(val_sample_1r, function(x) st_is(x$geom, "POLYGON")))
+all(st_is(st_as_sf(val_sample_1r)$geom, "POLYGON"))
+# all(sapply(st_as_sf(val_sample_1r), function(x) st_is(x$geom, "POLYGON")))
 
 # sum of category
 # val_cats <- val_sample_1r %>% as_tibble() %>%
@@ -98,22 +102,35 @@ all(sapply(val_sample_1r, function(x) st_is(x$geom, "POLYGON")))
 
 # get list of row_col identifiers
 val_sample_1r_sf <- val_sample_1r %>% st_as_sf()
-ints <- sort(unlist(st_intersects(val_sample_1r_sf, tiles)))
-val_tiles <- tiles %>% slice(ints)
-# ggplot2::ggplot(val_tiles) + ggplot2::geom_sf() +
+
+ref_labels <- st_intersection(val_sample_1r_sf, tiles) %>%
+  left_join(., tile_key) %>%
+  select(name, tile, col, row, aoi, assignment_id, worker_id, category,
+         categ_description, tile)
+
+# ggplot2::ggplot(val_tiles) +
+#   ggplot2::geom_sf(ggplot2::aes(fill = as.factor(aoi1))) +
 #   ggplot2::geom_sf(data = val_sample_1r_sf)
 
+
+val_tiles()
 xys <- val_tiles %>% st_centroid() %>% st_coordinates()
+st_centroid(val_tiles)
 val_tile_rcs <- rowcol_from_xy(xys[, 1], xys[, 2], res = 0.05)
 
 # Combine with labels
 cbind(as_tibble(val_sample_1r_sf), tile = val_tiles$tile, val_tile_rcs) %>%
   select(name, assignment_id, worker_id, category, categ_description, tile,
          row, col, geom) %>% st_as_sf() -> ref_labels
+# aoi1_tiles <- activemapper::tile_key %>% filter(aoi == 15) %>% pull(tile)
+# ggplot2::ggplot(ref_labels %>% filter(tile %in% aoi1_tiles)) +
+#   ggplot2::geom_sf() +
+#   ggplot2::geom_sf(data = tiles, fill = "transparent", size = 0.1)
 
 
 # write out
-st_write(ref_labels, here::here("inst/extdata/map_reference_labels.geojson"))
+st_write(ref_labels, here::here("inst/extdata/map_reference_labels.geojson"),
+         delete_dsn = TRUE)
 
 # # test
 # i <- 2
