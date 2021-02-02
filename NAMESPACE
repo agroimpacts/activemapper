@@ -2,7 +2,6 @@
 
 export(consensus_map_creation2)
 export(get_db_tables)
-export(labeller_connection)
 export(write_consensus_results)
 export(xys_from_rowcol)
 import(dplyr)
