@@ -6,6 +6,7 @@ library(raster)
 library(dplyr)
 library(aws.s3)
 library(activemapper)
+library(doMC)
 
 # reference polygons
 ref_labels <- read_sf(
@@ -24,47 +25,63 @@ tiles <- read_sf(
 aois <- read_sf(
   system.file("extdata/aois.geojson", package = "activemapper")
 )
-# tiles_aois <- st_join(tiles, aois, largest = TRUE)
-
-# tiles_aois %>% filter(aoi1 == 8) %>% st_geometry() %>% plot()
-
-
-# ref_labels %>% filter(name == "GH0391094")
 
 # collect image catalog
 bucket_prefixes <- paste0(1:16, "_whole/")
 bucket_prefixes[bucket_prefixes == "3_whole/"] <- "3_whole_retrain/"
 
-img_catalog <- lapply(bucket_prefixes, function(x) { # x <- bucket_prefixes[1]
+registerDoMC(cores = 4)
+ref_int_probs <- lapply(bucket_prefixes, function(x) { # x <- bucket_prefixes[1]
   img_root <- glue::glue("/vsis3/activemapper/classified-images/{x}")
-  # aws_string <- glue::glue("aws s3 ls s3://activemapper/classified-images/{x}")
-  # imgs <- system(aws_string, intern = TRUE) %>% as_tibble() %>%
-  #   tidyr::separate(value, sep = c(20, 31),
-  #                   into = c("date", "size", "image")) %>%
-  #   mutate_all(trimws) %>% mutate(prefix = x)
   aoi_id <- gsub("_.*", "", x)
-
   print(glue::glue("Processing AOI {aoi_id}"))
-  # plot(tiles %>% filter(tile %in% tile_ids) %>% st_geometry())
 
   ref_labels_aoi <- ref_labels %>% filter(aoi %in% aoi_id)
-
-  # plot(ref_labels_aoi$geometry)
-
-  # imgs %>% filter(image == y)
   tile_ids <- unique(ref_labels_aoi$tile)
   # which(tile_ids == 486300)
+
   # ref_labels_aoi %>% as_tibble() %>% group_by(tile) %>% count()
-  probs <- lapply(1:nrow(ref_labels_aoi), function(y) { # y <- 1
-    d <- ref_labels_aoi %>% slice(y)
+  # probs <- lapply(1:nrow(ref_labels_aoi), function(y) { # y <- 20
+
+  # # check on tile with 2 labels
+  # d <- ref_labels_aoi %>% slice(21)
+  # rc <- c("c" = unique(d$col), "r" = unique(d$row))
+  # img_nm <- glue::glue("image_c{rc['c']}_r{rc['r']}.tif")
+  # img <- raster(glue::glue("{img_root}{img_nm}"))
+  # prob1 <- extract(img, d)[[1]]
+  # d2 <- ref_labels_aoi %>% slice(22)
+  # prob2 <- extract(img, d2)[[1]]
+  # tst_probs <- list(prob1, prob2)
+
+  probs <- foreach(y = tile_ids, .combine = rbind) %dopar% {
+    # y <- tile_ids[20]
+    # d <- ref_labels_aoi %>% slice(y)
+    d <- ref_labels_aoi %>% filter(tile == y)
     print(glue::glue("..{d$name}"))
-    img_nm <- glue::glue("image_c{d$col}_r{d$row}.tif")
+    rc <- c("c" = unique(d$col), "r" = unique(d$row))
+    # img_nm <- glue::glue("image_c{d$col}_r{d$row}.tif")
+    img_nm <- glue::glue("image_c{rc['c']}_r{rc['r']}.tif")
     img <- raster(glue::glue("{img_root}{img_nm}"))
-    prob <- extract(img, d)[[1]]
-    return(prob)
-  })
-  # sapply(probs, function(x) mean(x[[1]]))
+    prob <- extract(img, d)
+
+    # compile stats
+    prob_stats <- t(sapply(prob, function(x) summary(x)))
+    prob_tb <- tibble(name = d$name, tile = d$tile, aoi = d$aoi,
+                      data.frame(prob_stats))
+    # extract(img, d)
+
+    # test with other double tile
+    # all(sapply(prob, mean) == sapply(tst_probs, mean))
+    # names(prob) <- d$name
+    # return(prob)
+    return(prob_tb)
+  }
   return(probs)
 })
 
-save(img_catalog, file = here::here("inst/extdata/image_probs.rda"))
+ref_int_probs <- do.call(rbind, ref_int_probs)
+ref_int_probs <- ref_int_probs %>%
+  rename(min = Min., q1 = X1st.Qu., median = Median, mean = Mean, q3 = X3rd.Qu.,
+         max = Max.)
+
+save(ref_int_probs, file = here::here("inst/extdata/ref_int_probs.rda"))
