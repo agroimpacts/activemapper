@@ -68,6 +68,15 @@ ref_int_segments <- foreach(x = 1:length(aois), .combine = rbind) %dopar% {
   return(ref_fld_isected)
 }
 
+# union separated segments to produce correct numbers of rows
+# ref_int_segments <- st_read("inst/extdata/ref_int_segments.geojson")
+ref_int_segments <- ref_int_segments %>% group_by(name) %>%
+  summarize(tile = unique(tile), aoi = unique(aoi), category = unique(category),
+            afrac = sum(afrac)) %>% arrange(aoi, tile, name, tile)
+# as_tibble(ref_int_segments) %>% group_by(name) %>% count() %>% filter(n > 1)
+# ref_int_segments %>% filter(name == "GH0005059") %>% plot()
+
 # write out to inst/extdata
-st_write(ref_int_segments, dsn = here("inst/extdata/ref_int_segments.geojson"))
+st_write(ref_int_segments, dsn = here("inst/extdata/ref_int_segments.geojson"),
+         delete_dsn = TRUE)
 
