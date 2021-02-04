@@ -93,5 +93,5 @@ probs_005 <- do.call(mosaic, aoi_probs)
 probs_005[probs_005 > 100] <- NA
 save(aoi_probs, file = here::here("external/data/results/probs/aoi_probs.rda"))
 writeRaster(probs_005,
-            filename = here::here("external/data/results/probs/probs_005.tif"))
+            filename = here::here("inst/extdata/probs_005.tif"))
 
