@@ -36,21 +36,23 @@ tiles <- st_read(
 # plot(tilesr)
 # plot(tilesr005_sf$geometry, add = TRUE)
 
+# function for estimating proportions of pixels > 0.5
+ctfun <- function(x, na.rm = na.rm) {
+  v <- x[!is.na(x)]
+  length(which(v > 50)) / length(v)
+}
+
+# logfile
 logf <- here::here("external/logs/grid_probs.log")
-
-registerDoMC(4)
-aoi_probs <- lapply(bucket_prefixes, function(x) {
+cropfrac_aoi <- lapply(bucket_prefixes, function(x) {
   # x <- bucket_prefixes[1]
-
   aoi_prefix <- glue("classified-images/{x}")
   aoi_id <- gsub("_.*", "", x)
 
   cat(glue::glue("Starting {aoi_id} at {Sys.time()}"), file = logf,
       sep = "\n", append = TRUE)
 
-  # print(glue::glue("Processing AOI {aoi_id}"))
-
-  # get list of images for AOI and filter using tile_key down to list to read in
+    # get list of images for AOI and filter using tile_key down to list to read in
   img_bucket <- get_bucket_df(bucket = "activemapper", prefix = aoi_prefix) %>%
     select(Key)
   tile_filter <- tile_key %>% filter(aoi == aoi_id) %>%
@@ -59,39 +61,28 @@ aoi_probs <- lapply(bucket_prefixes, function(x) {
   # images <- img_bucket %>% filter(Key %in% tile_filter$Key)
 
   tile_ids <- unique(tile_filter$tile)
-  # gridded_probs <- foreach(y = tile_ids[1:10]) %dopar% {
-  gridded_probs <- foreach(y = tile_ids) %dopar% {
-    # y <- tile_ids[1]
-    cat(glue::glue("...aggregating tile {y}"),
-        file = logf, sep = "\n", append = TRUE)
-
-    # grids <- tilesr005_sf %>% filter(tile == y) %>%
-    #   mutate(id = 1:nrow(.)) %>% select(id) %>% vect(.)
+  cropfracs <- mclapply(tile_ids, function(y) {
+  # cropfracs <- mclapply(tile_ids[1:10], function(y) {
+    # cat(glue::glue("...aggregating tile {y}"),
+    #     file = logf, sep = "\n", append = TRUE)
     img_nm <- tile_filter %>% filter(tile == y) %>% pull(Key)
+    img <- rast(raster::raster(glue("/vsis3/activemapper/{img_nm}")) * 1)
+    cropfrac <- raster::raster(terra::aggregate(img, fact = 200, fun = ctfun))
+    return(cropfrac)
+  })
+  cropfracs$fun <- mean
 
-    # img <- rast(raster::raster(glue("/vsis3/activemapper/{img_nm}")) * 1)
-    img <- raster::raster(glue("/vsis3/activemapper/{img_nm}"))
-    # prob <- aggregate(img, fact = 200, fun = "mean")
-    prob <- raster::aggregate(img, fact = 200, fun = "mean")
-    # plot(prob)
-    # plot(grids, add = TRUE)
-    return(prob)
-  }
-  gridded_probs$fun <- mean
-  aoi_prob <- do.call(mosaic, gridded_probs)
-  # plot(aoi_probs)
+  aoi_frac <- do.call(terra::mosaic, cropfracs)
+  # plot(aoi_frac)
   # plot(tiles %>% filter(aoi1 == 1) %>% st_geometry(), add = TRUE)
-
-  return(aoi_prob)
+  return(aoi_frac)
 })
-aoi_probs$fun <- mean
-
-ghana <- read_sf(system.file("extdata/"))
+# aoi_probs$fun <- mean
 
 # plot(aoi_probs[[16]])
-probs_005 <- do.call(mosaic, aoi_probs)
-probs_005[probs_005 > 100] <- NA
-save(aoi_probs, file = here::here("external/data/results/probs/aoi_probs.rda"))
-writeRaster(probs_005,
-            filename = here::here("inst/extdata/probs_005.tif"))
+# cropfrac_005 <- do.call(terra::mosaic, aoi_probs)
+# probs_005[probs_005 > 100] <- NA
+# save(aoi_probs, file = here::here("external/data/results/probs/aoi_probs.rda"))
+# writeRaster(probs_005,
+#             filename = here::here("inst/extdata/probs_005.tif"))
 
