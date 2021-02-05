@@ -6,35 +6,17 @@ library(sf)
 library(terra)
 library(dplyr)
 library(aws.s3)
-library(activemapper)
+# library(activemapper)
 library(glue)
-library(doMC)
+library(parallel)
+# library(doMC)
 
 # pull in tiles and AOIs for filtering
 data("tile_key")
 
+# bucket prefixes
 bucket_prefixes <- paste0(1:16, "_whole/")
 bucket_prefixes[bucket_prefixes == "3_whole/"] <- "3_whole_retrain/"
-
-# tiles <- vect(
-#   system.file("extdata/ghana_tiles.geojson", package = "activemapper")
-# )
-tiles <- st_read(
-  system.file("extdata/ghana_tiles.geojson", package = "activemapper")
-)
-
-# r <- rast(ext(tiles), res = 0.05)
-# crs(r) <- crs(tiles)
-# tilesr <- rasterize(tiles, y = r, field = "tile")
-
-# tilesr <- fasterize::fasterize(tiles, r, field = "tile")
-# tilesr005 <- disaggregate(tilesr, fact = 10)
-# tilesr005_sf <- stars::st_as_stars(raster::raster(tilesr005)) %>% st_as_sf()
-# tilesr005_v <- vect(tilesr005)
-# tilesr005_sf <- stars::st_as_stars(tilesr005) %>% st_as_sf() %>%
-#   rename(tile = layer)
-# plot(tilesr)
-# plot(tilesr005_sf$geometry, add = TRUE)
 
 # function for estimating proportions of pixels > 0.5
 ctfun <- function(x, na.rm = na.rm) {
@@ -62,7 +44,7 @@ cropfrac_aoi <- lapply(bucket_prefixes, function(x) {
 
   tile_ids <- unique(tile_filter$tile)
   cropfracs <- mclapply(tile_ids, function(y) {
-  # cropfracs <- mclapply(tile_ids[1:10], function(y) {
+  # cropfracs <- mclapply(tile_ids[1:10], function(y) { # y <- tile_ids[1]
     # cat(glue::glue("...aggregating tile {y}"),
     #     file = logf, sep = "\n", append = TRUE)
     img_nm <- tile_filter %>% filter(tile == y) %>% pull(Key)
@@ -71,18 +53,19 @@ cropfrac_aoi <- lapply(bucket_prefixes, function(x) {
     return(cropfrac)
   })
   cropfracs$fun <- mean
-
   aoi_frac <- do.call(terra::mosaic, cropfracs)
   # plot(aoi_frac)
   # plot(tiles %>% filter(aoi1 == 1) %>% st_geometry(), add = TRUE)
   return(aoi_frac)
 })
-# aoi_probs$fun <- mean
+cropfrac_aoi$fun <- mean
 
-# plot(aoi_probs[[16]])
-# cropfrac_005 <- do.call(terra::mosaic, aoi_probs)
+cropfrac_005 <- do.call(terra::mosaic, cropfrac_aoi)
+# plot(cropfrac_005)
 # probs_005[probs_005 > 100] <- NA
-# save(aoi_probs, file = here::here("external/data/results/probs/aoi_probs.rda"))
-# writeRaster(probs_005,
-#             filename = here::here("inst/extdata/probs_005.tif"))
+
+
+save(cropfrac_aoi, file = here::here("inst/extdata/aoi_probs.rda"))
+writeRaster(cropfrac_005,
+            filename = here::here("inst/extdata/probs_005.tif"))
 
