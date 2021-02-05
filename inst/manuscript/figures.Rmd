@@ -38,12 +38,12 @@ mgridr <- raster(
 )
 mgrid <- readr::read_csv(
   system.file("extdata", "ghana_grid.csv", package = "activemapper")
-) %>% select(-fwts)
+) %>% dplyr::select(-fwts)
 africa <- st_read(
   system.file("extdata/africa.geojson", package = "activemapper")
 )
 africa_cont <- africa %>% st_union %>% st_sf
-ghana <- africa %>% filter(name == "Ghana") %>% select(geometry)
+ghana <- africa %>% filter(name == "Ghana") %>% dplyr::select(geometry)
 
 degrees <- st_read(
   system.file("extdata/degrees.geojson", package = "activemapper")
@@ -320,20 +320,39 @@ library(aws.s3)
 library(RStoolbox)
 library(cowplot)
 
+# segment files
 segment_files <- dir(here("external/data/results/segments/merged"),
                      pattern = "boundarymerge", full.names = TRUE)
 iid <- as.numeric(gsub("[[:alpha:]]|_|\\.", "", basename(segment_files)))
 segment_files <- tibble(file = segment_files, order = iid) %>% arrange(iid)
 segment_files <- segment_files %>% filter(!grepl("aoi3_*.*merge.geojson", file))
 
-fdensity <- stars::read_stars(
-  system.file("extdata", "field_density005.tif", package = "activemapper")
+# fdensity <- stars::read_stars(
+#   system.file("extdata", "field_density005.tif", package = "activemapper")
+# )
+
+# entire cropland fraction
+cropfrac <- stars::read_stars(
+  system.file("extdata/probs_005.tif", package = "activemapper")
 )
+
+# individual fractions
+tile_list <- c(486794, 539730, 591243, 616490)
+tile_ss <- tiles %>% filter(tile %in% tile_list)
+
+data("tile_key")
+s3root <- "/vsis3/activemapper"
+prob_tiles <- tile_key %>% filter(tile %in% tile_list) %>% 
+  mutate(impath = glue("{s3root}/classified-images/{aoi}_whole/", 
+                       "image_c{col}_r{row}.tif"))
 
 # OS images
 osimgs <- get_bucket_df(
   bucket = "activemapper", prefix = "planet/composite_sr_buf_fix/OS/", max = Inf
-) %>% as_tibble %>% select(Key)
+) %>% as_tibble %>% dplyr::select(Key)
+impath <- osimgs %>% 
+  filter(grepl(paste0(tile_ss$tile, collapse = "|"), Key)) %>% 
+  mutate(pth = glue("{s3root}/{Key}")) %>% pull(pth)
 
 # example tiles
 # aoi 1: tile 486794
@@ -341,12 +360,12 @@ osimgs <- get_bucket_df(
 # aoi 11: 
 # aoi 15:
 
+# read in field segments
 flds_1 <- read_sf(segment_files$file[1])
 flds_5 <- read_sf(segment_files$file[5])
 flds_11 <- read_sf(segment_files$file[11])
 flds_15 <- read_sf(segment_files$file[15])
 
-tile_ss <- tiles %>% filter(tile %in% c(486794, 539730, 591243, 616490))
 # ggplot(aois %>% filter(aois == 1)) + geom_sf() + 
 #   geom_sf(data = tile_ss)
 flds_tile1 <- flds_1 %>% filter(st_intersects(., tile_ss[1, ], sparse = FALSE))
@@ -354,57 +373,70 @@ flds_tile2 <- flds_5 %>% filter(st_intersects(., tile_ss[2, ], sparse = FALSE))
 flds_tile3 <- flds_11 %>% filter(st_intersects(., tile_ss[3, ], sparse = FALSE))
 flds_tile4 <- flds_15 %>% filter(st_intersects(., tile_ss[4, ], sparse = FALSE))
 
-impath <- osimgs %>% 
-  filter(grepl(paste0(tile_ss$tile, collapse = "|"), Key)) %>% 
-  mutate(pth = paste0("/vsis3/activemapper/", Key)) %>% pull(pth)
-
 # img <- read_stars(impath)
 # mxval <- st_apply(img, 3, max) %>% pull(max)
 # imgngb <- st_rgb(img[, , , 4:2], 3, maxColorValue = mxval[4:2])
-
+vpal <- viridis::viridis(20)
+inset_cols <- c("red", "orange", "pink", "brown")
 fld_tiles <- list(flds_tile1, flds_tile2, flds_tile3, flds_tile4)
-isets <- lapply(1:4, function(x) {
+isets <- lapply(1:4, function(x) {  # x <- 1
   imgr <- brick(impath[x])[[2:4]]
+  probr <- stars::read_stars(prob_tiles$impath[x])
   xylims <- st_bbox(imgr)
   iset <- ggplot() + 
     ggRGB(imgr, maxpixels = 50000, stretch = "lin", ggLayer = TRUE) +
     geom_sf(data = fld_tiles[[x]], fill = "transparent", color = "yellow", 
             size = 0.2) + 
-    geom_sf(data = tile_ss[x, ], color = "red", fill = "transparent") + 
+    geom_sf(data = tile_ss[x, ], color = inset_cols[x], fill = "transparent") + 
     scale_x_continuous(expand = c(0, 0)) + 
     scale_y_continuous(expand = c(0, 0)) + 
     coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + 
     theme_void()
+  iset2 <- ggplot() + 
+    geom_stars(data = probr) +
+    scale_fill_gradientn(name = "", colours = vpal, limits = c(0, 100)) +
+    geom_sf(data = tile_ss[x, ],  color = inset_cols[x], fill = "transparent") +
+    scale_x_continuous(expand = c(0, 0)) + 
+    scale_y_continuous(expand = c(0, 0)) + 
+    coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + 
+    theme_void() + theme(legend.position = "none")
+  cowplot::plot_grid(iset2, iset, ncol = 1, align = "hv")
 })
-isets[[2]]
+# isets[[2]]
 
 # Main map
 xylims <- st_coordinates(ghana)
 # twk <- diff(range(xylims[, 1])) * 0.05
-maprange <-  c(range(xylims[, 1]) + c(-1.25, 1.25), 
+maprange <-  c(range(xylims[, 1]) + c(-1.2, 1.2), 
                range(xylims[, 2]))
 
-inset_cols <- c("red", "orange", "pink", "brown")
+# cropland fractions
 p <- ggplot(africa) + 
   geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
-  geom_stars(data = fdensity * 100) +
+  geom_stars(data = cropfrac) +
   geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
-  geom_sf(data = tile_ss, fill = "red", col = "red") +
+  geom_sf(data = tile_ss, fill = inset_cols, col = inset_cols, size = 0.1) +
+  # geom_sf(data = tile_ss, fill = "red", col = "red") +
   scale_fill_viridis_c(name = "% cover", na.value = "transparent") +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
   theme_void() + 
-  theme(legend.position = "bottom", 
-        legend.text = element_text(colour = "white"), 
-        legend.title = element_text(colour = "white"))
-
+  theme(legend.position = c(0.65, 0.07), legend.direction = "horizontal", 
+        legend.key.height = unit(0.3, "cm")) 
+        # legend.text = element_text(colour = "white"), 
+        # legend.title = element_text(colour = "white"))
+# with insets added
+wh <- c(0.4, 0.4)
+lx <- -0.1
+rx <- 0.7
 inset_map <- ggdraw() +
   draw_plot(p) +
-  draw_plot(isets[[1]], x = 0.07, y = 0.77, width = 0.2, height = 0.2) + 
-  draw_plot(isets[[2]], x = 0.72, y = 0.6, width = 0.2, height = 0.2) + 
-  draw_plot(isets[[3]], x = 0.04, y = 0.37, width = 0.2, height = 0.2) + 
-  draw_plot(isets[[4]], x = 0.76, y = 0.25, width = 0.2, height = 0.2)
+  draw_plot(isets[[1]], x = lx, y = 0.6, width = wh[1], height = wh[2]) + 
+  draw_plot(isets[[2]], x = rx, y = 0.51, width = wh[1], height = wh[2]) + 
+  draw_plot(isets[[3]], x = lx, y = 0.17, width = wh[1], height = wh[2]) + 
+  draw_plot(isets[[4]], x = rx, y = 0.07, width = wh[1], height = wh[2])
+# inset_map
 
-ggsave(filename = here("presentations/figures/cropcover_with_insets.png"), 
+ggsave(filename = pth("figures/figure8.png"), 
        plot = inset_map, bg = "transparent", width = diff(maprange[1:2]), 
        height = diff(maprange[3:4]), units = "in", dpi = 300)
 
