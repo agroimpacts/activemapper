@@ -11,14 +11,24 @@ output:
 ---
 
 ```{r setup, include=FALSE, cache=FALSE, message = FALSE}
+library(activemapper)
 library(raster)
 library(sf)
+library(stars)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(here)
+library(cowplot)
 library(RColorBrewer)
-library(activemapper)
+library(here)
+library(glue)
+library(aws.s3)
+library(RStoolbox)
+# library(gridExtra)
+library(ggpmisc)
+library(patchwork)
+
+
 pth <- function(x) file.path(here("inst/manuscript"), x)
 ```
 
@@ -54,6 +64,10 @@ tiles <- st_read(
 aois <- st_read(
   system.file("extdata/aois.geojson", package = "activemapper")
 )
+aez <- st_read(
+  system.file("extdata/ghana_aez.geojson", package = "activemapper")
+)
+
 # ggplot(data = tiles) + 
 #   geom_sf(aes(fill = as.factor(aoi1)), col = "transparent")
 
@@ -310,16 +324,91 @@ ggsave(pth("figures/figure6.png"), height = 4, width = 6, dpi = 300)
 ```
 
 ### Figure 7: Categorical map accuracy
+Place map accuracy tables and zone report into single figure, for AOI zones. 
 
+```{r, eval=FALSE}
+data("accuracy_reports")  
+
+# zone maps
+zone_grps <- list("aoi" = list(1:3, 4:9, c(10:11, 13, 14, 16), c(12, 15)),
+                  "aez" = list(1, 2:4, 5, 6:7))
+aoi_zones <- aois %>% 
+  mutate(zone = case_when(
+    aois %in% zone_grps$aoi[[1]] ~ "Zone 1", 
+    aois %in% zone_grps$aoi[[2]] ~ "Zone 2", 
+    aois %in% zone_grps$aoi[[3]] ~ "Zone 3", 
+    aois %in% zone_grps$aoi[[4]] ~ "Zone 4")
+  ) %>%
+  group_by(zone) %>% 
+  summarize(area = sum(area))
+
+# RF accuracy
+rfreports <-  lapply(accuracy_reports$zones$aoi, function(x) x$rf)
+rfreports[[length(rfreports) + 1]] <- accuracy_reports$ghana$rf
+rf_tabs <- lapply(1:5, function(i) {  # i <- 2
+  m <- rfreports[[i]]
+  d <- data.frame(m, check.names = FALSE)
+  rbind(d, rep("", ncol(d)))
+}) %>% do.call(rbind, .)
+zvec <- rep("", nrow(rf_tabs))
+znames <- paste(c(paste("Zone", 1:4), "Ghana"), "  ")
+zvec[c(3, seq(8, length(zvec), by = 5))] <- znames
+rf_tabs <- cbind(zvec, rf_tabs)
+colnames(rf_tabs) <- c("", colnames(rfreports$North))
+
+rf_tbl <- tibble(x = 1, y = 10, dat = list(rf_tabs)) 
+
+# segmentation accuracy
+segreports <-  lapply(accuracy_reports$zones$aoi, function(x) x$seg)
+segreports[[length(segreports) + 1]] <- accuracy_reports$ghana$seg
+seg_tabs <- lapply(1:5, function(x) {  # x <- 1
+  m <- segreports[[x]]
+  d <- data.frame(m, check.names = FALSE)
+  rbind(d, rep("", ncol(d)))
+}) %>% do.call(rbind, .)
+colnames(seg_tabs) <- colnames(rfreports$North)
+seg_tbl <- tibble(x = 1, y = 10, dat = list(seg_tabs)) 
+
+# Assemble plots with maps
+# Table theme
+tt <- ttheme_gtminimal(
+  base_size = 4.5, 
+  padding = unit(c(0.2, 0.2), "char"),
+  core = list(fg_params = list(hjust = 1, x = 1))
+)
+
+m <- ggplot(aoi_zones) + geom_sf(lwd = 0.1) + 
+  geom_sf_text(data = st_centroid(aoi_zones), aes(label = zone), size = 2) + 
+  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
+
+t1 <- ggplot() + 
+  geom_table(data = rf_tbl, aes(x = x, y = y, label = dat), table.theme = tt) + 
+  ggtitle("Per-pixel classification") + 
+  theme_void() + 
+  theme(plot.title = element_text(hjust = 0.5, vjust = 1, size = 6))
+t2 <- ggplot() + 
+  geom_table(data = seg_tbl, aes(x = x, y = y, label = dat), table.theme = tt) + 
+  ggtitle("Segmentation") +
+  theme_void() + 
+  theme(plot.margin = unit(c(0,0,0,0), "cm"), 
+        plot.title = element_text(hjust = 0.5, vjust = 1, size = 6))
+
+# gp <- cowplot::plot_grid(t1, m, t2, nrow = 1, align = "hv", 
+#                          # rel_widths = c(0.2, 0.4, 0.5, 0.4, 0.2),
+#                          rel_widths = c(1, 1, 0.8),
+#                          # rel_heights = c(0.5, 1.5, 0.5),
+#                          scale = c(0.25, 0.95, 0.25),
+#                          label_size = 5, 
+#                          label_x = 0.25, 
+#                          labels = c("Per-pixel classification", "",
+#                                     "Segmentation"))
+gp <- t1 + m + t2
+ggsave(gp, filename = pth("figures/figure7.png"), width = 7.25, height = 2.35, 
+       units = "in", dpi = 300)
+```
 
 ### Figure 8: Cropland maps
 ```{r, eval=FALSE}
-library(stars)
-library(ggplot2)
-library(aws.s3)
-library(RStoolbox)
-library(cowplot)
-
 # segment files
 segment_files <- dir(here("external/data/results/segments/merged"),
                      pattern = "boundarymerge", full.names = TRUE)
@@ -331,10 +420,15 @@ segment_files <- segment_files %>% filter(!grepl("aoi3_*.*merge.geojson", file))
 #   system.file("extdata", "field_density005.tif", package = "activemapper")
 # )
 
-# entire cropland fraction
-cropfrac <- stars::read_stars(
-  system.file("extdata/probs_005.tif", package = "activemapper")
+# load in Ghana cropland fractions, mask out tiles over ocean, convert to stars
+# percent
+cropfrac <- raster(
+  system.file("extdata/cropfrac_005.tif", package = "activemapper")
 )
+cropfrac <- africa %>% 
+  filter(name %in% c("Ghana", "Togo", "Cte d'Ivoire", "Burkina Faso")) %>% 
+  mask(cropfrac, .)
+cropfrac <- st_as_stars(cropfrac * 100)
 
 # individual fractions
 tile_list <- c(486794, 539730, 591243, 616490)
@@ -373,6 +467,7 @@ flds_tile2 <- flds_5 %>% filter(st_intersects(., tile_ss[2, ], sparse = FALSE))
 flds_tile3 <- flds_11 %>% filter(st_intersects(., tile_ss[3, ], sparse = FALSE))
 flds_tile4 <- flds_15 %>% filter(st_intersects(., tile_ss[4, ], sparse = FALSE))
 
+# process inset maps
 # img <- read_stars(impath)
 # mxval <- st_apply(img, 3, max) %>% pull(max)
 # imgngb <- st_rgb(img[, , , 4:2], 3, maxColorValue = mxval[4:2])
@@ -417,13 +512,13 @@ p <- ggplot(africa) +
   geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
   geom_sf(data = tile_ss, fill = inset_cols, col = inset_cols, size = 0.1) +
   # geom_sf(data = tile_ss, fill = "red", col = "red") +
-  scale_fill_viridis_c(name = "% cover", na.value = "transparent") +
+  scale_fill_viridis_c(name = "%", na.value = "transparent") +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
   theme_void() + 
-  theme(legend.position = c(0.65, 0.07), legend.direction = "horizontal", 
-        legend.key.height = unit(0.3, "cm")) 
-        # legend.text = element_text(colour = "white"), 
-        # legend.title = element_text(colour = "white"))
+  theme(legend.position = c(0.64, 0.08), legend.direction = "horizontal", 
+        legend.key.height = unit(0.3, "cm"), 
+        legend.text = element_text(colour = "black"),
+        legend.title = element_text(size = 10, colour = "black"))
 # with insets added
 wh <- c(0.4, 0.4)
 lx <- -0.1
@@ -439,48 +534,6 @@ inset_map <- ggdraw() +
 ggsave(filename = pth("figures/figure8.png"), 
        plot = inset_map, bg = "transparent", width = diff(maprange[1:2]), 
        height = diff(maprange[3:4]), units = "in", dpi = 300)
-
-
-  # geom_stars(data = imgngb) + scale_fill_identity()
-  # geom_sf(data = flds_tile)
-
-plot(flds_tile[1])
-
-
-fboundary <- read_sf(segment_files$file[1])
-
-xylims <- st_coordinates(ghana)
-maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
-
-pal <- RColorBrewer::brewer.pal(n = 9, "Spectral")[c(1, 2, 3, 4, 9)]
-
-# Panels, organized top to bottom
-# Panel 1: Cropland probabilities, with 3 m probability side maps (tiles)
-p <- ggplot(africa) + 
-  geom_sf(fill = "gray97", color = "grey", size = 0.25) +  
-  geom_stars(data = fdensity * 100) + 
-  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") + 
-  scale_fill_viridis_c(name = "% cover", na.value = "transparent") + 
-  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
-  theme_void()
-
-# Panel 2: Cropland cover, with polygon side maps over composites (tiles)
-p <- ggplot(africa) + 
-  geom_sf(fill = "gray97", color = "grey", size = 0.25) +  
-  geom_stars(data = fdensity * 100) + 
-  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") + 
-  geom_sf(data = tile_ss, fill = "red", col = "red") + 
-  scale_fill_viridis_c(name = "% cover", na.value = "transparent") + 
-  coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
-  theme_void()
-p
-
-# Panel 3: Average field size (kriging adjusted?), 
-
-# Panel 4: Field number (kriging adjusted)
-
-
-
 
 ```
 

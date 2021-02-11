@@ -886,6 +886,11 @@ Stats figure:
 - SD fields per AOI 
 - N field per AOI
 
+```{r mainmap, echo = FALSE, out.width="90%", fig.cap="The distribution of arable croplands in Ghana. The main map shows the percentage of croplands in each 0.005 degree grid cell, derived from the predicted cropland probabilities. The insets  on the margins illustrate predicted probabilities (top map in each couplet) at original resolution (0.000025 degrees) and segmented field boundaries overlaid on the dry season PlanetScope composite, for four separate tiles. Each tile's position is shown on the main map, and is color-coded to the boundary lines around its corresponding inset.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/figure8.png')
+```
+
+
 # Discussion
 - Label quality
   - Accuracy asssessment at training reference sites maybe over-inflated. Each worker saw training reference site multiple times. Need larger number of reference samples

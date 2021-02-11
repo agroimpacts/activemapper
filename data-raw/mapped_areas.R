@@ -107,7 +107,6 @@ classarea_rf_aez <- as_tibble(class_freq_aez) %>%
 
 #------------------------------------------------------------------------------#
 # Segments (AOIs and Ghana only)
-
 classarea_segments_aoi <- lapply(1:16, function(x) {  # x <- 1
   # i <- segment_files$file[1]
   f <- segment_files$file[x]
@@ -123,14 +122,15 @@ classarea_segments_aoi <- lapply(1:16, function(x) {  # x <- 1
   aoi_area <- aois %>% filter(aois == aoi_id) %>% pull(area)
 
   # output
-  areas <- c("aoi" = aoi_id, "crop_area" = sum(fld_area),
-             "nocrop_area" = aoi_area)
+  areas <- tibble("aoi" = aoi_id, "crop_area" = sum(fld_area),
+                  "nocrop_area" = aoi_area - sum(fld_area))
   return(areas)
-})
+}) %>% do.call(rbind, .)
+
 
 #------------------------------------------------------------------------------#
 # save out
 mapped_areas <- list("rf_areas_aoi" = classarea_rf_aoi,
                      "rf_areas_aez" = classarea_rf_aez,
                      "seg_areas_aoi" = classarea_segments_aoi)
-usethis::use_data(mapped_areas)
+usethis::use_data(mapped_areas, overwrite = TRUE)
