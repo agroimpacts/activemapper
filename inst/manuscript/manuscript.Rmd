@@ -723,6 +723,12 @@ Based on this reference sample, we found that the average accuracy of the pixel-
 
 The accuracy patterns generally align with the difficulty of the labelling task, that is, **the southwestern regions were hardest for workers to interpret, as shown by Figure 5.**
 
+
+```{r acctabs, echo = FALSE, out.width="90%", fig.cap="Accuracy results", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/figure7.png')
+```
+
+
 ### Segmentation accuracy
 ```{r, echo=FALSE}
 # validation statistics

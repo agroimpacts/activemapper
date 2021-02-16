@@ -329,19 +329,6 @@ Place map accuracy tables and zone report into single figure, for AOI zones.
 ```{r, eval=FALSE}
 data("accuracy_reports")  
 
-# zone maps
-zone_grps <- list("aoi" = list(1:3, 4:9, c(10:11, 13, 14, 16), c(12, 15)),
-                  "aez" = list(1, 2:4, 5, 6:7))
-aoi_zones <- aois %>% 
-  mutate(zone = case_when(
-    aois %in% zone_grps$aoi[[1]] ~ "Zone 1", 
-    aois %in% zone_grps$aoi[[2]] ~ "Zone 2", 
-    aois %in% zone_grps$aoi[[3]] ~ "Zone 3", 
-    aois %in% zone_grps$aoi[[4]] ~ "Zone 4")
-  ) %>%
-  group_by(zone) %>% 
-  summarize(area = sum(area))
-
 # RF accuracy
 rfreports <-  lapply(accuracy_reports$zones$aoi, function(x) x$rf)
 rfreports[[length(rfreports) + 1]] <- accuracy_reports$ghana$rf
@@ -356,7 +343,7 @@ zvec[c(3, seq(8, length(zvec), by = 5))] <- znames
 rf_tabs <- cbind(zvec, rf_tabs)
 colnames(rf_tabs) <- c("", colnames(rfreports$North))
 
-rf_tbl <- tibble(x = 1, y = 10, dat = list(rf_tabs)) 
+# rf_tbl <- tibble(x = 0, y = 10, dat = list(rf_tabs)) 
 
 # segmentation accuracy
 segreports <-  lapply(accuracy_reports$zones$aoi, function(x) x$seg)
@@ -366,44 +353,39 @@ seg_tabs <- lapply(1:5, function(x) {  # x <- 1
   d <- data.frame(m, check.names = FALSE)
   rbind(d, rep("", ncol(d)))
 }) %>% do.call(rbind, .)
-colnames(seg_tabs) <- colnames(rfreports$North)
-seg_tbl <- tibble(x = 1, y = 10, dat = list(seg_tabs)) 
+seg_tabs <- cbind(zvec, seg_tabs)
+colnames(seg_tabs) <- c("", colnames(rfreports$North))#rep("", ncol(seg_tabs))
+# seg_tbl <- tibble(x = 0, y = 10, dat = list(seg_tabs)) 
+
+all_tbl <- tibble(x = 0, y = 10, dat = list(rbind(rf_tabs, seg_tabs))) 
 
 # Assemble plots with maps
 # Table theme
 tt <- ttheme_gtminimal(
-  base_size = 4.5, 
-  padding = unit(c(0.2, 0.2), "char"),
-  core = list(fg_params = list(hjust = 1, x = 1))
+  base_size = 10, 
+  padding = unit(c(0.7, 0.3), "char"),
+  core = list(fg_params = list(hjust = 1, x = 1)), 
+  colhead = list(fg_params = list(hjust = 1, x = 1))
 )
 
-m <- ggplot(aoi_zones) + geom_sf(lwd = 0.1) + 
-  geom_sf_text(data = st_centroid(aoi_zones), aes(label = zone), size = 2) + 
-  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
+t1 <- ggplot(data.frame(x = c(0, 10), y = c(0, 10))) + 
+  geom_point(aes(x = x, y = y), shape = "") +  
+  geom_table(data = all_tbl, aes(x = x, y = y, label = dat), table.theme = tt) + 
+  # ggtitle("Per-pixel classification") + 
+  annotate(geom = "text", x = -0.2, y = 7, #y = 1, yend = 5, 
+           label = "Per-pixel classification", angle = 90) +
+  annotate(geom = "text", x = -0.2, y = 2.5, label = "Segmentation", 
+           angle = 90, hjust = 1) +
+  annotate(geom = "segment", x = -0.2, xend = 10, y = 9.77, yend = 9.77) + 
+  annotate(geom = "segment", x = -0.2, xend = 10, y = 10.02, yend = 10.02) + 
+  annotate(geom = "segment", x = -0.2, xend = 10, y = 4.7, yend = 4.7, 
+           size = 0.3) + 
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5, vjust = 1, size = 6), 
+        plot.margin = unit(c(0, 0, 0, 0), "cm"))
 
-t1 <- ggplot() + 
-  geom_table(data = rf_tbl, aes(x = x, y = y, label = dat), table.theme = tt) + 
-  ggtitle("Per-pixel classification") + 
-  theme_void() + 
-  theme(plot.title = element_text(hjust = 0.5, vjust = 1, size = 6))
-t2 <- ggplot() + 
-  geom_table(data = seg_tbl, aes(x = x, y = y, label = dat), table.theme = tt) + 
-  ggtitle("Segmentation") +
-  theme_void() + 
-  theme(plot.margin = unit(c(0,0,0,0), "cm"), 
-        plot.title = element_text(hjust = 0.5, vjust = 1, size = 6))
-
-# gp <- cowplot::plot_grid(t1, m, t2, nrow = 1, align = "hv", 
-#                          # rel_widths = c(0.2, 0.4, 0.5, 0.4, 0.2),
-#                          rel_widths = c(1, 1, 0.8),
-#                          # rel_heights = c(0.5, 1.5, 0.5),
-#                          scale = c(0.25, 0.95, 0.25),
-#                          label_size = 5, 
-#                          label_x = 0.25, 
-#                          labels = c("Per-pixel classification", "",
-#                                     "Segmentation"))
-gp <- t1 + m + t2
-ggsave(gp, filename = pth("figures/figure7.png"), width = 7.25, height = 2.35, 
+# gp <- t1 + m
+ggsave(t1, filename = pth("figures/figure7.png"), width = 7, height = 7.9, 
        units = "in", dpi = 300)
 ```
 
@@ -859,8 +841,110 @@ dev.off()
 
 ```
 
+### Figure S9: AOI Zones
 
-### Figure S9: Segmentation statistics (grid scale)
+```{r, eval=FALSE}
+# zone maps
+zone_grps <- list("aoi" = list(1:3, 4:9, c(10:11, 13, 14, 16), c(12, 15)),
+                  "aez" = list(1, 2:4, 5, 6:7))
+aoi_zones <- aois %>% 
+  mutate(zone = case_when(
+    aois %in% zone_grps$aoi[[1]] ~ "Zone 1", 
+    aois %in% zone_grps$aoi[[2]] ~ "Zone 2", 
+    aois %in% zone_grps$aoi[[3]] ~ "Zone 3", 
+    aois %in% zone_grps$aoi[[4]] ~ "Zone 4")
+  ) %>%
+  group_by(zone) %>% 
+  summarize(area = sum(area))
+
+rmapshaper::ms_simplify(aez) %>% plot()
+aez %>% st_buffer(dist = 0.01) %>% st_union(by_feature = TRUE) %>% 
+  st_buffer(dist = -0.01) %>% 
+  mutate(zone = case_when(
+    ID %in% zone_grps$aez[[1]] ~ "Zone 1", 
+    ID %in% zone_grps$aez[[2]] ~ "Zone 2", 
+    ID %in% zone_grps$aez[[3]] ~ "Zone 3", 
+    ID %in% zone_grps$aez[[4]] ~ "Zone 4")
+  ) %>%
+  group_by(zone) %>% 
+  summarize(area = sum(AREA)) %>% plot()
+
+aez_zones <- rmapshaper::ms_simplify(aez, keep = 1) %>% 
+  mutate(zone = case_when(
+    ID %in% zone_grps$aez[[1]] ~ "Zone 1", 
+    ID %in% zone_grps$aez[[2]] ~ "Zone 2", 
+    ID %in% zone_grps$aez[[3]] ~ "Zone 3", 
+    ID %in% zone_grps$aez[[4]] ~ "Zone 4")
+  ) %>%
+  group_by(zone) %>% 
+  summarize(area = sum(AREA)) 
+# plot(aez_zones["area"])
+# plot(aez["AREA"])
+
+m <- ggplot(aois) + geom_sf(lwd = 0.1) +
+  geom_sf(data = aoi_zones, lwd = 0.5, fill = "transparent") + 
+  geom_sf_text(data = st_centroid(aoi_zones), aes(label = zone), size = 4) + 
+  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
+
+m2 <- ggplot(aez %>% filter(ID != 8)) + geom_sf(lwd = 0.1) +
+  geom_sf(data = aez_zones, lwd = 0.5, fill = "transparent") + 
+  geom_sf_text(data = st_centroid(aez_zones), aes(label = zone), size = 4) + 
+  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
+
+ggsave(m + m2 + plot_annotation(tag_levels = 'A'), 
+       filename = pth("figures/si_aoi_zones.png"), width = 3.5 * 2, 
+       height = 4.5, units = "in", dpi = 300)
+```
+
+### Figure S10: AEZ accuracies
+
+Grouped by four zones, calculated for per-pixel classifications only. 
+
+```{r, eval=FALSE}
+data("accuracy_reports")  
+
+# RF accuracy
+rfreports <- lapply(accuracy_reports$zones$aez, function(x) x$rf)
+rf_tabs <- lapply(1:4, function(i) {  # i <- 2
+  m <- rfreports[[i]]
+  d <- data.frame(m, check.names = FALSE)
+  rbind(d, rep("", ncol(d)))
+}) %>% do.call(rbind, .)
+zvec <- rep("", nrow(rf_tabs))
+znames <- paste(paste("Zone", 1:4), "  ")
+zvec[c(3, seq(8, length(zvec), by = 5))] <- znames
+rf_tabs <- cbind(zvec, rf_tabs)
+colnames(rf_tabs) <- c("", colnames(rfreports$Coast_Sav))
+
+all_tbl <- tibble(x = 0, y = 10, dat = list(rf_tabs)) 
+
+# Assemble plots with maps
+# Table theme
+tt <- ttheme_gtminimal(
+  base_size = 10, 
+  padding = unit(c(0.7, 0.3), "char"),
+  core = list(fg_params = list(hjust = 1, x = 1)), 
+  colhead = list(fg_params = list(hjust = 1, x = 1))
+)
+
+t1 <- ggplot(data.frame(x = c(0, 10), y = c(0, 10))) + 
+  geom_point(aes(x = x, y = y), shape = "") +  
+  geom_table(data = all_tbl, aes(x = x, y = y, label = dat), table.theme = tt) + 
+  annotate(geom = "segment", x = 0, xend = 10, y = 9.5, yend = 9.5) + 
+  annotate(geom = "segment", x = 0, xend = 10, y = 10.01, yend = 10.01) + 
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5, vjust = 1, size = 6), 
+        plot.margin = unit(c(0, 0, 0, 0), "cm"))
+
+ggsave(t1, filename = pth("figures/si_aez_accuracies.png"), width = 7, 
+       height = 3.5, units = "in", dpi = 300)
+```
+
+
+
+
+
+### Figure S11: Segmentation statistics (grid scale)
 
 [Check whether the means need to be weighted or not]
 [Check whether need to redo median]

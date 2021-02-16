@@ -1,10 +1,11 @@
-# Collect data from probability images for accuracy assessment
-# Uses polygons collected from validator
-#
+# Refine initial reference sample placed using validator
+# Data are a mix of points and polygons, collected by two workers, with a small
+# sample of overlap
+# Refined sample used to extract probabilities and segments from mapped results
+# for accuracy assessment.
+# Overlap samples used to assess inter-rater agreement
 
 ## Map reference site selection
-library(aws.s3)
-library(raster)
 library(sf)
 library(dplyr)
 library(rmapaccuracy)
@@ -91,9 +92,7 @@ val_sample_1r <- lapply(unique(val_samples$name), function(x) {
   }
   return(as_tibble(out))
 }) %>% do.call(rbind, .)
-# val_sample_1r <- do.call(rbind, val_sample_1r)
 all(st_is(st_as_sf(val_sample_1r)$geom, "POLYGON"))
-# all(sapply(st_as_sf(val_sample_1r), function(x) st_is(x$geom, "POLYGON")))
 
 # sum of category
 # val_cats <- val_sample_1r %>% as_tibble() %>%
@@ -108,25 +107,33 @@ ref_labels <- st_intersection(val_sample_1r_sf, tiles) %>%
   select(name, tile, col, row, aoi, assignment_id, worker_id, category,
          categ_description, tile)
 
-# ggplot2::ggplot(val_tiles) +
-#   ggplot2::geom_sf(ggplot2::aes(fill = as.factor(aoi1))) +
-#   ggplot2::geom_sf(data = val_sample_1r_sf)
-
-
-val_tiles()
-xys <- val_tiles %>% st_centroid() %>% st_coordinates()
-st_centroid(val_tiles)
-val_tile_rcs <- rowcol_from_xy(xys[, 1], xys[, 2], res = 0.05)
-
-# Combine with labels
-cbind(as_tibble(val_sample_1r_sf), tile = val_tiles$tile, val_tile_rcs) %>%
-  select(name, assignment_id, worker_id, category, categ_description, tile,
-         row, col, geom) %>% st_as_sf() -> ref_labels
+# # ggplot2::ggplot(val_tiles) +
+# #   ggplot2::geom_sf(ggplot2::aes(fill = as.factor(aoi1))) +
+# #   ggplot2::geom_sf(data = val_sample_1r_sf)
+# xys <- val_tiles %>% st_centroid() %>% st_coordinates()
+# # st_centroid(val_tiles)
+# val_tile_rcs <- rowcol_from_xy(xys[, 1], xys[, 2], res = 0.05)
+#
+# # Combine with labels
+# cbind(as_tibble(val_sample_1r_sf), tile = val_tiles$tile, val_tile_rcs) %>%
+#   select(name, assignment_id, worker_id, category, categ_description, tile,
+#          row, col, geom) %>% st_as_sf() -> ref_labels
 # aoi1_tiles <- activemapper::tile_key %>% filter(aoi == 15) %>% pull(tile)
 # ggplot2::ggplot(ref_labels %>% filter(tile %in% aoi1_tiles)) +
 #   ggplot2::geom_sf() +
 #   ggplot2::geom_sf(data = tiles, fill = "transparent", size = 0.1)
 
+# just check to make sure original ref_labels written with older code the same
+# ref_labels2 <- ref_labels
+# ref_labels <- st_read(
+#   system.file("extdata/map_reference_labels.geojson", package = "activemapper")
+# )
+# # run this test because of R inferno rounding differences
+# ref_compare <- sapply(1:nrow(ref_labels), function(x) {
+#   all(round(st_bbox(ref_labels2[x, ]$geom), 6) ==
+#         round(st_bbox(ref_labels[x, ]$geom), 6))
+# })
+# all(ref_compare)  # TRUE
 
 # write out
 st_write(ref_labels, here::here("inst/extdata/map_reference_labels.geojson"),
@@ -143,5 +150,45 @@ st_write(ref_labels, here::here("inst/extdata/map_reference_labels.geojson"),
 # orig_geom <- point_to_gridpoly(orig_pt, 0.0001433, gcs, gcs)
 # ggplot2::ggplot(orig_geom) + ggplot2::geom_sf() +
 #   ggplot2::geom_sf(data = tst)
+
+#------------------------------------------------------------------------------#
+# Extract and process overlapping reference sample points
+val_sample_joint <- val_sample %>% filter(name %in% overlap_samples)
+val_sample_jointl <- lapply(unique(val_sample_joint$worker_id), function(x) {
+  val_sample_joint %>% filter(worker_id == x)
+})
+
+# select out geometries closest to original sample grid, for each worker
+ref_labels_joint <- lapply(val_sample_jointl, function(x) {
+  lapply(unique(x$name), function(y) {
+    dat <- x %>% filter(name == y) %>% rename(geom = geom_clean)
+    nm <- unique(dat$name)
+    print(nm)
+
+    # create original reference geometry
+    orig_pt <- ref_sample %>% filter(name == nm) %>%
+      select(-aoi, -class) %>% data.table::data.table()
+    orig_geom <- point_to_gridpoly(orig_pt, 0.0001433, gcs, gcs)
+
+    # dat %>% filter(st_intersects(dat, orig_geom, sparse = FALSE))
+    # pull out the one nearest to the original grid
+    out <- dat %>% slice(st_nearest_feature(orig_geom, .)) %>%
+      mutate(int_grid = any(st_intersects(., orig_geom, sparse = FALSE)))
+
+    # convert points to polygons
+    if(st_is(out$geom, "POINT")) {
+      out <- left_join(as_tibble(out) %>% select(-geom), orig_geom, by = "name")
+    }
+    return(as_tibble(out))
+  }) %>% do.call(rbind, .)
+}) %>% do.call(rbind, .)
+# all(val_sample_jointlr[[1]]$name == val_sample_jointlr[[2]]$name
+# cbind(val_sample_jointlr[[1]]$int_grid, val_sample_jointlr[[2]]$int_grid)
+
+# val_sample_jointlr %>% filter(name == unique(name)[5]) %>%
+#   st_as_sf() %>% st_geometry %>% plot()
+st_write(ref_labels_joint,
+         here::here("inst/extdata/map_reference_labels_joint.geojson"),
+         delete_dsn = TRUE)
 
 
