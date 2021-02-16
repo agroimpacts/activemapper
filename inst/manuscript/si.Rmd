@@ -399,8 +399,60 @@ kable(risk_corr, format = "latex", booktabs = "T", caption = cap) %>%
 ```
 
 ## Map accuracy 
-### Categorical
-[To fill]
+
+### Reference label uncertainty
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# reference labels, for total count and uncertainty of class categories
+ref_labels <- st_read(
+  system.file("extdata/map_reference_labels.geojson", 
+              package = "activemapper"), quiet = TRUE
+)
+class_ct <- as_tibble(ref_labels) %>% group_by(category) %>% count()
+ref_ct <- as_tibble(ref_labels) %>% group_by(worker_id) %>% count() %>% pull(n)
+
+crp_ct <- class_ct %>% filter(category %in% c("annualcropland", "unsure1"))
+noncrp_ct <- class_ct %>% filter(category %in% c("noncropland", "unsure2"))
+
+# observer agreement/correlation
+ref_labels_joint <- st_read(
+  system.file("extdata/map_reference_labels_joint.geojson", 
+              package = "activemapper"), quiet = TRUE
+)
+joint_classes <- ref_labels_joint %>% as_tibble() %>% 
+  select(name, category, worker_id) %>% 
+  arrange(name) %>% 
+  mutate(class = case_when(
+    category == "annualcropland" | category == "unsure1" ~ 1, 
+    category == "noncropland" | category == "unsure2" ~ 0 
+  ))
+class_mat <- joint_classes %>% dplyr::select(name, class, worker_id) %>% 
+  tidyr::pivot_wider(names_from = worker_id, values_from = class) %>% 
+  dplyr::select(-name) %>% as.matrix()
+
+usertab <- table("User1" = class_mat[, 1], "User2" = class_mat[, 2])
+
+agreement <- round(sum(diag(usertab)) / sum(usertab) * 100, 1)
+observer_r <- cor.test(class_mat[, 1], class_mat[, 2], method = "spearman")
+
+```
+
+The total validation sample was `r sum(ref_ct)`, with `r ref_ct[2]` samples collected and interpreted by one observer (Su Ye) and `r ref_ct[1]` collected by a second observer (Estes). To evaluate the uncertainty inherent in defining the map reference labels, the pair both mapped `r sum(usertab)` sites, showing an overall level of agreement of `r agreement`%, and a Spearman Rank Correlation of `r round(unname(observer_r$estimate), 2)`. 
+
+Although this overlap between observers was limited, the map reference classification scheme provided two additional measures of uncertainty, which were classes defined as "unsure but most likely a field" or "unsure but most likely not a field", which the reference labeller would choose when they could not with high confidence state whether the site was either cropland or not cropland. Of the `r sum(crp_ct$n)` map reference samples that were identified as cropland, `r round(crp_ct$n[2] / sum(crp_ct$n) * 100, 1)`% fell into the lower confidence category, as did `r round(noncrp_ct$n[2] / sum(noncrp_ct$n) * 100, 1)`% of the `r sum(noncrp_ct$n)` non-cropland samples. Across both classes, the reference labellers had lower confidence in `r round(sum(crp_ct$n[2], noncrp_ct$n[2]) / sum(ref_ct) * 100, 1)` of sites labelled.
+
+### Categorical accuracy
+In addition to the map accuracies and area estimates calculated per AOI zone (reported in main text; see Figure \ref{tab:aoizones}A), the accuracies were also assessed within several different groupings of agroecozones (Figures \ref{fig:aoizones}B) and \ref{fig:aezaccuracy}).
+
+
+```{r aoizones, echo = FALSE, out.width="100%", fig.cap="Four zones used to combine the A) AOIs and B) agroecozones (B), in order to assess sub-national mapping accuracy. ", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_aoi_zones.png')
+```
+
+```{r aezaccuracy, echo = FALSE, out.width="100%", fig.cap="Map accuracies and adjusted area estimates within four different groupings of Ghana's agroecozones", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_aez_accuracies.png')
+```
+
 
 ### Field area and number
 To mean, median, and distributions of the average area of segmented field boundaries over the 100 validation sites in each AOI are compared to the areas of the polygons digitized by the most accurate labeller over the same sites in Figure \ref{fig:areavalidation}. The same statistics for average number of segments versus average number of labelled polygons across validation sites in each AOI are shown in Figure \ref{fig:numbervalidation}.      
@@ -408,7 +460,7 @@ To mean, median, and distributions of the average area of segmented field bounda
 knitr::include_graphics('figures/si_validation_stats_fha2.png')
 ```
 
-```{r numbervalidation, echo = FALSE, out.width="100%", fig.cap="The distributions of the average number of segmented field boundaries (shown in blue) at the 100 validation sites per AOI, compared with the average number of digitized polygons (shown in red) by the most accurate worker to label each site. The mean and median of each distribution is shown. Vertical lines indicate the mean and median of each distribution.", fig.align='center', message=FALSE, results='hold'}
+```{r numbervalidation, echo = FALSE, out.width="90%", fig.cap="The distributions of the average number of segmented field boundaries (shown in blue) at the 100 validation sites per AOI, compared with the average number of digitized polygons (shown in red) by the most accurate worker to label each site. The mean and median of each distribution is shown. Vertical lines indicate the mean and median of each distribution.", fig.align='center', message=FALSE, results='hold'}
 knitr::include_graphics('figures/si_validation_stats_fn2.png')
 ```
 
