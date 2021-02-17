@@ -19,9 +19,9 @@ aez <- read_sf(
 ) %>% select(ID, Name) %>% rename(aezid = ID, aez = Name)
 
 # Pick up AEZ intersections
-ref_int_segments <- st_intersection(ref_int_segments, aez) %>%
+ref_int_segments <- st_join(ref_int_segments, aez) %>%
   select(name, tile, aoi, aezid, aez, category, afrac)
-ref_int_segments %>% as_tibble() %>% group_by(aoi) %>% count()
+# ref_int_segments %>% as_tibble() %>% group_by(aoi) %>% count()
 
 # set up data for error matrix
 error_matrix_data <- as_tibble(ref_int_segments) %>%
@@ -51,6 +51,7 @@ error_matrix <- function(pred, ref) {
 # plot(st_geometry(st_centroid(ref_int_segments)), add = TRUE)
 
 # calculate error matrices by AOI
+
 error_matrices_aoi <- lapply(unique(error_matrix_data$aoi), function(x) {
   dat <- error_matrix_data %>% filter(aoi == x)
   error_matrix_rf <- error_matrix(dat$prob_class, dat$ref)
@@ -90,4 +91,4 @@ error_matrix_ghana <- list("rf" = error_matrix_rf, "seg" = error_matrix_seg)
 # Outputs
 error_matrices <- list("aoi" = error_matrices_aoi, "aez" = error_matrices_aez,
                        "ghana" = error_matrix_ghana)
-usethis::use_data(error_matrices)
+usethis::use_data(error_matrices, overwrite = TRUE)
