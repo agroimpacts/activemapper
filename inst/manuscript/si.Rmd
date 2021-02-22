@@ -63,6 +63,7 @@ opts_chunk$set(cache = 2, cache.path = "output/cache/")
 ## Plots
 opts_chunk$set(fig.path = "output/figures/")
 
+knitr::opts_chunk$set(fig.pos = "!ht", out.extra = "")
 
 ```
 
@@ -437,21 +438,24 @@ observer_r <- cor.test(class_mat[, 1], class_mat[, 2], method = "spearman")
 
 ```
 
-The total validation sample was `r sum(ref_ct)`, with `r ref_ct[2]` samples collected and interpreted by one observer (Su Ye) and `r ref_ct[1]` collected by a second observer (Estes). To evaluate the uncertainty inherent in defining the map reference labels, the pair both mapped `r sum(usertab)` sites, showing an overall level of agreement of `r agreement`%, and a Spearman Rank Correlation of `r round(unname(observer_r$estimate), 2)`. 
+The total validation sample was `r sum(ref_ct)`, with `r ref_ct[2]` samples collected and interpreted by one observer (Su Ye) and `r ref_ct[1]` collected by a second observer (Estes). To evaluate the uncertainty inherent in defining the map reference labels, the pair mapped `r sum(usertab)` common sites, showing an overall level of agreement of `r agreement`%, and a Spearman Rank Correlation of `r round(unname(observer_r$estimate), 2)`. 
 
 Although this overlap between observers was limited, the map reference classification scheme provided two additional measures of uncertainty, which were classes defined as "unsure but most likely a field" or "unsure but most likely not a field", which the reference labeller would choose when they could not with high confidence state whether the site was either cropland or not cropland. Of the `r sum(crp_ct$n)` map reference samples that were identified as cropland, `r round(crp_ct$n[2] / sum(crp_ct$n) * 100, 1)`% fell into the lower confidence category, as did `r round(noncrp_ct$n[2] / sum(noncrp_ct$n) * 100, 1)`% of the `r sum(noncrp_ct$n)` non-cropland samples. Across both classes, the reference labellers had lower confidence in `r round(sum(crp_ct$n[2], noncrp_ct$n[2]) / sum(ref_ct) * 100, 1)` of sites labelled.
 
 ### Categorical accuracy
-In addition to the map accuracies and area estimates calculated per AOI zone (reported in main text; see Figure \ref{tab:aoizones}A), the accuracies were also assessed within several different groupings of agroecozones (Figures \ref{fig:aoizones}B) and \ref{fig:aezaccuracy}).
+In addition to the map accuracies and area estimates calculated per AOI zone (reported in main text; see Figure \ref{fig:aoizones}A), the accuracies were also assessed within several different groupings of agroecozones (Figures \ref{fig:aoizones}B and Table \ref{tab:aezaccuracy}).
 
 
-```{r aoizones, echo = FALSE, out.width="100%", fig.cap="Four zones used to combine the A) AOIs and B) agroecozones (B), in order to assess sub-national mapping accuracy. ", fig.align='center', message=FALSE, results='hold'}
+```{r aoizones, echo = FALSE, out.width="100%", fig.cap="Four zones used to combine the A) AOIs and B) agroecozones (B), in order to assess sub-national mapping accuracy. In B, the ID number of Ghana's individual agroecozones is shown in grey: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.", fig.align='center', message=FALSE, results='hold'}
 knitr::include_graphics('figures/si_aoi_zones.png')
 ```
 
-```{r aezaccuracy, echo = FALSE, out.width="100%", fig.cap="Map accuracies and adjusted area estimates within four different groupings of Ghana's agroecozones", fig.align='center', message=FALSE, results='hold'}
-knitr::include_graphics('figures/si_aez_accuracies.png')
-```
+
+\begin{table}
+\caption{Map accuracies and adjusted area estimates for the ~3 m pixel-wise classifications (based on RandomForest predictions). Results are provided for four different groupings of Ghana's 8 agroecozones zones (Zone 1 = Coastal savanna; Zone 2 = Wet evergreen, Moist evergreen, and Deciduous forest; Zone 3 = Transitional zone; Zone 4 = Guinea savanna and Sudan savanna) plus the entire country. The error matrix (with reference values in columns) provides the areal percentage for each cell, and the producer's (P), user's (U), and overall (O) map accuracies and their margins of error (in parenthesis) are provided, as well as the sample-adjusted area estimates (in km$^{2}$) and margins of error.}
+\includegraphics[width = 18cm]{figures/si_aez_accuracies.png}
+\label{tab:aezaccuracy}
+\end{table}
 
 
 ### Field area and number
@@ -464,8 +468,14 @@ knitr::include_graphics('figures/si_validation_stats_fha2.png')
 knitr::include_graphics('figures/si_validation_stats_fn2.png')
 ```
 
+## Cropland characteristics
+### Average field size
 
+To examine average field sizes, the average area of the vectorized field boundaries intersecting each 0.005 degree cell in the mapping grid was calculated and mapped back onto the grid (Figure \ref{fig:fieldsize}A). Given the overestimation bias inherent in the vectorized boundaries relative to the hand-digitized validation labels, we also used a regression kriging approach [@henglRegressionkrigingEquationsCase2007] to these average field sizes for this bias. To do this, we used the estimated mean field sizes extracted from the map in Figure S12A to predict the average polygon size of the most accurate mapper's labels for each of the 1600 validation sites, using an ordinary least squares regression to model the relationship, after first log-transforming both variables. We then applied ordinary kriging (using an exponential model for the variogram) to the regression residuals, which we added to the surface of the predicted field sizes to create the adjusted surface, and then converted this back to units of hectares (Figure \ref{fig:fieldsize}B).  
 
+```{r fieldsizes, echo = FALSE, out.width="100%", fig.cap="Average fields sizes in Ghana at 0.005 degree resolution, as calculated from A) the vectorized field boundaries, and after B) adjustment against hand-drawn validation labels using a regression-kriging approach.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_fsizes.png')
+```
 
 
 \clearpage

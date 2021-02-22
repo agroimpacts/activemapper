@@ -95,4 +95,8 @@ top_label_data <- list(
 
 # usethis::use_data(top_label_data, overwrite = TRUE)
 save(top_label_data, file = here::here("inst/extdata/top_label_data.rda"))
+f <- here::here(
+  "external/data/aois/labels/validation_labels/top_validation_labels.geojson"
+)
+st_write(top_label_data$maps, dsn = f)
 

@@ -28,7 +28,6 @@ library(RStoolbox)
 library(ggpmisc)
 library(patchwork)
 
-
 pth <- function(x) file.path(here("inst/manuscript"), x)
 ```
 
@@ -323,7 +322,7 @@ p <- ggplot(consensus_high_low_mu) +
 ggsave(pth("figures/figure6.png"), height = 4, width = 6, dpi = 300)
 ```
 
-### Figure 7: Categorical map accuracy
+### Table 2: Categorical map accuracy
 Place map accuracy tables and zone report into single figure, for AOI zones. 
 
 ```{r, eval=FALSE}
@@ -385,11 +384,11 @@ t1 <- ggplot(data.frame(x = c(0, 10), y = c(0, 10))) +
         plot.margin = unit(c(0, 0, 0, 0), "cm"))
 
 # gp <- t1 + m
-ggsave(t1, filename = pth("figures/figure7.png"), width = 7, height = 7.9, 
+ggsave(t1, filename = pth("figures/table2.png"), width = 7, height = 7.9, 
        units = "in", dpi = 300)
 ```
 
-### Figure 8: Cropland maps
+### Figure 7: Cropland maps
 ```{r, eval=FALSE}
 # segment files
 segment_files <- dir(here("external/data/results/segments/merged"),
@@ -513,12 +512,138 @@ inset_map <- ggdraw() +
   draw_plot(isets[[4]], x = rx, y = 0.07, width = wh[1], height = wh[2])
 # inset_map
 
-ggsave(filename = pth("figures/figure8.png"), 
+ggsave(filename = pth("figures/figure7.png"), 
        plot = inset_map, bg = "transparent", width = diff(maprange[1:2]), 
        height = diff(maprange[3:4]), units = "in", dpi = 300)
 
 ```
 
+### Table 3
+```{r, eval = FALSE}
+fsizes_n_05 <- st_read(
+  system.file("extdata/field_size_n_05.geojson", package = "activemapper")
+) %>% mutate(
+  muarea = ifelse(is.na(muarea), 0, muarea),
+  nflds = ifelse(is.na(nflds), 0, nflds),
+  aoi = as.character(aoi)
+)
+
+# calculate bias factors for adjustment
+data("segment_quality_stats")
+segment_quality_stats %>% filter(measure == "n")
+biases <- segment_quality_stats %>%
+  filter(Stat == "Mean" & scale == "grid") %>% 
+  pivot_wider(names_from = type, values_from = value) %>% 
+  mutate(bias = Validation - Segmentation, 
+         biasfactor = Validation / Segmentation)
+biases <- as_tibble(tiles) %>% group_by(aoi1) %>% 
+  count() %>% ungroup() %>% 
+  rename(aoi = aoi1, ntiles = n) %>% 
+  mutate(aoi = as.character(aoi), ncells = ntiles * 100) %>% 
+  left_join(biases, .) %>% 
+  select(-scale, -Stat)
+# biases %>% filter(measure == "n")
+# tiles %>% slice(1) %>% raster::extract(mgridr, .)
+# st_area(aois) / 10000 / 100
+
+# apply bias adjustments
+# field area first
+fsizes_n_05_adj <- biases %>% filter(measure == "area" & aoi != "All") %>% 
+  select(aoi, biasfactor) %>% 
+  rename(fbias = biasfactor) %>% 
+  left_join(fsizes_n_05, .) %>% 
+  mutate(muarea_adj = muarea * fbias) 
+
+# then field count
+fsizes_n_05_adj <- biases %>% filter(measure == "n" & aoi != "All") %>% 
+  select(aoi, biasfactor, ntiles, ncells) %>% 
+  rename(nbias = biasfactor) %>% 
+  left_join(fsizes_n_05_adj, .) %>% 
+  mutate(nflds_adj = nflds * nbias) %>% 
+  select(aoi, tile, muarea, muarea_adj, fbias, nflds, nflds_adj, nbias, ntiles)
+
+
+# hist(fsizes_n_05$muarea)
+brks <- c(-1, 0.001, 1, 2, 4, 6, 10, 15, 25, 50)
+labs <- c("0", "<1", "1-2", "2-4", "4-6", "6-10", "10-15", "15-25", "25-50")
+labsv <- c(1:(length(labs)))
+fsizes_n_05_adj <- fsizes_n_05_adj %>% 
+  mutate(
+    Area = as.numeric(cut(muarea, breaks = brks, labels = labsv)), 
+    Area_adj = as.numeric(cut(muarea_adj, breaks = brks, labels = labsv))
+  )
+
+nbrks <- c(-1, 0.001, 50, 100, 200, 300, 400, 500, 700, 1000)
+nlabs <- c("0", "<50", "50-100", "100-200", "200-300", "300-400", "400-500",
+           "500-700", "700-1000")
+nlabsv <- c(1:(length(labs)))
+fsizes_n_05_adj <- fsizes_n_05_adj %>% 
+  mutate(
+    N = as.numeric(cut(nflds, breaks = nbrks, labels = nlabsv)), 
+    N_adj = as.numeric(cut(nflds_adj, breaks = nbrks, labels = nlabsv))
+  )
+
+
+muarea <- st_rasterize(fsizes_n_05_adj["Area"])
+muarea_adj <- st_rasterize(fsizes_n_05_adj["Area_adj"])
+nflds <- st_rasterize(fsizes_n_05_adj["N"])
+nflds_adj <- st_rasterize(fsizes_n_05_adj["N_adj"])
+
+# plot(muarea)
+# plot(nflds)
+# plot(is.na(nflds))
+# 
+# fsizes_n_05 %>% filter(is.na(nflds))
+# fsizes_n_05 %>% filter(is.infinite(nflds))
+# plot(fsizes_n_05 %>% filter(is.na(nflds)))
+thm <- function(x) {
+  theme_void() + 
+    theme(legend.position = c(0.7, 0.07), legend.direction = "horizontal", 
+          legend.key.height = unit(0.2, "cm"), 
+          legend.text = element_text(colour = "black"),
+          legend.title = element_text(size = 9, colour = "black"))
+}
+  
+leg <- c(labs, "")
+xylims <- st_bbox(ghana)
+p <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = muarea, aes(x = x, y = y, fill = factor(Area))) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_d(name = "ha", na.value = "transparent", labels = leg) +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+padj <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = muarea_adj, aes(x = x, y = y, fill = factor(Area_adj))) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_d(name = "ha", na.value = "transparent", labels = leg) +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+
+leg <- c(nlabs, "")
+p2 <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = nflds, aes(x = x, y = y, fill = factor(N))) +
+  # geom_stars(data = nflds) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_d(name = "ha", na.value = "transparent", labels = leg) +
+  # scale_fill_viridis_c(name = "N", na.value = "transparent") +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+p2adj <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = nflds_adj, aes(x = x, y = y, fill = factor(N_adj))) +
+  # geom_stars(data = nflds) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_d(name = "ha", na.value = "transparent", labels = leg) +
+  # scale_fill_viridis_c(name = "N", na.value = "transparent") +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+
+p2adj
+
+op <- p + p2 + plot_annotation(tag_levels = 'A')
+
+ggsave(op, bg = "transparent", width = 6, height = 4, units = "in", dpi = 300, 
+       filename = pth("figures/si_fsize_n_05.png"))
+```
 
 
 
@@ -888,15 +1013,19 @@ m <- ggplot(aois) + geom_sf(lwd = 0.1) +
 
 m2 <- ggplot(aez %>% filter(ID != 8)) + geom_sf(lwd = 0.1) +
   geom_sf(data = aez_zones, lwd = 0.5, fill = "transparent") + 
+  geom_sf_text(data = st_centroid(aez) %>% filter(ID != 8) %>% arrange(ID),
+               aes(label = ID), 
+               nudge_x = c(0.75, 0, 0, -1.25, -1, -1.25, 0),
+               nudge_y = c(0.25, 0, 0, 0.7, 0.25, 1, 0),
+               size = 3, col = "grey60") + 
   geom_sf_text(data = st_centroid(aez_zones), aes(label = zone), size = 4) + 
   theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
-
 ggsave(m + m2 + plot_annotation(tag_levels = 'A'), 
        filename = pth("figures/si_aoi_zones.png"), width = 3.5 * 2, 
        height = 4.5, units = "in", dpi = 300)
 ```
 
-### Figure S10: AEZ accuracies
+### Table S4: AEZ accuracies
 
 Grouped by four zones, calculated for per-pixel classifications only. 
 
@@ -940,14 +1069,8 @@ ggsave(t1, filename = pth("figures/si_aez_accuracies.png"), width = 7,
        height = 3.5, units = "in", dpi = 300)
 ```
 
+### Figures S10 and S11: Segmentation statistics (grid scale)
 
-
-
-
-### Figure S11: Segmentation statistics (grid scale)
-
-[Check whether the means need to be weighted or not]
-[Check whether need to redo median]
 ```{r segstats, eval=FALSE}
 # data("top_label_data")
 # data("field_validation_stats")
@@ -1038,6 +1161,194 @@ ggsave(pth("figures/si_validation_stats_fn2.png"),
        width = 7, height = 7, units = "in", dpi = 300)
 
 ```
+
+### Figure S12: Average fields sizes
+
+Tile scale field size and number, presented without adjustment
+
+```{r, eval=FALSE}
+fsizes_n_05 <- st_read(
+  system.file("extdata/field_size_n_05.geojson", package = "activemapper")
+) %>% mutate(
+  muarea = ifelse(is.na(muarea), 0, muarea),
+  nflds = ifelse(is.na(nflds), 0, nflds),
+  aoi = as.character(aoi)
+)
+
+# # calculate bias factors for adjustment
+# data("segment_quality_stats")
+# segment_quality_stats %>% filter(measure == "n")
+# biases <- segment_quality_stats %>%
+#   filter(Stat == "Mean" & scale == "grid") %>% 
+#   pivot_wider(names_from = type, values_from = value) %>% 
+#   mutate(bias = Validation - Segmentation, 
+#          biasfactor = Validation / Segmentation)
+# biases <- as_tibble(tiles) %>% group_by(aoi1) %>% 
+#   count() %>% ungroup() %>% 
+#   rename(aoi = aoi1, ntiles = n) %>% 
+#   mutate(aoi = as.character(aoi), ncells = ntiles * 100) %>% 
+#   left_join(biases, .) %>% 
+#   select(-scale, -Stat)
+# # biases %>% filter(measure == "n")
+# # tiles %>% slice(1) %>% raster::extract(mgridr, .)
+# # st_area(aois) / 10000 / 100
+# 
+# # apply bias adjustments
+# # field area first
+# fsizes_n_05_adj <- biases %>% filter(measure == "area" & aoi != "All") %>% 
+#   select(aoi, biasfactor) %>% 
+#   rename(fbias = biasfactor) %>% 
+#   left_join(fsizes_n_05, .) %>% 
+#   mutate(muarea_adj = muarea * fbias) 
+# 
+# # then field count
+# fsizes_n_05_adj <- biases %>% filter(measure == "n" & aoi != "All") %>% 
+#   select(aoi, biasfactor, ntiles, ncells) %>% 
+#   rename(nbias = biasfactor) %>% 
+#   left_join(fsizes_n_05_adj, .) %>% 
+#   mutate(nflds_adj = nflds * nbias) %>% 
+#   select(aoi, tile, muarea, muarea_adj, fbias, nflds, nflds_adj, nbias, ntiles)
+# 
+# 
+# # hist(fsizes_n_05$muarea)
+# brks <- c(-1, 0.001, 1, 2, 4, 6, 10, 15, 25, 50)
+# labs <- c("0", "<1", "1-2", "2-4", "4-6", "6-10", "10-15", "15-25", "25-50")
+# labsv <- c(1:(length(labs)))
+# fsizes_n_05_adj <- fsizes_n_05_adj %>% 
+#   mutate(
+#     Area = as.numeric(cut(muarea, breaks = brks, labels = labsv)), 
+#     Area_adj = as.numeric(cut(muarea_adj, breaks = brks, labels = labsv))
+#   )
+# 
+# nbrks <- c(-1, 0.001, 50, 100, 200, 300, 400, 500, 700, 1000)
+# nlabs <- c("0", "<50", "50-100", "100-200", "200-300", "300-400", "400-500",
+#            "500-700", "700-1000")
+# nlabsv <- c(1:(length(labs)))
+# fsizes_n_05_adj <- fsizes_n_05_adj %>% 
+#   mutate(
+#     N = as.numeric(cut(nflds, breaks = nbrks, labels = nlabsv)), 
+#     N_adj = as.numeric(cut(nflds_adj, breaks = nbrks, labels = nlabsv))
+#   )
+# 
+# # stars
+# muarea <- st_rasterize(fsizes_n_05_adj["Area"])
+# muarea_adj <- st_rasterize(fsizes_n_05_adj["Area_adj"])
+# nflds <- st_rasterize(fsizes_n_05_adj["N"])
+# nflds_adj <- st_rasterize(fsizes_n_05_adj["N_adj"])
+
+
+
+brks <- c(-1, 0.001, 1, 2, 4, 6, 10, 15, 25, 50)
+labs <- c("0", "<1", "1-2", "2-4", "4-6", "6-10", "10-15", "15-25", "25-50")
+labsv <- c(1:(length(labs)))
+fsizes_n_05 <- fsizes_n_05 %>% 
+  mutate(Area = as.numeric(cut(muarea, breaks = brks, labels = labsv)))
+
+# hist(fsizes_n_05$nflds)
+nbrks <- c(-1, 0.001, 50, 100, 200, 300, 400, 500)
+nlabs <- c("0", "<50", "50-100", "100-200", "200-300", "300-400", "400-500")
+nlabsv <- c(1:(length(nlabs)))
+fsizes_n_05 <- fsizes_n_05 %>% 
+  mutate(N = as.numeric(cut(nflds, breaks = nbrks, labels = nlabsv)))
+
+
+muarea <- st_rasterize(fsizes_n_05["Area"])
+nflds <- st_rasterize(fsizes_n_05["N"])
+
+
+thm <- function(x) {
+  theme_void() + 
+    theme(#legend.position = c(0.7, 0.07), 
+          legend.direction = "vertical", 
+          legend.key.height = unit(0.2, "cm"), 
+          legend.text = element_text(colour = "black"),
+          legend.title = element_text(size = 9, colour = "black"))
+}
+  
+leg <- c(labs, "")
+xylims <- st_bbox(ghana)
+p <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = muarea, aes(x = x, y = y, fill = factor(Area))) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_d(name = "ha", na.value = "transparent", labels = leg) +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+# padj <- ggplot(africa) + 
+#   geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+#   geom_stars(data = muarea_adj, aes(x = x, y = y, fill = factor(Area_adj))) +
+#   geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+#   scale_fill_viridis_d(name = "ha", na.value = "transparent", labels = leg) +
+#   coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+
+leg <- c(nlabs, "")
+p2 <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = nflds, aes(x = x, y = y, fill = factor(N))) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_d(name = "N", na.value = "transparent", labels = leg) +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+# p2adj <- ggplot(africa) + 
+#   geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+#   geom_stars(data = nflds_adj, aes(x = x, y = y, fill = factor(N_adj))) +
+#   geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+#   scale_fill_viridis_d(name = "ha", na.value = "transparent", labels = leg) +
+#   coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) + thm()
+
+op <- p + p2 + plot_annotation(tag_levels = 'A')
+
+ggsave(op, bg = "transparent", width = 7, height = 4, units = "in", dpi = 300, 
+       filename = pth("figures/si_fsize_n_05.png"))
+```
+
+
+
+Both original as derived from segmentations and adjusted using regression kriging. 
+
+
+
+
+```{r, eval=FALSE}
+fsizes <- read_stars(
+  system.file("extdata/mean_field_size005.tif", package = "activemapper")
+)
+fsizes_adj <- read_stars(
+  system.file("extdata/mean_field_size005_adj.tif", package = "activemapper")
+)
+
+# Plots
+xylims <- st_bbox(ghana)
+p <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = fsizes) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_c(name = "ha", na.value = "transparent") +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) +
+  theme_void() + 
+  theme(legend.position = c(0.7, 0.07), legend.direction = "horizontal", 
+        legend.key.height = unit(0.2, "cm"), 
+        legend.text = element_text(colour = "black"),
+        legend.title = element_text(size = 9, colour = "black"))
+
+p2 <- ggplot(africa) + 
+  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_stars(data = fsizes_adj[, , , 1]) +
+  geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
+  scale_fill_viridis_c(name = "ha", na.value = "transparent") +
+  coord_sf(xlim = xylims[c(1, 3)], ylim = xylims[c(2, 4)]) +
+  theme_void() + 
+  theme(legend.position = c(0.7, 0.07), legend.direction = "horizontal", 
+        legend.key.height = unit(0.2, "cm"), 
+        legend.text = element_text(colour = "black"),
+        legend.title = element_text(size = 9, colour = "black"))
+
+op <- p + p2 + plot_annotation(tag_levels = 'A')
+
+ggsave(op, bg = "transparent", width = 6, height = 4, units = "in", dpi = 300, 
+       filename = pth("figures/si_fsizes.png"))
+
+```
+
+
 
 <!-- ### Figure S10: Segmentation statistics, tile scale -->
 <!-- ```{r, eval=FALSE} -->

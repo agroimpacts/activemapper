@@ -1,6 +1,5 @@
 ---
-title: "Improving cropland maps through tight integration of human and machine intelligence"
-
+title: "Mapping the characteristics of small-scale agricultural systems at national extents using small sat data and an active learning approach"
 
 author:  
 
@@ -17,15 +16,12 @@ author:
 - name: Lei Song
   affilnum: '1'
 
-- name: Ron Eastman
-  affilnum: '1'
-  
-- name: Qi Zhang
-  affilnum: '1'
-
 - name: Boka Luo
   affilnum: '1'
 
+- name: Ron Eastman
+  affilnum: '1'
+  
 - name: Dennis McRitchie
   affilnum: '2'
 
@@ -711,9 +707,47 @@ A second measure of the impact of training data error can be obtained by calcula
 
 ## Map accuracy
 ### Categorical accuracy
-To assess the overall accuracy of the final maps, we used our map reference sample to evaluate the accuracy of classifications derived from thresholding the posterior probabilities produced by the RandomForest model, as well as the segmented field boundary maps. First, we evaluated the inter-rater agreement between reference supervisors in labeling reference polygons. The average inter-rater agreement was **X%, with a standard deviation of Y% (see Figure X in SI)**, which provides the upper bound on achievable map accuracy. 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# reference labels, for total count and uncertainty of class categories
+ref_labels <- st_read(
+  system.file("extdata/map_reference_labels.geojson", 
+              package = "activemapper"), quiet = TRUE
+)
+class_ct <- as_tibble(ref_labels) %>% group_by(category) %>% count()
+ref_ct <- as_tibble(ref_labels) %>% group_by(worker_id) %>% count() %>% pull(n)
 
-Based on this reference sample, we found that the average accuracy of the pixel-wise classifications was **X, with a range of X-X** (Figure 5). Overall user's accuracy was slightly **lower/higher** at **X, (range X-X)**, while producer's accuracy averaged **X, (range X-X)**. Each accuracy measure was highest in **northern-northeastern 2/3** of the country, and lowest in **southwestern 1/3**, where rainfall and cloud-cover are highest, and where tree crops dominate. The segmentation process **increased/decreased** accuracy slightly, with a mean overall, user's and producer's accuracy of **X (range X-X), Y (range X-X), and Z (range X-X) percent**.
+crp_ct <- class_ct %>% filter(category %in% c("annualcropland", "unsure1"))
+noncrp_ct <- class_ct %>% filter(category %in% c("noncropland", "unsure2"))
+
+# observer agreement/correlation
+ref_labels_joint <- st_read(
+  system.file("extdata/map_reference_labels_joint.geojson", 
+              package = "activemapper"), quiet = TRUE
+)
+joint_classes <- ref_labels_joint %>% as_tibble() %>% 
+  select(name, category, worker_id) %>% 
+  arrange(name) %>% 
+  mutate(class = case_when(
+    category == "annualcropland" | category == "unsure1" ~ 1, 
+    category == "noncropland" | category == "unsure2" ~ 0 
+  ))
+class_mat <- joint_classes %>% dplyr::select(name, class, worker_id) %>% 
+  tidyr::pivot_wider(names_from = worker_id, values_from = class) %>% 
+  dplyr::select(-name) %>% as.matrix()
+
+usertab <- table("User1" = class_mat[, 1], "User2" = class_mat[, 2])
+
+agreement <- round(sum(diag(usertab)) / sum(usertab) * 100, 1)
+observer_r <- cor.test(class_mat[, 1], class_mat[, 2], method = "spearman")
+
+```
+
+To assess the overall accuracy of the final maps, we used our map reference sample of `r sum(ref_ct)` sites (`r sum(crp_ct$n)` cropland; `r sum(noncrp_ct$n)` non-cropland) to evaluate the accuracy of 1) pixel-wise classifications produced by the RandomForest model, and 2) the segmented field boundary maps. We first evaluated the uncertainty in the map reference classes using two approaches, the first being an assessment of the overall agreement between map reference labels (at `r sum(usertab)` sites), and the second was the level of confidence in assigned labels (see SI for details). The first measure showed that the two individual labellers agreed `r agreement`% of sites, while the second showed that `r round(sum(crp_ct$n[2], noncrp_ct$n[2]) / sum(ref_ct) * 100, 1)` of sites labelled were of lower confidence.  
+
+Based on this reference sample, we found that the overall accuracy of the pixel-wise classifications was 88% (Table 2). This overall level of accuracy varied within four smaller zones (Figure S9A), ranging from 83.3% in Zone 1 (comprised of AOIs 1-3) to 93.6% in Zone 3 (AOIs 10, 11, 13, 15, and 16). Examining the accuracies of the individual classes, the Producer's accuracy of the cropland class was 61.7% across Ghana, ranging from 45.6% in Zone 3 to 67.9% in Zone 1. The User's accuracy for cropland was 67.3% overall, ranging from 59.8% in Zone 4 to 71.2% in Zone 1. Both measures of accuracy were substantially higher for the non-cropland class across all zones, typically exceeding 90%, with the lowest accuracies for this class found in Zone 1 (Producer's = 89.3% and User's = 87.7%, respectively). 
+
+The overall accuracies obtained from the segmented maps were generally 1-2 percentage points lower than those of the per-pixel maps, while User's accuracies tended to be 8-10 percentage points less (Table 2). In contrast, Producer's accuracies were 15-20 points higher than in the per-pixel map, indicating that the segmentation step helped reduce omission error, but substantially increased false positive errors.  
+
 
 <!-- and an accuracy surface interpolated from the average cell-wise accuracies calculated between the predicted map and validation labels.  -->
 
@@ -721,13 +755,11 @@ Based on this reference sample, we found that the average accuracy of the pixel-
 <!-- knitr::include_graphics('figures/si_mapping_blocks.png') -->
 <!-- ``` -->
 
-The accuracy patterns generally align with the difficulty of the labelling task, that is, **the southwestern regions were hardest for workers to interpret, as shown by Figure 5.**
-
-
-```{r acctabs, echo = FALSE, out.width="90%", fig.cap="Accuracy results", fig.align='center', message=FALSE}
-knitr::include_graphics('figures/figure7.png')
-```
-
+\begin{table}
+\caption{Map accuracies and adjusted area estimates for the ~3 m pixel-wise classifications (based on RandomForest predictions; top 5 rows) and the segmented map (bottom 5 rows). Results are provided for 4 zones (Zone 1 = AOIs 1-3; Zone 2 = AOIs 4-9; Zone 3 = AOIs 10, 11, 13, 14, 16; Zone 4 = AOIs 12, 15) plus the entire country. The error matrix (with reference values in columns) provides the areal percentage for each cell, and the producer's (P), user's (U), and overall (O) map accuracies and their margins of error (in parenthesis) are provided, as well as the sample-adjusted area estimates (in km$^{2}$) and margins of error. }
+\includegraphics[width = 18cm]{figures/table2.png}
+\label{tab:aezaccuracy}
+\end{table}
 
 ### Segmentation accuracy
 ```{r, echo=FALSE}
@@ -874,35 +906,27 @@ The comparisons of digitized versus segmented field boundaries showed that the m
 <!-- ``` -->
 
 ## Ghana's croplands
-Two separate maps of cropland were produced for each AOI, one derived from the cropland probability map, and the other from the segmented field boundaries. 
-
-Map figure:
-- Panel A: Cropland probability map (0.005 degree resolution)
-  - Panel A insets: Probability close-ups in AOIs 1, 8, 13, 15
-- Panel B: Cropland percentage map (0.005 degree)
-  - Panel B insets: Segment close-ups in AOIs 1, 8, 13, 15
-- Panel C: Median field size
-- Panel D: Field number
-- Median field size
-- Cropland percentage
-
-Stats figure: 
-- Mean field size per AOI
-- Median field size per AOI
-- SD fields per AOI 
-- N field per AOI
+Two separate maps of cropland were produced for each AOI, the per-pixel classified from the cropland probabilities, and the vectorized map of field boundaries (Figure \ref{fig:mainmap}). The former map provides the more accurate assessment of the distribution of croplands in Ghana, which are most concentrated in the Southeastern corner (AOI 15), the central-western region (AOI 7, the northeastern and northwestern corners of AOIs 10 and 11, and the south of AOI 8), the northeastern quadrant stretching from AOI 9 through 5 and 6 up to 2 and 3. The northern third of AOI 1 also has noticeable densities of cropland. Several noteable areas of low cropland density are also apparent, indicating the presence of large protected areas, such as Mole National Park in the the southeastern corner of AOI 1 and Digya National Park in the northwestern corner of AOI 12. In contrast, the relative absence of cropland in AOIs 13, 14, and 16 do not reflect the scarcity of agriculture, but rather the predominance of tree-based agriculture in the forested agroecoregions of Ghana, which was not mapped. 
 
 ```{r mainmap, echo = FALSE, out.width="90%", fig.cap="The distribution of arable croplands in Ghana. The main map shows the percentage of croplands in each 0.005 degree grid cell, derived from the predicted cropland probabilities. The insets  on the margins illustrate predicted probabilities (top map in each couplet) at original resolution (0.000025 degrees) and segmented field boundaries overlaid on the dry season PlanetScope composite, for four separate tiles. Each tile's position is shown on the main map, and is color-coded to the boundary lines around its corresponding inset.", fig.align='center', message=FALSE}
-knitr::include_graphics('figures/figure8.png')
+knitr::include_graphics('figures/figure7.png')
 ```
 
+Both the per-pixel and vectorized maps, when combined with the map reference sample, enable separate estimates of the total extent of arable croplands in Ghana. The cropland extent estimated from the vectorized map is 42,359 km$^2$ (with a margin of error of 4,395 km$^2$), or `r round(42359 / (42359 + 204940) * 100, 1)`% of the mapped area, the estimate based on the per pixel map is 43,233 km$^2$ (margin of error = 4,904 km$^2$), or `r round(43233 / (43233 + 202856) * 100, 1)`% of area. 
+
+The vectorized map provides additional information on how the characteristics of croplands can vary geographically, ranging from narrow, strip-like fields in parts of AOI 15 (Figure 7's lower right inset) to more densely packed, less distinctly shaped fields in area such as AOI 5 (upper right inset in Figure 7). These characteristics can be summarized and mapped to explore how such characteristics vary geographically For example, average fields sizes were mapped at 0.005 degree resolution (Figure S12A), providing some indication of countrywide patterns. Given the over-estimation of fields sizes relative to the validation labels, particularly in several savanna-zone AOIs (2, 3, 6, 7, and 15), the mean sizes likely reflect agglomerations of contiguous smallholder fields, such as in AOI 2,and the southern portion of AOI 8 (Figure S12A). A closer approximation of individual field boundaries can be mapped using approaches such as regression kriging to model the relationship between the segmented boundaries and the hand drawn labels collected at validation points (Figure S12B), although such an approach introduces spatial artifacts. 
 
 # Discussion
+We present here a method for developing high resolution maps that detail the characteristics of smallholder-dominated croplands, providing information on their geometries and distribution of <5 m resolution, and representing a single agricultural year. 
+
+The results 
+
 - Label quality
   - Accuracy asssessment at training reference sites maybe over-inflated. Each worker saw training reference site multiple times. Need larger number of reference samples
   - Training reference to training ratio was artificially inflated. Workers not always notified when training labels complete, and thus only served training reference sites. 
   - Image-interpreted versus ground labels: **However, these discrepancies are not necessarily an indication of how far workers were from the "truth", but may instead be at least partially an indication of how different the perspectives are as to what constitutes a field when looking at an image versus seeing it from the ground (which in many cases was based on the field team's judgement, rather than farmer guidance).** 
   
+Compare values   
 
 - The impact of training data error on map quality:
   - Label quality makes a large difference. 
