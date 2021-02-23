@@ -96,11 +96,11 @@ csl: ecology.csl
 
 
 ```{r setup, include=FALSE, cache=FALSE, message = FALSE}
-
 library(knitr)
 library(citr)
 library(dplyr)
 library(activemapper)
+library(kableExtra)
 
 #opts_knit$set(root.dir=normalizePath('../'))
 
@@ -914,12 +914,97 @@ knitr::include_graphics('figures/figure7.png')
 
 Both the per-pixel and vectorized maps, when combined with the map reference sample, enable separate estimates of the total extent of arable croplands in Ghana. The cropland extent estimated from the vectorized map is 42,359 km$^2$ (with a margin of error of 4,395 km$^2$), or `r round(42359 / (42359 + 204940) * 100, 1)`% of the mapped area, the estimate based on the per pixel map is 43,233 km$^2$ (margin of error = 4,904 km$^2$), or `r round(43233 / (43233 + 202856) * 100, 1)`% of area. 
 
-The vectorized map provides additional information on how the characteristics of croplands can vary geographically, ranging from narrow, strip-like fields in parts of AOI 15 (Figure 7's lower right inset) to more densely packed, less distinctly shaped fields in area such as AOI 5 (upper right inset in Figure 7). These characteristics can be summarized and mapped to explore how such characteristics vary geographically For example, average fields sizes were mapped at 0.005 degree resolution (Figure S12A), providing some indication of countrywide patterns. Given the over-estimation of fields sizes relative to the validation labels, particularly in several savanna-zone AOIs (2, 3, 6, 7, and 15), the mean sizes likely reflect agglomerations of contiguous smallholder fields, such as in AOI 2,and the southern portion of AOI 8 (Figure S12A). A closer approximation of individual field boundaries can be mapped using approaches such as regression kriging to model the relationship between the segmented boundaries and the hand drawn labels collected at validation points (Figure S12B), although such an approach introduces spatial artifacts. 
+The vectorized map provides additional information on how the characteristics of croplands can vary geographically, ranging from narrow, strip-like fields in parts of AOI 15 (Figure \ref{fig:mainmap}'s lower right inset) to more densely packed, less distinctly shaped fields in area such as AOI 5 (upper right inset in Figure \ref{fig:mainmap}). To explore how field characteristics varied geographically, we mapped the average field size and total number of fields within each 0.05 degree tile (Figure S12). These patterns generally correspond to those seen in the cropland density map (Figure \ref{fig:mainmap}), with larger sizes and field counts generally aligning in the areas of higher field densities, although the biases inherent in both measures (Figures S10-11) complicate the interpretation of those variations. However, we can use the estimated to develop adjusted estimates of field sizes and counts for each AOI, and for Ghana as a whole (Table \ref{tab:sizentab}). The bias-adjusted estimates show that the typical field size in Ghana is 1.73 ha, ranging from 0.96 in AOI 4 to 2.82 ha in AOI 4, with fields in the forest zone AOIs (10, 11, 13, 14, 16) generally smaller than those in the northern half of the country (Table \ref{tab:sizentab}). The total number of fields was estimated to be 1,662,281 overall, or 205 fields per tile on average, ranging from 108/tile in AOI 4 to 399/tile in AOI 6. 
+
+```{r sizentab, echo=FALSE, warning=FALSE, message=FALSE}
+fsizes_n_05 <- st_read(
+  system.file("extdata/field_size_n_05.geojson", package = "activemapper"),
+  quiet = TRUE
+) %>% mutate(
+  muarea = ifelse(is.na(muarea), 0, muarea),
+  nflds = ifelse(is.na(nflds), 0, nflds),
+  aoi = as.character(aoi)
+)
+
+# calculate bias factors for adjustment
+data("segment_quality_stats")
+# segment_quality_stats %>% filter(measure == "n")
+biases <- segment_quality_stats %>%
+  filter(Stat == "Mean" & scale == "grid") %>% 
+  pivot_wider(names_from = type, values_from = value) %>% 
+  mutate(biasfactor = Validation / Segmentation)
+biases <- tile_key %>% group_by(aoi) %>% 
+  count() %>% ungroup() %>% rename(ntiles = n) %>% 
+  mutate(aoi = as.character(aoi)) %>% 
+  left_join(biases, .) %>% 
+  select(-scale, -Stat)
+
+fsizes_05_adj <- biases %>% filter(measure == "area" & aoi != "All") %>% 
+  select(aoi, biasfactor) %>% 
+  rename(fbias = biasfactor) %>% 
+  left_join(as_tibble(fsizes_n_05), .) %>% 
+  mutate(muarea_adj = muarea * fbias) %>% select(-geometry) %>% 
+  group_by(aoi) %>% 
+  summarize(fsize = mean(muarea), fsizeadj = mean(muarea_adj))
+
+# then field count
+n_05_adj <- biases %>% filter(measure == "n" & aoi != "All") %>% 
+  select(aoi, biasfactor, ntiles) %>% 
+  rename(nbias = biasfactor) %>% 
+  left_join(as_tibble(fsizes_n_05), .) %>% 
+  mutate(nfldsadj = nflds * nbias) %>%
+  group_by(aoi) %>% 
+  summarize(N = sum(nflds), Nadj = sum(nfldsadj))
+
+aoi_sizes_n <- left_join(fsizes_05_adj, n_05_adj) %>% 
+  left_join(., biases %>% filter(measure == "area") %>% select(aoi, ntiles))
+
+ghana_sizes_n <- aoi_sizes_n %>% 
+  summarize(fsize = weighted.mean(fsize, ntiles), 
+            fsizeadj = weighted.mean(fsizeadj, ntiles), 
+            N = sum(N), Nadj = sum(Nadj), 
+            ntiles = round(sum(ntiles)))
+
+size_n_tab <- bind_rows(aoi_sizes_n, ghana_sizes_n) %>% 
+  mutate(aoi = as.numeric(ifelse(is.na(aoi), 17, aoi))) %>% 
+  arrange(aoi) %>% mutate(aoi = as.character(aoi)) %>% 
+  mutate(aoi = ifelse(aoi == "17", "Ghana", aoi), 
+         N_tile = round(N / ntiles),
+         Nadj_tile = round(Nadj / ntiles)) %>% 
+  select(aoi, ntiles, fsize, fsizeadj, N, N_tile, Nadj, Nadj_tile) %>% 
+  mutate(
+    ntiles = scales::number(
+      round(ntiles), accuracy = 1, big.mark = ",", trim = FALSE
+    ), 
+    fsize = round(fsize, 2), fsizeadj = round(fsizeadj, 2), 
+    N = scales::number(N, big.mark = ",", trim = FALSE), 
+    N_tile = scales::number(N_tile, big.mark = ",", accuracy = 1, trim = FALSE), 
+    Nadj = scales::number(round(Nadj), big.mark = ",", trim = FALSE),
+    Nadj_tile = scales::number(
+      round(Nadj_tile), accuracy = 1, big.mark = ",", trim = FALSE
+    )
+  ) %>% 
+  rename(AOI = aoi, `N tiles` = ntiles, Size = fsize, `Size (adj)` = fsizeadj, 
+         `N / tile` = N_tile, `N (adj)` = Nadj, 
+         `N (adj) / tile` = Nadj_tile)
+# size_n_tab %>% select(`N (adj) / tile`)
+
+cap <- glue::glue("The average size and total number of crop fields for each ", 
+                  "AOI and for Ghana overall. The original and bias-adjusted values", 
+                  " for each measure are provided, as well as the total number", 
+                  " of 0.05$^\\circ$ degree tiles in each AOI.")
+knitr::kable(size_n_tab, format = "latex", booktabs = "T", caption = cap, 
+             align = rep("r", 8)) %>% 
+  kableExtra::kable_styling(latex_options = c("hold_position")) %>%
+  kableExtra::column_spec(1:3, width = "0.45in") %>%
+  kableExtra::column_spec(4:8, width = "0.85in")
+```
 
 # Discussion
 We present here a method for developing high resolution maps that detail the characteristics of smallholder-dominated croplands, providing information on their geometries and distribution of <5 m resolution, and representing a single agricultural year. 
 
 The results 
+Bias in mean sizes likely reflect agglomerations of contiguous smallholder fields, and the difficulty of segmenting indistinct adjacent boundaries. Such as in AOI 2,and the southern portion of AOI 8 (Figure S12A).
 
 - Label quality
   - Accuracy asssessment at training reference sites maybe over-inflated. Each worker saw training reference site multiple times. Need larger number of reference samples

@@ -40,7 +40,7 @@ csl: ecology.csl
         \renewcommand{\thefigure}{S\arabic{figure}}%
      }
      
-```{r setup, include=FALSE, cache=FALSE, message = FALSE}
+```{r setup, include=FALSE, cache=FALSE, message=FALSE}
 library(knitr)
 library(citr)
 library(tidyverse)
@@ -469,12 +469,12 @@ knitr::include_graphics('figures/si_validation_stats_fn2.png')
 ```
 
 ## Cropland characteristics
-### Average field size
+### Field area and number
 
-To examine average field sizes, the average area of the vectorized field boundaries intersecting each 0.005 degree cell in the mapping grid was calculated and mapped back onto the grid (Figure \ref{fig:fieldsize}A). Given the overestimation bias inherent in the vectorized boundaries relative to the hand-digitized validation labels, we also used a regression kriging approach [@henglRegressionkrigingEquationsCase2007] to these average field sizes for this bias. To do this, we used the estimated mean field sizes extracted from the map in Figure S12A to predict the average polygon size of the most accurate mapper's labels for each of the 1600 validation sites, using an ordinary least squares regression to model the relationship, after first log-transforming both variables. We then applied ordinary kriging (using an exponential model for the variogram) to the regression residuals, which we added to the surface of the predicted field sizes to create the adjusted surface, and then converted this back to units of hectares (Figure \ref{fig:fieldsize}B).  
+To examine average field sizes, and the total number, the mean segment size per 0.05 degree tiles was calculated and mapped, as well as the total number of fields per tile (Figure \ref{fig:fieldsizes}).  
 
-```{r fieldsizes, echo = FALSE, out.width="100%", fig.cap="Average fields sizes in Ghana at 0.005 degree resolution, as calculated from A) the vectorized field boundaries, and after B) adjustment against hand-drawn validation labels using a regression-kriging approach.", fig.align='center', message=FALSE, results='hold'}
-knitr::include_graphics('figures/si_fsizes.png')
+```{r fieldsizes, echo = FALSE, out.width="100%", fig.cap="The A) average sizes of fields and B) total number of fields in each 0.05 degree tile, as calculated from the vectorized field boundaries.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_fsize_n_05.png')
 ```
 
 
