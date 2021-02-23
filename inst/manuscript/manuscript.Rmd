@@ -210,7 +210,7 @@ knitr::include_graphics('figures/figure2.png')
 ```
 The temporal compositing process is applied to the ARD imagery for the time period of interest, which in the case of this study is one of two multi-month seasons, the primary growing and dry seasons for a single agricultural year. Imagery from two seasons helps to improve the performance of cropland classifiers [@Debatsgeneralizedcomputervision2016], while having the seasons in same year helps to minimize differences caused by land change. For each pixel in each image in each ARD temporal stack for a given season, we calculate two weights, with the first being:
 
-<!-- values. The first is based on a simplified formula of the Haze Optimized Transformation (HOT) index [@Zhangimagetransformcharacterize2002; @ZhuObjectbasedcloudcloud2012]:  -->
+<!-- values. The first is based on a simplified formula of the Haze Optimized Transformation (HOT) index [√; @ZhuObjectbasedcloudcloud2012]:  -->
 
 \begin{equation} \label{eq:cloud}
 \mathrm{W1_t} = \frac{1}{\mathrm{blue_t}^2}
@@ -222,12 +222,12 @@ And the second:
  
 \begin{equation} \label{eq:shadow}  
 \mathrm{W2_t} =\begin{cases}
-    1, & \text{if $\mathrm{NIR_t}$ < median\{$\mathrm{NIR_1}$, $\mathrm{NIR_2}$, ..., $\mathrm{NIR_i}$\}}.\\
-    \frac{1}{\mathrm{NIR_t}^4}, & \text{otherwise}.
+    \frac{1}{\mathrm{NIR_t}^4}, & \text{if $\mathrm{NIR_t}$ < median\{$\mathrm{NIR_1}$, $\mathrm{NIR_2}$, ..., $\mathrm{NIR_i}$\}}.\\
+    1, & \text{otherwise}.
   \end{cases}
 \end{equation}
 
-Where *t* is a particular date in near-daily time series of PlanetScope images, which begins at date 1 for the given compositing period and ends on date *i*, *blue* is the blue band, and *NIR* the near infrared band. Equation \ref{eq:cloud} assigns lower weights to hazy and clouded pixels, while equation \ref{eq:shadow} assigns low weights to pixels in cloud shadow. 
+Where *t* is a particular date in near-daily time series of PlanetScope images, which begins at date 1 for the given compositing period and ends on date *i*, *blue* is the blue band, and *NIR* the near infrared band.Equation \ref{eq:cloud} assigns lower weights to hazy and clouded pixels as the blue band is sensitive to haze and cloud pixels [@Zhangimagetransformcharacterize2002], while equation \ref{eq:shadow} assigns low weights to pixels in cloud shadow considering the significant darkening effect of the cloud shadows in the Near Infrared band [@ZhuObjectbasedcloudcloud2012; @ShiCirrusCloudsThatAffect2020]. 
 
 Once these two weights were calculated, the final composited pixel value for each of the four PlanetScope bands was calculated as:
 
@@ -260,7 +260,7 @@ knitr::include_graphics('figures/figure3.png')
 Upon submission, the workers' polygons, if there are any--the worker will submit the assignment without mapping if they see no fields in the image--are cleaned to fix any topological irregularities that arose during digitization (see supporting information (SI)) and stored in a PostGIS table. The assignment that was just completed represents one of two possible types of tasks: 1) an accuracy task; 2) a labeling task for training the machine learning algorithm. If it was the former type, an `R` script is called that executes a series of map comparisons between the worker's polygons and the reference polygons, assigning a score based on the following formula:
 
 \begin{equation}
-\mathrm{score_i}=\beta0\mathrm{I}+\beta1\mathrm{O}+\beta2\mathrm{F}+\beta3\mathrm{E}+\beta4\mathrm{C}
+\mathrm{score_i}=\beta_0\mathrm{I}+\beta_1\mathrm{O}+\beta_2\mathrm{F}+\beta_3\mathrm{E}+\beta_4\mathrm{C}
 \end{equation}
 
 Where *i* represents the particular assignment, and $\beta_{0-5}$ represent varying weights that sum to 1. *I* refers to "inside the box" accuracy, *O* is the accuracy of those portions of the worker's polygons extending beyond the target grid boundaries, *F* is fragmentation accuracy, a measure of how many individual polygons the worker delineated relative to the reference, *E* measures how closely each polygon's boundary matched its corresponding reference polygon boundary, and *C* assesses the accuracy of the worker's thematic labels (see SI for individual formulae).
@@ -333,15 +333,15 @@ After scoring with the uncertainty criterion, the top *N* most uncertain grid ce
 ### Segmentation
 After the final iteration, the segmentation algorithm is invoked, which entails several steps. In the first step, the meanshift algorithm [@YizongChengMeanshiftmode1995a] is applied to the original bands of the growing season/off-growing season PlanetScope image pair. 
 
-In the second step, a Sobel filter is then applied to the green, red, and near-infrared mean-shifted bands [**I assume**], and weighted edge image is computed using weights of 1, 1, and 2 to each band for the dry season only [**or growing season?**]. A watershed algorithm (**cite**) is then run on the weighted edge image, with a high level of segmentation specified. In this case, we specified **2400** segments per tile. 
+In the second step, a Sobel filter is then applied to the green, red, near-infrared mean-shifted bands and probability map , and an combined edge image is computed using the sum of these four edge images for the dry season only. A compact watershed algorithm [@NeubertCompactWatershedPreemptiveSlic2014] is then run on the weighted edge image, with a high level of segmentation specified. In this case, we specified **6400** segments per tile. 
 
-In the third step, a region adjacency graph is constructed for each tile, in which each node represents all pixels within each polygon created in the previous step. The edge between two adjacent regions (polygons) is calculated as the difference between the means of normalized colors of all bands. Hierarchical merging is then applied, in which the most similar pairs of adjacent nodes are merged until there are no edges remaining below a predetermined threshold of **X**.  
+In the third step, a region adjacency graph is constructed for each tile, in which each node represents all pixels within each polygon created in the previous step. The edge between two adjacent regions (polygons) is calculated as the norm of the difference between the means of normalized colors of all bands. Hierarchical merging is then applied, in which the most similar pairs of adjacent nodes are merged until there are no edges remaining below a predetermined threshold of 0.05.  
 
 In the fourth step, the merged polygons are overlaid with the posterior probabilities resulting from the final active learning loop, and polygons in which the average posterior probability is greater than a predetermined  threshold (typically 0.5, but can vary locally) are retained as field polygons. 
 
-In the final step, the retained polygons are refined by removing holes and smoothing their boundaries using the Douglas-Peucker algorithm (cite). Neighboring polygon that touch along tile boundaries are merged.
+In the final step, the retained polygons are refined by removing holes and smoothing their boundaries using the Visvalingam algorithm [@VisvalingamLineGeneralisation1993]. Neighboring polygon that touch along tile boundaries are merged.
 
-To assess the accuracy of the final segmented boundaries, we used a two-step approach. First, we assessed the overall thematic accuracy of the resulting classification against our map reference data. Second, to assess the quality of the segmentation, we compared the mean area and relative frequencies of the segmented polygons within different size classes against the same metrics derived from the digitized fields of the most accurate worker to create the given map. [**Note: the following maybe better for discussion**] We selected this relatively simple procedure, as opposed to more complex measures of object accuracy (**cite**), because, on the one hand, both the automated segmentation algorithm and human interpreter are cueing in on the same features--abrupt, physically detectable breaks within the imagery. On the other hand, no matter how well the intepreted/segmented boundaries align with the boundaries of fields in the imagery, it is logistically difficult and potentially impossible to evaluate performance against the boundaries that farmers use to delineate their fields, as the conception of a "field" may vary between farmers (**cite**) and their field edges may be invisible or span multiple units that appear to a segmentation to have distinct boundaries (**see SI**). 
+To assess the accuracy of the final segmented boundaries, we used a two-step approach. First, we assessed the overall thematic accuracy of the resulting classification against our map reference data. Second, to assess the quality of the segmentation, we compared the mean area and relative frequencies of the segmented polygons within different size classes against the same metrics derived from the digitized fields of the most accurate worker to create the given map. [**Note: the following maybe better for discussion**] We selected this relatively simple procedure, as opposed to more complex measures of object accuracy [@YeReviewAccuracyAssessment2018], because, on the one hand, both the automated segmentation algorithm and human interpreter are cueing in on the same features--abrupt, physically detectable breaks within the imagery. On the other hand, no matter how well the intepreted/segmented boundaries align with the boundaries of fields in the imagery, it is logistically difficult and potentially impossible to evaluate performance against the boundaries that farmers use to delineate their fields, as the conception of a "field" may vary between farmers (**cite**) and their field edges may be invisible or span multiple units that appear to a segmentation to have distinct boundaries (**see SI**). 
 
 ## Application and evaluation of the system
 To create a map of Ghana, we divided the country into 16 distinct mapping zones, or areas of interest (AOIs), which were developed by grouping together each one degree cell (Figure 2A) fully contained with the tiles (Figure 2B) belonging to any adjacent one degree cells that overlapped with neighboring countries. The resulting AOIs ranged from 12,160 to 23,535 km$^2$ in extent (average = 15,457 km$^2$), and each was used to run a separate active learning process and to create a final segmented map. 
@@ -1001,6 +1001,8 @@ knitr::kable(size_n_tab, format = "latex", booktabs = "T", caption = cap,
 ```
 
 # Discussion
+
+
 We present here a method for developing high resolution maps that detail the characteristics of smallholder-dominated croplands, providing information on their geometries and distribution of <5 m resolution, and representing a single agricultural year. 
 
 The results 

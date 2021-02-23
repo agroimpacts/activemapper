@@ -192,7 +192,7 @@ Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their over
 
 With $\mathrm{P(\theta|D, W_i)}$ being either 0 or 1. In labelling, if the consensus result for a pixel is: $\mathrm{P(\theta = field|D)}$ > 0.5, then we assign that pixel to the field category, otherwise to the no field category. 
 
-After creating the consensus label, the degree of confidence in the resulting label value is measured by Bayes Risk:
+After creating the consensus label, the degree of confidence in the resulting label value is measured by Bayesian Risk:
 
 \begin{equation} \label{eq:pixelrisk}
 \mathrm{r=C(1 - L) + (1 - C)L}
@@ -242,7 +242,7 @@ $$
 
 Since `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj` > 0.5, we label the particular pixel a field.  
 
-Using equation \ref{eq:pixelrisk}, the corresponding risk associated with this particular pixel's label is thus `r rj * (1 - 1) + (1 - rj) * 1`. 
+Using equation \ref{eq:pixelrisk}, the corresponding risk associated with this particular pixel's label is thus `r rj * (1 - 1) + (1 - rj) * 1` (i.e., 1 - `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj`). 
 
 
 
@@ -250,6 +250,21 @@ Using equation \ref{eq:pixelrisk}, the corresponding risk associated with this p
 
 ### Accuracy assessment
 We designed and implemented a map accuracy assessment protocol following procedures summarized by @StehmanKeyissuesrigorous2019. This entailed the creation of a map reference sample, which first entailed designing a sample, and then designing how the sample response would be collected.
+
+#### Worker's assignment evaluation
+We assigned a score for each workers' assign; the score history determines the weights of each workers for creating a consensus label for each 0.005 degree resolution grid. The score for a particular assignment *i* is defined as a weighted sum of five accuracy metrics:
+$$ score_i=\beta_0\mathrm{I}+\beta_1\mathrm{O}+\beta_2\mathrm{F}+\beta_3\mathrm{E}+\beta_4\mathrm{C}$$
+Where $\beta_{0-5}$ are the weights assigned to each accuracy metric that sum to 1. For the current production version, $\beta_{0-5}$ were assigned as 0.4, 0.2, 0.2, 0.1, and 0.1.
+*I* is "inside the box" accuracy which is defined as a proportion of the area correctly mapped within a 0.005 degree resolution grid (*I_c*) over total "inside the box" area for this grid (*I_t*).
+$$ I=\frac{I_c}{I_t}$$
+*O* is "outside the box" accuracy which refers to a proportion of the field area correctly mapped outside the grid over total "outside the box" region (*O_t*, the region within the bounding box of the workers' polygons but not within 0.005 degree resolution grid).
+$$ O=\frac{O_c}{O_t}$$
+*F* is the fragmentation accuracy which is defined as a proportion of matched polygon number (*N_m*, the number of the workers' polygons that has at least 50% of its region overlapped with a reference polygon) over total workers' polygon number (*N_t*).
+$$ F=\frac{N_m}{N_t}$$
+*E* is the average edge accuracy for all pairs of matched workers and refernece polygons; the edge accuracy for a single pair is defined as the length of 'correctly mapped edges' (*L_c*, the partial boundary of a workers' polygon that are within a three-planet-pixel buffer region of the matched reference polygon boundary) over the total boundary length of its matched reference polygon (*L_t*). 
+$$ E=\frac{L_c}{L_t}$$
+*C* is the categorical accuracy, i.e., a proportion of the area that has been correctly labeled with field category within intersected regions between worker's and reference polygons (*T_c*) over the total intersecting area (*T_t*).
+$$ C=\frac{T_c}{T_t}$$
 
 #### Map reference sample design
 A reference sample should ideally have some randomization involved in the sample selection protocol, and the probabilities for a sample being included should be provided.  There are multiple sample designs that can be chosen, but we employed a stratified sampling design, using the segmented field boundaries to define the strata for field/non-field. To create the sample, we first extracted the centroids for each of the sample grid cells in Ghana. We then intersected the centroid points with the field segments, assigned a class of 1 (cropland) where points intersected a field, and 0 where they didn't (non-cropland). We then removed from this set of points all those that corresponded to model training, validation, or training reference sites. We then extracted a random sample from both the cropland and non-cropland points. To determine the sample size of each, we specified a desired confidence interval using the following formula [@StehmanKeyissuesrigorous2019]:
