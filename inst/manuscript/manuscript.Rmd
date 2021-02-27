@@ -1,5 +1,5 @@
 ---
-title: "Mapping the characteristics of small-scale agricultural systems at national extents using small sat data and an active learning approach"
+title: "High resolution, annual maps of the characteristics of small-scale croplands at national extents"
 
 author:  
 
@@ -151,7 +151,7 @@ cite_options(citation_format = "pandoc")
 \bleft
 
 # Introduction
-How much cropland is on the planet, and where is it located? How much more will be needed to meet humanity's rapidly growing food demands? The answer to the first question is unclear, as existing estimates tend to vary widely and cropland maps show substantial spatial disagreements [e.g. @FritzHighlightingcontinueduncertainty2011; @Fritzneedimprovedmaps2013], which makes it difficult to answer the second. The first question can't be clearly answered because cropland estimates rely heavily on remote sensing-derived landcover maps, which can be notoriously high in error, particularly over regions such as Africa [@Esteslargeareaspatiallycontinuous2018; @FritzComparisonglobalregional2010], where agricultural changes will be largest and the need for an accurate baseline is thus greatest [@EstesReconcilingagriculturecarbon2016; @SearchingerHighcarbonbiodiversity2015]. *[Fill in more reason why cropland maps are important]*  
+Amidst all the challenges posed by global change, a particular concern is how agriculture will adapt to meet humanity's growing food demands, and the impacts that a transforming and expanding agriculture will have on societies, economies, and environment [@searchingerCreatingSustainableFood2019]. Significant efforts are being made to address the various aspects of this challenge, including work on  diagnosing and closing yield gaps [e.g. @LickerMindgaphow2010; @lobellCropYieldGaps2009; @muellerClosingYieldGaps2012], expanding and commercializing production [@morrisAwakeningAfricaSleeping2009], and to understand [@davisTropicalForestLoss2020; @kehoeNatureRiskFuture2017; @RulliFoodappropriationlarge2014] and mitigate [@EstesReconcilingagriculturecarbon2016] agriculture's ecological impacts. The ability to answer the questions these efforts seek to address depends on data that describes the location and nature of cropland, and how that is changing over time. Unfortunately, the data that do exist are in many places inaccurate. Existing estimates of how much cropland there is tend to vary widely, and they often disagree about where cropland is located [e.g. @FritzHighlightingcontinueduncertainty2011; @Fritzneedimprovedmaps2013]. These discrepancies are due to the fact that cropland data in many regions are derived from remotey sensed landcover maps, which can be notoriously high in error, particularly over regions such as Africa [@Esteslargeareaspatiallycontinuous2018; @FritzComparisonglobalregional2010], where agricultural changes will be largest and the need for accurate baseline data is thus greatest [@EstesReconcilingagriculturecarbon2016; @SearchingerHighcarbonbiodiversity2015; @bullockThreeDecadesLand2021] 
 
 <!-- - The problem in general  -->
 <!--     - Africa in particular -->
