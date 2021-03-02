@@ -1,5 +1,5 @@
 ---
-title: "Supporting Information: Improving cropland maps through tight integration of human and machine intelligence"
+title: "Supporting Information: High resolution, annual maps of the characteristics of smallholder-dominated croplands at national scales"
 
 output:
   pdf_document:
