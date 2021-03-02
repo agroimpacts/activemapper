@@ -106,9 +106,64 @@ kable(image_qual_criteria, format = "latex", booktabs = "T", caption = cap) %>%
 
 
 ## Mapping platform
-
 ### Digitizing tools
 To minimize the risk of topological errors, *mapper*'s polygon digitizing tools prevent drawing that results in self-intersections and overlaps between adjacent polygons. Upon submission, the PostGIS [`ST_MakeValid`](https://www.postgis.net/docs/ST_MakeValid.html) function is applied to each polygon's geometry to clean remaining topological errors upon insertion into the database. 
+
+### Mapping rules
+Labellers were asked to follow a particular set of rules when digitizing field boundaries. The following rules are reproduced (with some modification to wording) from a [website](https://github.com/agroimpacts/mappingrules) that we developed to host the rules.
+
+#### Rules for interpreting and mapping imagery
+
+- **Rule 1**: Map the fields that are visible in the Planet imagery, not the fields that you see in the basemap.
+
+- **Rule 2**: Please map the fields as they appear in the off-season Planet images. If it is too hard to make these out clearly, the next choice is to map them in growing season imagery.
+
+- **Rule 3**: Use all available images (Planet scenes and base map) to help you interpret what is and is not a field. Toggling back and forth between the different image sources can help you identify and classify the field boundaries.
+
+- **Rule 4**: Map fields that intersect the mapping target, making sure to finish the entire boundary.
+
+#### Rules for classifying different types of agriculture
+
+- **Rule 5**: Choose the annual croplands category if the fields looks like they contain crops that are planted and harvested during a single year (or occasionally after a few seasons).
+
+- **Rule 6**: Fields that look like they are under tree crops, such as orchards, woodlots, or other planted forest types are agriculture, but we will not map these in the current campaign. Therefore, do not draw polygons around these types of fields. 
+
+- **Rule 7**: Choose the fallow category if the fields looks like it was an annual cropland that is somewhat overgrown, and hasn't been planted in a few seasons. [Note: this category was eventually not used, as such fields were not mapped]
+
+- **Rule 8**: Choose the field, but unsure of category if you can't tell whether the field is annual cropland, a tree crop, or fallow. Try hard to avoid this category. [Note: this category was also not used]
+
+- **Rule 9**: Choose the unsure if agricultural field or not category if you think the field might be agriculture (whether annual cropland, tree crops, or fallow), but it could also be non-agricultural land. Try hard to avoid this category also. [Note: this category was also not used]
+
+- **Rule 10**: Don't map any polygons if there is no agricultural to map, or if the fields look like they are tree crops (see updated Rule 6).
+
+### Assessing label accuracy
+For each accuracy assessment assignment, the labeller's maps are scored against  training reference polygons digitized by one of the map supervisors (e.g. Estes or Ye). A proportion of training reference sites were of the non-cropland class and thus had no corresponding polygons. 
+
+As described in the main text, the score for a particular assignment *i* is calculated as the weighted sum of five accuracy metrics:
+
+$$ score_i=\beta_0\mathrm{I}+\beta_1\mathrm{O}+\beta_2\mathrm{F}+\beta_3\mathrm{E}+\beta_4\mathrm{C}$$
+
+Where $\beta_{0-5}$ are the weights assigned to each accuracy metric that sum to 1. For the current production version, $\beta_{0-5}$ were assigned as 0.4, 0.2, 0.2, 0.1, and 0.1.
+
+*I* is "inside the box" accuracy which is defined as a proportion of the area correctly mapped within a 0.005 degree resolution grid (*I$_c$*) over total "inside the box" area for this grid (*I$_t$*). 
+
+$$ I=\frac{I_c}{I_t}$$
+
+*O* is "outside the box" accuracy which refers to a proportion of the field area correctly mapped outside the grid over total "outside the box" region (*O$_t$*, the region within the bounding box of the workers' polygons but not within 0.005 degree resolution grid).
+
+$$ O=\frac{O_c}{O_t}$$
+
+*F* is the fragmentation accuracy which is defined as a proportion of matched polygon number (*N$_m$*, the number of the workers' polygons that has at least 50% of its region overlapped with a reference polygon) over total workers' polygon number (*N$_t$*).
+
+$$ F=\frac{N_m}{N_t}$$
+
+*E* is the average edge accuracy for all pairs of matched workers and reference polygons; the edge accuracy for a single pair is defined as the length of 'correctly mapped edges' (*L$_c$*, the partial boundary of a workers' polygon that are within a three-pixel buffer region of the matched reference polygon boundary) over the total boundary length of its matched reference polygon (*L$_t$*).
+
+$$ E=\frac{L_c}{L_t}$$
+
+*C* is the categorical accuracy, i.e., a proportion of the area that has been correctly labeled with field category within intersected regions between worker's and reference polygons (*T$_c$*) over the total intersecting area (*T$_t$*).
+
+$$ C=\frac{T_c}{T_t}$$
 
 ### Consensus labelling
 As described in the main text, the formula used for creating a consensus label is: 
@@ -117,7 +172,7 @@ As described in the main text, the formula used for creating a consensus label i
 \mathrm{P(\theta|D)=\sum_{i=1}^{n}P(W_i|D)P(\theta|D, W_i)}
 \end{equation}
 
-Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W$_i$* is an individual worker.  Looking in greater details at this equation, the first half of the righthand side of the equation, P(W$_i$|D), is the "prior" for worker *i* for the current site based on their history of scores from prior accuracy assessment assignments. The second term, P($\theta$|D, W$_i$), is the probability that the actual class of the pixel in the current assignment is the class that worker *i*'s says that it is, which is either 0 or 1. There are four possible values for this second term:
+Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W$_i$* is an individual worker.  Looking in greater details at this equation, the first half of the righthand side of the equation, P(W$_i$|D), is the "prior" for worker *i* for the current site based on their history of scores from accuracy assessment assignments. The second term, P($\theta$|D, W$_i$), is the probability that the actual class of the pixel in the current assignment is the class that worker *i*'s says that it is, which is either 0 or 1. There are four possible values for this second term:
 
 \begin{equation} \label{eq:tp}
 P(\theta = field|D_i = field) = 1
@@ -205,8 +260,9 @@ Where *C* is the consensus probability that a given pixel is a field ($\mathrm{P
 knitr::include_graphics('figures/si_label_risk.png')
 ```
 
-#### Example
+Accuracy assessment and consensus label generation is performed using an `R` package `rmapaccuracy` that is internal to the labelling platform. The package relies on spatial data classes and operations provided by the `sf` [@pebesmaSimpleFeaturesStandardized2018] and `raster` [@hijmansRasterGeographicData2020] packages.   
 
+#### Example
 To provide an example of this approach in practice, we'll imagine two workers A and B, each with the following histories:
 
 ```{r, echo = FALSE}
@@ -229,7 +285,6 @@ Weight_A = score_A * PA_A(field) = P(W_A)P(D=field|W_A) = `r sc[1, 2]` * `r sc[1
 $$
 
 
-
 $$
 Weight_B = score_B * PA_B(field) = P(W_B)P(D=no field|W_B) = `r sc[2, 3]` * `r sc[2, 4]` = `r wtB`
 $$
@@ -248,35 +303,8 @@ Using equation \ref{eq:pixelrisk}, the corresponding risk associated with this p
 ### Accuracy assessment
 We designed and implemented a map accuracy assessment protocol following procedures summarized by @StehmanKeyissuesrigorous2019. This entailed the creation of a map reference sample, which first entailed designing a sample, and then designing how the sample response would be collected.
 
-#### Worker's assignment evaluation
-We assigned a score for each workers' assign; the score history determines the weights of each workers for creating a consensus label for each 0.005 degree resolution grid. The score for a particular assignment *i* is defined as a weighted sum of five accuracy metrics:
-
-$$ score_i=\beta_0\mathrm{I}+\beta_1\mathrm{O}+\beta_2\mathrm{F}+\beta_3\mathrm{E}+\beta_4\mathrm{C}$$
-
-Where $\beta_{0-5}$ are the weights assigned to each accuracy metric that sum to 1. For the current production version, $\beta_{0-5}$ were assigned as 0.4, 0.2, 0.2, 0.1, and 0.1.
-
-*I* is "inside the box" accuracy which is defined as a proportion of the area correctly mapped within a 0.005 degree resolution grid (*I$_c$*) over total "inside the box" area for this grid (*I$_t$*). 
-
-$$ I=\frac{I_c}{I_t}$$
-
-*O* is "outside the box" accuracy which refers to a proportion of the field area correctly mapped outside the grid over total "outside the box" region (*O$_t$*, the region within the bounding box of the workers' polygons but not within 0.005 degree resolution grid).
-
-$$ O=\frac{O_c}{O_t}$$
-
-*F* is the fragmentation accuracy which is defined as a proportion of matched polygon number (*N$_m$*, the number of the workers' polygons that has at least 50% of its region overlapped with a reference polygon) over total workers' polygon number (*N$_t$*).
-
-$$ F=\frac{N_m}{N_t}$$
-
-*E* is the average edge accuracy for all pairs of matched workers and refernece polygons; the edge accuracy for a single pair is defined as the length of 'correctly mapped edges' (*L$_c$*, the partial boundary of a workers' polygon that are within a three-planet-pixel buffer region of the matched reference polygon boundary) over the total boundary length of its matched reference polygon (*L$_t$*).
-
-$$ E=\frac{L_c}{L_t}$$
-
-*C* is the categorical accuracy, i.e., a proportion of the area that has been correctly labeled with field category within intersected regions between worker's and reference polygons (*T$_c$*) over the total intersecting area (*T$_t$*).
-
-$$ C=\frac{T_c}{T_t}$$
-
 #### Map reference sample design
-A reference sample should ideally have some randomization involved in the sample selection protocol, and the probabilities for a sample being included should be provided.  There are multiple sample designs that can be chosen, but we employed a stratified sampling design, using the segmented field boundaries to define the strata for field/non-field. To create the sample, we first extracted the centroids for each of the sample grid cells in Ghana. We then intersected the centroid points with the field segments, assigned a class of 1 (cropland) where points intersected a field, and 0 where they didn't (non-cropland). We then removed from this set of points all those that corresponded to model training, validation, or training reference sites. We then extracted a random sample from both the cropland and non-cropland points. To determine the sample size of each, we specified a desired confidence interval using the following formula [@StehmanKeyissuesrigorous2019]:
+We employed a stratified design for collecting the map reference sample, using the segmented field boundaries to define the strata for cropland/non-cropland. To create the sample, we first extracted the centroids for each of the sample grid cells in Ghana. We then intersected the centroid points with the field segments, assigned a class of 1 (cropland) where points intersected a field, and 0 where they didn't (non-cropland). We removed from this set of points all those that corresponded to model training, validation, or training reference sites, and extracted a random sample from both the cropland and non-cropland points. To determine the sample size of each, we specified a desired confidence interval using the following formula [@StehmanKeyissuesrigorous2019]:
 
 $$n = \frac{z^2p(1-p)}{d^2}$$
         
@@ -287,51 +315,20 @@ knitr::include_graphics('figures/si_map_reference_sample.png')
 ```
 
 #### Response design
+We collected the map reference sample on a separate instance of the labelling platform set up for the purpose. For the sampling unit, we selected a rectangular polygon of ~0.1 ha (0.0002866$^\circ$ resolution). This polygon was centered on the centroid of each grid cell selected for map reference sample, and was presented as the target grid in the labelling platform. Four classes were established for the validation: **cropland**, **non-cropland**, **uncertain but likely cropland**, and **uncertain but likely non-cropland**. The latter two classes were designed to capture information related to swidden dynamics, following the rationale that uncertainty and time since last cropping are likely to be positively correlated. This uncertainty also captures information about the inherent difficulty of the mapping task. Samples were collected by visually interpreting the overlays of PlanetScope composites, following the same interpretation protocols used by the labelling team, with the exception that the polygons placed were square and of 0.0002866$^\circ$ resolution. 
 
-##### Stage 1
-We collected the map reference sample on a separate instance of `labeller` set up for the purpose (`validator.crowdmapper.org`). For the sampling unit, we selected a rectangular polygon of ~0.1 ha (0.0002866$^\circ$ resolution), centered on the centroid of each grid cell selected for map reference sample.  Four classes were established for the validation: **cropland**, **non-cropland**, **uncertain but likely cropland**, and **uncertain but likely non-cropland**. The latter two classes were designed to capture information related to swidden dynamics, following the rationale that uncertainty and time since last cropping are likely to be positively correlated. This uncertainty also captures information about the inherent difficulty of the mapping task. Samples were collected by visually interpreting the overlays of PlanetScope composites presented in `labeller`, following the same interpretation protocols used by the labelling team, with the exception that the polygons placed were square and of 0.0002866$^\circ$ resolution. 
+Two supervisors (Ye and Estes) who were not involved in labelling developed the map reference sample evaluated the PlanetScope composites at each site to determine its class membership. The following set of rules were followed in collecting the sample:
 
-The map reference sample was first placed and defined in an initial stage. In this stage, the class of the initial square polygon was determined, and then the polygon was adjusted if it overlapped more than one class. In sites where the initial map reference grid fell on one of the two uncertain classes, a second polygon was placed in the nearest location where a definite cropland or non-cropland interpretation could be made, with the choice determined by whether the uncertain class was more likely cropland or not cropland. The uncertain class was only used for providing insight into fallow cycles, while the second, more certain polygon was used in a second stage of the map reference sample, which was given to multiple independent interpreters (see below). 
-
-The following set of rules were followed in this first, sample placing phase (undertaken by Lyndon Estes):
-
-1. When determining the class corresponding with the initial location of the target grid, IF:
-  - More than half of the target falls within what appears to be a clear arable crop field, then assign it to **cropland**. 
-  - More than half falls in what is clearly not a field, then assign it to **non-cropland**. 
+1. When determining the class corresponding with the initial location of the target grid, if:
+  - More than half of the target falls within what appears to be a clear arable crop field, then classify it as **cropland**; 
+  - More than half falls in what is clearly not a field, then classify it as **non-cropland**; 
   - More than half falls in a location where it is harder to tell whether it is cropland or non-cropland, determine whether it is more likely a crop field or not a crop field, and then assign either **uncertain but likely cropland**, or **uncertain but likely non-cropland**.
   
-2. After determining the class, IF:
-  a. The target polygon is contained entirely within a single clear class AND
-      - The class is either **cropland** or **non-cropland** THEN:
-        - Digitize a point within the center of the target box, assign appropriate class, and complete the assignment
-      - The class belongs to one of the two **uncertain** classes THEN:
-      
-        - Digitize a square aligned exactly with the initial target polygon, and choose the class **cropland** or **non-cropland** (following the most likely interpretation) and move the new polygon to the nearest location where it can be contained entirely within that clear **cropland** or **non-cropland** class;
-        
-        - Digitize a point in the middle of the target polygon, and assign it the appropriate label: **cropland** or **non-cropland**. 
-        
-  b. The target polygon partially overlaps a second class AND:
-      - That class is either **cropland** or **non-cropland** THEN:
-      
-        - Digitize a square aligned exactly with the target polygon, assign the appropriate class, and move the box to the nearest location (shortest possible distance) where it can be contained entirely within that same class.  
-  
-      - That class is **uncertain** THEN:
-    
-        - Digitize a square aligned exactly with the target polygon, assign the appropriate **uncertain** class, then move the box to the nearest location (shortest possible distance) where it can be contained entirely within that same **uncertain** class.
-        - Digitize a second square aligned exactly with the initial target polygon, and choose the class **cropland** or **non-cropland** (following the most likely interpretation) and move the new polygon to the nearest location where it can be contained entirely within that clear **cropland** or **non-cropland** class.
-  
+2. After determining the class, if
+  - The target polygon is contained entirely within a single clear class, then simply digitize a point within the center of the target box, assign the appropriate class label, and complete the assignment;
+  - Digitize a square polygon exactly aligned with the initial target, choose the correct class label, and then move the new polygon to the nearest location where it can be contained entirely by the assigned class.
 
-We then 
-  - Definition of spatial assessment
-  - Definition of classes
-  - Reference source
-  - Specific information collected from each source
-  - Rules for reference class labels
-  - How agreement between map and reference classes is defined
-
-##### Stage 2
-
-
+After collecting the sample, the geometries were further refined by converting the points (sites were the target didn't have to be shifted) to polygons with the same  0.0002866$^\circ$ resolution, and then the full set of map reference polygons was used to extract the classified values from both the cropland probability and vectorized field boundary maps.  
 
 \clearpage
 # Results
@@ -358,7 +355,7 @@ The distributions of the initial 500 sites used to train the RandomForest model 
 knitr::include_graphics('figures/si_training_validation_pts.png')
 ```
 
-The distribution of data collection effort and scores from training reference sites by labelling team (Figure \ref{fig:trainqual}). These results include those from repeat labelling of the initial training in Cluster 2. This was done because we discovered a small spatial offset in the original image composites, which we corrected by reprocessing the images. We replaced the image overlays in the instance for Cluster 2 \ref{fig:trainval}A), and the labelling team mapped these sites a second time during the production run in late 2019. The reprocessed labels were used to initially train the model for AOIs 9, 12, and 15.
+The distribution of data collection effort and scores from training reference sites by labelling team are shown in Figure \ref{fig:trainqual}. These results include those from re-labelling the initial training in Cluster 2 (AOIs 7-9, 12, 15). This was done because we discovered a small spatial offset in the original image composites, which we corrected by reprocessing the images. We replaced the image overlays in the instance for central-southeast \ref{fig:trainval}A), and the labelling team mapped these sites a second time during the production run in late 2019. The reprocessed labels were used to initially train the model for AOIs 9, 12, and 15.
 
 ```{r trainqual, echo = FALSE, out.width="60%", fig.cap="The A) distributions of scores at training reference sites for each labeller (means indicated by X in boxplots), and B) the number of training and training reference sites completed by each labeller. Labellers' identities are anonymized.", fig.align='center', message=FALSE, results='hold'}
 knitr::include_graphics('figures/si_training_qual_n.png')
@@ -462,7 +459,7 @@ observer_r <- cor.test(class_mat[, 1], class_mat[, 2], method = "spearman")
 
 ```
 
-The total validation sample was `r sum(ref_ct)`, with `r ref_ct[2]` samples collected and interpreted by one observer (Su Ye) and `r ref_ct[1]` collected by a second observer (Estes). To evaluate the uncertainty inherent in defining the map reference labels, the pair mapped `r sum(usertab)` common sites, showing an overall level of agreement of `r agreement`%, and a Spearman Rank Correlation of `r round(unname(observer_r$estimate), 2)`. 
+The size of the collected validation sample was `r sum(ref_ct)`, with `r ref_ct[2]` samples collected and interpreted by one observer (Su Ye) and `r ref_ct[1]` collected by a second observer (Estes). To evaluate the uncertainty inherent in defining the map reference labels, the pair mapped `r sum(usertab)` common sites, showing an overall level of agreement of `r agreement`%, and a Spearman Rank Correlation of `r round(unname(observer_r$estimate), 2)`. 
 
 Although this overlap between observers was limited, the map reference classification scheme provided two additional measures of uncertainty, which were classes defined as "unsure but most likely a field" or "unsure but most likely not a field", which the reference labeller would choose when they could not with high confidence state whether the site was either cropland or not cropland. Of the `r sum(crp_ct$n)` map reference samples that were identified as cropland, `r round(crp_ct$n[2] / sum(crp_ct$n) * 100, 1)`% fell into the lower confidence category, as did `r round(noncrp_ct$n[2] / sum(noncrp_ct$n) * 100, 1)`% of the `r sum(noncrp_ct$n)` non-cropland samples. Across both classes, the reference labellers had lower confidence in `r round(sum(crp_ct$n[2], noncrp_ct$n[2]) / sum(ref_ct) * 100, 1)` of sites labelled.
 
