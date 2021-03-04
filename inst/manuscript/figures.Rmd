@@ -532,7 +532,6 @@ qsites <- instance_tbls$kml_data %>%
 
 train_val_q <- rbind(train_val_sites$initial %>% select(-iteration), qsites)
       
-
 # initial train cluster panel
 xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
@@ -543,6 +542,12 @@ p1 <- ggplot(africa) +
   geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) +
   geom_sf(data = train_val_q, aes(color = Cluster, fill = Cluster), 
           size = 0.05) +   
+  geom_sf_text(data = st_centroid(aez) %>% filter(ID != 8) %>% arrange(ID),
+               aes(label = ID), 
+               nudge_x = c(0.75, 0, 0, -1.25, -1, -1.25, 0),
+               nudge_y = c(0.25, 0, 0, 0.7, 0.25, 1, 0),
+               size = 3, col = "grey60") + 
+  geom_sf(data = aez, fill = "transparent", color = "gray60", size = 0.25) +
   scale_color_manual(values = pal) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   guides(colour = guide_legend(override.aes = list(size = 1, fill = NA))) + 
@@ -551,8 +556,14 @@ p1 <- ggplot(africa) +
 
 pal <- c(RColorBrewer::brewer.pal(n = 4, "Spectral"), "white")
 p2 <- ggplot(africa) + geom_sf(fill = "gray97", color = "grey", size = 0.25) +
-  geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) + 
+  geom_sf(data = aois, fill = "grey85", col = "black", size = 0.3) +
   geom_sf(data = train_val_sites$active, aes(color = Type), size = 0.05) +
+  geom_sf_text(data = st_centroid(aez) %>% filter(ID != 8) %>% arrange(ID),
+               aes(label = ID), 
+               nudge_x = c(0.75, 0, 0, -1.25, -1, -1.25, 0),
+               nudge_y = c(0.25, 0, 0, 0.7, 0.25, 1, 0),
+               size = 3, col = "grey60") + 
+  geom_sf(data = aez, fill = "transparent", color = "gray60", size = 0.25) +
   scale_color_manual(values = pal) +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) +
   guides(colour = guide_legend(override.aes = list(size = 1, fill = NA))) + 

@@ -112,29 +112,27 @@ To minimize the risk of topological errors, *mapper*'s polygon digitizing tools 
 ### Mapping rules
 Labellers were asked to follow a particular set of rules when digitizing field boundaries. The following rules are reproduced (with some modification to wording) from a [website](https://github.com/agroimpacts/mappingrules) that we developed to host the rules.
 
-#### Rules for interpreting and mapping imagery
+#### Interpreting and mapping imagery
 
-- **Rule 1**: Map the fields that are visible in the Planet imagery, not the fields that you see in the basemap.
+- Map the fields that are visible in the PlanetScope images, not the fields that you see in the basemap.
 
-- **Rule 2**: Please map the fields as they appear in the off-season Planet images. If it is too hard to make these out clearly, the next choice is to map them in growing season imagery.
+- As the first choice, map the field outlines as they appear in the dry season PlanetScope images. If a field is not clearly visible in the dry season image, but is visible in the growing season image, then the next choice is to map it in the growing season image.
 
-- **Rule 3**: Use all available images (Planet scenes and base map) to help you interpret what is and is not a field. Toggling back and forth between the different image sources can help you identify and classify the field boundaries.
+- Use all available images (PlanetScope scenes and base map) to help you interpret what is and is not a field. Toggling back and forth between the different image sources can help identify and classify the field boundaries.
 
-- **Rule 4**: Map fields that intersect the mapping target, making sure to finish the entire boundary.
+- Map fields that intersect the mapping target, making sure to finish the entire boundary.
 
-#### Rules for classifying different types of agriculture
+#### Choosing what to map
 
-- **Rule 5**: Choose the annual croplands category if the fields looks like they contain crops that are planted and harvested during a single year (or occasionally after a few seasons).
+- Draw polygons around fields that look like they contain crops that are planted and harvested during a single year (or occasionally slightly longer, in the case of crops such as sugarcane). These fields may look recently ploughed or harvested, or contain actively growing crops. 
 
-- **Rule 6**: Fields that look like they are under tree crops, such as orchards, woodlots, or other planted forest types are agriculture, but we will not map these in the current campaign. Therefore, do not draw polygons around these types of fields. 
+- Do not draw polygons around fields that are under tree crops, such as orchards, woodlots, or other planted forest types. 
 
-- **Rule 7**: Choose the fallow category if the fields looks like it was an annual cropland that is somewhat overgrown, and hasn't been planted in a few seasons. [Note: this category was eventually not used, as such fields were not mapped]
+- Do not draw polygons around fields that look like they are annual croplands, but are overgrown and haven't been planted for a few years. These are possibly fallows or abandoned fields.
 
-- **Rule 8**: Choose the field, but unsure of category if you can't tell whether the field is annual cropland, a tree crop, or fallow. Try hard to avoid this category. [Note: this category was also not used]
+- Do not draw polygons if you cannot tell whether a piece of land is an annual crop field or if it is perhaps another type of land cover (e.g. bare land, or a young orchard). 
 
-- **Rule 9**: Choose the unsure if agricultural field or not category if you think the field might be agriculture (whether annual cropland, tree crops, or fallow), but it could also be non-agricultural land. Try hard to avoid this category also. [Note: this category was also not used]
-
-- **Rule 10**: Don't map any polygons if there is no agricultural to map, or if the fields look like they are tree crops (see updated Rule 6).
+- Do not draw any polygons if there are no annual crop fields to map.
 
 ### Assessing label accuracy
 For each accuracy assessment assignment, the labeller's maps are scored against  training reference polygons digitized by one of the map supervisors (e.g. Estes or Ye). A proportion of training reference sites were of the non-cropland class and thus had no corresponding polygons. 
@@ -310,7 +308,7 @@ $$n = \frac{z^2p(1-p)}{d^2}$$
         
 Where p is the estimated probability (or mapped class accuracy), and d is the size of the margin of error (1/2 the confidence interval). We selected a d value of 0.03 and assumed that the user's accuracy of the field class would be 0.75 and that of the non-cropland class would be 0.8, returning sample sizes of 800 and 683, respectively. The distribution of the resulting map reference sample is shown in Figure \ref{fig:refsample}.
 
-```{r refsample, echo = FALSE, fig.align='center', out.width="80%", message=FALSE, warning=FALSE, fig.cap="Distribution of the selected map reference sample for the cropland and non-cropland class. "}
+```{r refsample, echo = FALSE, fig.align='center', out.width="80%", message=FALSE, warning=FALSE, fig.cap="Distribution of the selected map reference sample for the cropland and non-cropland class. Classes represent the values extracted from the map strata, rather than those assigned during the classification of the sample."}
 knitr::include_graphics('figures/si_map_reference_sample.png')
 ```
 
@@ -351,7 +349,7 @@ The image quality assessment was conducted by two separate observers (L. Song an
 ## Active learning process
 ### Labelling
 The distributions of the initial 500 sites used to train the RandomForest model for each AOI are shown in Figure \ref{fig:trainval}. In AOI 3, the initial active learning cycle resulted in low accuracy because the northern part of the AOI shows low contrast between fields and the surrounding vegetation in the dry season. Training the model with the initial 500 samples resulted in large commission errors in this part of the AOI, thus we ran a second active learning cycle that began with an inital random draw of 300 training sites confined to this AOI (blue points in Figure \ref{fig:trainval}A)
-```{r trainval, echo = FALSE, out.width="80%", fig.cap="The distribution of A) initial randomly selected training sites, including 300 points selected within AOI 3 to retrain a second active learning run for this region, as well as the locations of training reference sites, and B) validation points and training sites selected during each active learning iteration.", fig.align='center', message=FALSE, results='hold'}
+```{r trainval, echo = FALSE, out.width="80%", fig.cap="The distribution of A) initial randomly selected training sites, including 300 points selected within AOI 3 to retrain a second active learning run for this region, as well as the locations of training reference sites, and B) validation points and training sites selected during each active learning iteration. Grey background lines indicate the boundaries of Ghana's agroecozones, with the grey numbers indicating the agroecoregion ID: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.", fig.align='center', message=FALSE, results='hold'}
 knitr::include_graphics('figures/si_training_validation_pts.png')
 ```
 
