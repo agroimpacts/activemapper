@@ -21,7 +21,7 @@ classoption: a4paper
 capsize: normalsize
 fontsize: 11pt
 geometry: margin=1in
-linenumbers: false
+linenumbers: yes
 spacing: doublespacing
 # abstract: The abstract can go either here or below
 keywords: rmarkdown, reproducible science
@@ -141,7 +141,7 @@ As described in the main text, the score for a particular assignment *i* is calc
 
 $$ score_i=\beta_0\mathrm{I}+\beta_1\mathrm{O}+\beta_2\mathrm{F}+\beta_3\mathrm{E}+\beta_4\mathrm{C}$$
 
-Where $\beta_{0-5}$ are the weights assigned to each accuracy metric that sum to 1. For the current production version, $\beta_{0-5}$ were assigned as 0.4, 0.2, 0.2, 0.1, and 0.1.
+Where $\beta_{0-4}$ are the weights assigned to each accuracy metric that sum to 1. For the current production version, $\beta_{0-4}$ were assigned as 0.4, 0.2, 0.2, 0.1, and 0.1.
 
 *I* is "inside the box" accuracy which is defined as a proportion of the area correctly mapped within a 0.005 degree resolution grid (*I$_c$*) over total "inside the box" area for this grid (*I$_t$*). 
 
@@ -170,7 +170,7 @@ As described in the main text, the formula used for creating a consensus label i
 \mathrm{P(\theta|D)=\sum_{i=1}^{n}P(W_i|D)P(\theta|D, W_i)}
 \end{equation}
 
-Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W$_i$* is an individual worker.  Looking in greater details at this equation, the first half of the righthand side of the equation, P(W$_i$|D), is the "prior" for worker *i* for the current site based on their history of scores from accuracy assessment assignments. The second term, P($\theta$|D, W$_i$), is the probability that the actual class of the pixel in the current assignment is the class that worker *i*'s says that it is, which is either 0 or 1. There are four possible values for this second term:
+Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W$_i$* is an individual worker.  Looking in greater details at this equation, the first half of the righthand side of the equation, P(W$_i$|D), is the "prior" for worker *i* for the current site based on their history of scores from accuracy assessment assignments. The second term, P($\theta$|D, W$_i$), is the probability that the actual class of the pixel in the current assignment is the class that worker *i* says that it is, which is either 0 or 1. There are four possible values for this second term:
 
 \begin{equation} \label{eq:tp}
 P(\theta = field|D_i = field) = 1
@@ -228,16 +228,16 @@ Which is the worker maximum likelihood, which can be computed as:
 \mathrm{P(\theta = no field|\hat{\theta}, M_I) = P(D = no field|\theta = no field, M_I) = \frac{1}{m}\left(\sum_{j}^{m}\frac{tn_j}{tn_j + fp_j} \right)}
 \end{equation}
 
-Equations \ref{eq:pacc1} and \ref{eq:pacc2} are producer's accuracies, thus the maximum worker likelihood is equivalent to the worker's average producer's accuracy. 
+Equations \ref{eq:pacc1} and \ref{eq:pacc2} are Producer's accuracies, thus the maximum worker likelihood is equivalent to the worker's average Producer's accuracy. 
 
 <!-- \ref{eq:prior} represents "mapper likelihood" for the current map: -->
 
-The other component of equation \ref{eq:prior}, P(W$_i$), is the worker's average score over *m* accuracy assessment assignment:  
+The other component of equation \ref{eq:prior}, P(W$_i$), is the worker's average score over *m* accuracy assessment assignments:  
 \begin{equation} 
 \mathrm{P(W_i) \propto \frac{1}{m}\sum_{j=1}^{m}score_j}
 \end{equation}
 
-Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their overall average accuracy score multipled by 2) their average producer's accuracy to create a *weight* for their individual maps for the given site. Equation \ref{eq:main} becomes:
+Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their overall average accuracy score multipled by 2) their average Producer's accuracy to create a *weight* for their individual maps for the given site. Equation \ref{eq:main} becomes:
 
 \begin{equation} 
 \mathrm{P(\theta|D)=\frac{\sum_{i=1}^{n}weight_iP(\theta|D, W_i)}{\sum_{i=1}^{n}weight_i}}
@@ -277,7 +277,6 @@ knitr::kable(sc, align = c("r", "c", "c"), format = "pandoc")
 
 In this scenario, worker A thinks that the given pixel falls within a field, and worker B thinks it is not a field.  First, we calculate the weights for each worker:
 
-\clearpage
 $$
 Weight_A = score_A * PA_A(field) = P(W_A)P(D=field|W_A) = `r sc[1, 2]` * `r sc[1, 4]` = `r wtA`
 $$
@@ -366,7 +365,7 @@ knitr::include_graphics('figures/si_label_risk_map.png')
 ```
 
 
-```{r labelriskhist, echo = FALSE, out.width="45%", fig.cap="The distribution of Bayesian Risk values for training (left column) and validation (right column) sites in each AOI, with the average value indicated by vertical lines. The first three rows (panel titles beginning with 'Cl') indicate distributions of Bayes Risk in the initial training clusters, including the first ('Cl2a') and second ('Cl2b') mappings of Cluster 2.", fig.align='center', message=FALSE, results='hold'}
+```{r labelriskhist, echo = FALSE, out.width="40%", fig.cap="The distribution of Bayesian Risk values for training (left column) and validation (right column) sites in each AOI, with the average value indicated by vertical lines. The first three rows (panel titles beginning with 'Cl') indicate distributions of Bayes Risk in the initial training clusters, including the first ('Cl2a') and second ('Cl2b') mappings of Cluster 2.", fig.align='center', message=FALSE, results='hold'}
 knitr::include_graphics('figures/si_label_risk_hists.png')
 ```
 
