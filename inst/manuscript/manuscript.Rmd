@@ -26,61 +26,61 @@ author:
   affilnum: '1'
 
 - name: D. McRitchie
-  affilnum: ''
+  affilnum: '4'
 
 - name: S. Debats
-  affilnum: ''
+  affilnum: '4'
 
 - name: J. Muhando
-  affilnum: '4'
-
-- name: A. Hokar
-  affilnum: '4'
-
-- name: C. Juma 
-  affilnum: '4'
-
-- name: J. Makuru
-  affilnum: '4'
-
-- name: F. Matasa
-  affilnum: '4'
-
-- name: B. Mbatia
-  affilnum: '4'
-
-- name: J. Mbaye
-  affilnum: '4'
-
-- name: I. Muasa
-  affilnum: '4'
-
-- name: J. Mucha
-  affilnum: '4'
-
-- name: A. Mugami
-  affilnum: '4'
-
-- name: P. Oduor
-  affilnum: '4'
-
-- name: J. Ochieng
-  affilnum: '4'
-
-- name: F. Wambua
-  affilnum: '4'
-
-- name: T. Wanjiku
-  affilnum: '4'
-
-- name: J. Wanyoike 
-  affilnum: '4'
-
-- name: R. Avery
   affilnum: '5'
 
+- name: A. Hokar
+  affilnum: '5'
+
+- name: C. Juma 
+  affilnum: '5'
+
+- name: J. Makuru
+  affilnum: '5'
+
+- name: F. Matasa
+  affilnum: '5'
+
+- name: B. Mbatia
+  affilnum: '5'
+
+- name: J. Mbaye
+  affilnum: '5'
+
+- name: I. Muasa
+  affilnum: '5'
+
+- name: J. Mucha
+  affilnum: '5'
+
+- name: A. Mugami
+  affilnum: '5'
+
+- name: P. Oduor
+  affilnum: '5'
+
+- name: J. Ochieng
+  affilnum: '5'
+
+- name: F. Wambua
+  affilnum: '5'
+
+- name: T. Wanjiku
+  affilnum: '5'
+
+- name: J. Wanyoike 
+  affilnum: '5'
+
+- name: R. Avery
+  affilnum: '6'
+
 - name: K. Caylor
-  affilnum: '5,6,7'
+  affilnum: '6,7,8'
 
 affiliation:
 
@@ -94,15 +94,18 @@ affiliation:
   affil: Clark Labs, Clark University, Worcester, MA, USA
 
 - affilnum: 4
-  affil: SpatialCollective, Nairobi, Kenya
+  affil: Independent contributor
 
 - affilnum: 5
-  affil: Department of Geography, University of California Santa Barbara, Santa Barbara, CA, USA
+  affil: SpatialCollective, Nairobi, Kenya
 
 - affilnum: 6
-  affil: Earth Research Institute, University of California Santa Barbara, Santa Barbara, CA, USA
-
+  affil: Department of Geography, University of California Santa Barbara, Santa Barbara, CA, USA
+  
 - affilnum: 7
+  affil: Earth Research Institute, University of California Santa Barbara, Santa Barbara, CA, USA
+  
+- affilnum: 8
   affil: Bren School of Environmental Science and Management, University of California Santa Barbara, Santa Barbara, CA, USA
 
 output:
@@ -127,12 +130,13 @@ classoption: a4paper
 capsize: normalsize
 fontsize: 11pt
 geometry: margin=1in
-linenumbers: yes
+linenumbers: no
 spacing: doublespacing
-footerdate: yes
+footerdate: no
+note: This paper is a non-peer reviewed preprint submitted to EarthArXiv. It will be periodically updated as it is revised, including information on its peer review status. 
 abstract: Understanding agricultural change requires reliable, frequently updated maps that describe the characteristics of croplands. Such data are often unavailable for regions dominated by smallholder agricultural systems, which are particularly challenging for remote sensing. To overcome these challenges, we designed a system to minimize several sources of error that arise when mapping smallholder croplands. To overcome errors caused by mismatches between image resolution and cropland scales, as well as persistent cloud cover, the system converts daily, 3.7 m PlanetScope imagery into two seasonal composites within a single agricultural year. To reduce errors that occur when training classifiers, we built a labelling platform that rigorously assesses label accuracy, and creates more accurate consensus labels that train a Random Forests model. The labelling platform and model interact within an active learning process that boosts the accuracy of the resulting cropland probability map, which is used in a segmentation process to delineate individual field boundaries. We applied this system to map Ghana’s croplands for the year 2018. We divided Ghana into 16 mapping regions (12,160-23,535 km$^2$), training separate models for each using a total of 6,299 labels, plus 1,600 for validation. Using an independent map reference sample (n=1,207), we found that overall accuracies of the resulting cropland probability and field boundary maps were 88% and 86.7%, respectively, with User’s accuracies for the cropland class of 61.2% and 78.9%, and Producer’s accuracies of 67.3% and 58.2%. Croplands covered 16.1-23.2% of the mapped area, comprising 1,131,146 total fields with an average size of 3.92 ha. Estimates based on the map reference sample indicate the cropland percentage is 17.1% (15.4-18.9%) or 17.6% (15.6-19.6%), depending on the map used to estimate the standard error. Using the labellers’ digitized field boundaries to estimate biases in field boundary statistics, we calculated an adjusted mean field size of 1.73 ha and total field count of 1,662,281. Although the cropland class contained substantial errors, the system was effective in mitigating error and quantifying resulting performance gains. By minimizing training errors, consensus labelling improved the model’s F1 scores by up to 25%, while 3 iterations of active learning increased the F1 score by 9.1%, on average, which was 2.3% higher than training models with randomly selected labels. Map accuracy can be improved by replacing Random Forests with a convolutional neural network. These results demonstrate a readily adapted, transferrable framework for developing high resolution, annual, nation-scale maps that provide important details about smallholder-dominated croplands. 
 
-keywords: active learning, CubeSat, smallholder, cropland, segmentation, Ghana, consensus labels, machine learning
+keywords: active learning, machine learning, CubeSat, PlanetScope, smallholder, cropland, segmentation, field size, consensus labels, Ghana, Africa
 
 bibliography: 
   - references.bib
@@ -1106,7 +1110,7 @@ Another potential issue is the degree to which our assessment of the impact of l
 ## Next steps
 The maps presented here represent a version 1 product that is freely available to use, along with its underlying code. These data were developed according to the recommended best practices for training and assessing error in machine learning models [@ElmesAccountingtrainingdata2020]. In their current form, the maps may be useful for a variety of research applications. For example, analyzing the distributions of values in the probability maps may provide additional insight into the relative extents of active versus fallow croplands [@Tongforgottenlanduse2020]. However, use of these data, particularly for decision-making processes (e.g. cropped area estimates), should be careful to account for the reported errors [@OlofssonGoodpracticesestimating2014; @StehmanKeyissuesrigorous2019].
 
-To facilitate the next step, generating more accurate version 2 maps, several improvements will be made. The first is to replace Random Forests with a more advanced convolutional neural network (CNN), which can generate and learn from a large number of features representing a variety of spatial scales [@maDeepLearningRemote2019]. Recent work suggests that a common architecture such as U-Net, when trained to distinguish field edges from interiors and combined with a post-hoc segmentation routine, is effective in delineating field boundaries [@waldnerDeepLearningEdge2020]. Our system can readily incorporate such a model. The labelling platform already provides the methods needed to develop and assess the quality of labels that include field edges and interior classes, while active learning has proven to be effective for training deep learning models [@caoHyperspectralImageClassification2020; @liuActiveDeepLearning2017]. Our current framework can be adjusted so that it starts by training a CNN from scratch with a large initial random sample, and then uses a transfer learning approach [@panSurveyTransferLearning2010] to update the model with the most informative samples from different AOIs or agroecozones.
+To facilitate the next step, generating more accurate version 2 maps, several improvements will be made. The first is to replace Random Forests with a more advanced convolutional neural network (CNN), which can generate and learn from a large number of features representing a variety of spatial scales [@maDeepLearningRemote2019]. Recent work suggests that a common architecture such as U-Net, when trained to distinguish field edges from interiors and combined with a post-hoc segmentation routine, is effective in delineating field boundaries [@waldnerDeepLearningEdge2020]. Our system can readily incorporate such a model. The labelling platform already provides the methods needed to develop and assess the quality of labels that include field edges and interior classes, while active learning has proven to be effective for optimizing training datasets for deep learning models [@caoHyperspectralImageClassification2020; @liuActiveDeepLearning2017]. Our current framework can be adjusted so that it starts by training a CNN from scratch with a large initial random sample, and then uses a transfer learning approach [@panSurveyTransferLearning2010] to update the model with the most informative samples from different AOIs or agroecozones.
 
 ## Conclusion
 This work demonstrates a proof of concept for developing high resolution, annual maps of smallholder-dominated croplands at national to regional scales, using a framework that can be readily updated to improve map accuracy as technologies improve. Maps that include information on field boundaries can help improve remote estimation of crop planted area and yield, and provide deeper insights into important socioeconomic aspects of agricultural systems, such as the relationships between agricultural productivity and livelihoods. Such maps will be important for developing an understanding of the rapid agricultural change that is currently unfolding throughout much of the continent.
