@@ -1,0 +1,63 @@
+---
+title: "High resolution, annual maps of the characteristics of smallholder-dominated croplands at national scales"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Overview
+
+This package contains the source documents and code used to produce the paper titled above. The primary datasets analyzed in writing this paper consist of the maps produced for Ghana (hosted on AWS S3), as well as the tables from ~29 instances of the labelling platform described in the paper. 
+
+The following is a brief overview of the contents of the package, which can be installed as an R package:
+
+```{r, eval=FALSE}
+devtools::install_github("agroimpacts/activemapper", build_vignettes = TRUE)
+```
+
+# Contents
+## Manuscript
+The main manuscript and SI can be found as system files in the installed `activemapper` package:
+
+```{r, eval=FALSE}
+# Open main manuscript
+pth <- system.file("manuscript/manuscript.pdf", package = "activemapper")
+system(paste(Sys.getenv("R_PDFVIEWER"), pth))
+
+# Open the SI
+pth <- system.file("manuscript/si.pdf", package = "activemapper")
+system(paste(Sys.getenv("R_PDFVIEWER"), pth))
+
+```
+
+The source code (RMarkdown) used to make these documents and their supporting figures and tables are in the same directory:
+```{r, eval=FALSE}
+dir(system.file("manuscript", package = "activemapper"), recursive = TRUE)
+```
+
+## Ingredients
+### Raw data scripts
+The scripts used to set up some of the data used to initialize the labelling and machine learning instances used to create the maps, and to process the outputs from these for analysis in this paper, are in a `data-raw` folder. That folder is accessible is the package's repository is cloned locally. 
+
+### Package data
+
+ALl processed datasets are available as either system files or as lazy loading datasets.   
+```{r, eval=FALSE}
+# system files
+dir(system.file("extdata", package = "activemapper"))
+
+# lazy-loading data
+d <- data(package = "activemapper")
+d$results[, "Item"]
+```
+
+
