@@ -1,4 +1,6 @@
-# Calculate Bayesian risk metrics for labels
+# Calculate Bayesian Risk for each labels
+# Reprocessing to include measure on mean risk as well as proportion risky
+
 library(rmapaccuracy)
 library(dplyr)
 library(data.table)
