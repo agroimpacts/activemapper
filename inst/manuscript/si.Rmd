@@ -9,7 +9,9 @@ output:
     fig_width: 7
     fig_height: 7
     keep_tex: yes
-    number_sections: no
+    number_sections: yes
+    toc_depth: 4
+    toc: yes
     extra_dependencies: ["float", "titling", "setspace"]
     includes:
       in_header: header.tex
@@ -83,7 +85,7 @@ cite_options(citation_format = "pandoc")
 \bleft
 
 
-# Methods
+# Supplemental Methods
 ## Assessing quality of composites
 The rubric presented in Table \ref{tab:imqcriteria} was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry [@azaveaRasterFoundry2020] overlays within a `labeller` instance set up for the purpose. 
 
@@ -330,7 +332,7 @@ Two supervisors (Ye and Estes) who were not involved in labelling developed the 
 
 After collecting the sample, the geometries were further refined by converting the points (sites were the target didn't have to be shifted) to polygons with the same  0.0002866$^\circ$ resolution, and then the full set of map reference polygons was used to extract the classified values from both the cropland probability and vectorized field boundary maps. Accuracies were assessed for the entire country, and with several zones consisting of different groupings of AOIs or agroecozones\footnote{sourced from https://wheregeospatial.com/agro-ecological-zones-ghana/}
 
-# Results
+# Supplemental Results
 ## Image catalog and quality
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
@@ -495,6 +497,17 @@ To examine average field sizes, and the total number, the mean segment size per 
 ```{r fieldsizes, echo = FALSE, out.width="90%", fig.cap="The A) average sizes of fields and B) total number of fields in each 0.05 degree tile, as calculated from the vectorized field boundaries.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/si_fsize_n_05.png')
 ```
+
+
+# Code and Data Availability
+The repositories containing the data, code, and manuscript source files used to produce this paper are listed below:
+
+- [`activemapper`](https://github.com/agroimpacts/activemapper): Contains the source code and derived data for this paper. The repository\footnote{github.com/agroimpacts/activemapper} will be opened following publication in a peer-reviewed journal.
+- [`croplandmaps`](https://github.com/agroimpacts/croplandmaps_V2): Source code for web map displaying image composites and cropland probability maps. The repository\footnote{github.com/agroimpacts/croplandmaps\_V2} is open, and the field boundary datasets are available for download. 
+- [`imager`](https:github.com/agroimpacts/imager): Source code for the image processing software. The repository\footnote{github.com/agroimpacts/imager} is currently private, but will be opened after completing a security audit. 
+- [`labeller`](https:github.com/agroimpacts/labeller): Source code for the labelling platform. The repository\footnote{github.com/agroimpacts/labeller} is currently private, but will be opened after completing a security audit. 
+- [`learner`](https:github.com/agroimpacts/learner): Source code for the active learning component. The repository\footnote{github.com/agroimpacts/learner} is open.
+- [`segmenter`](https:github.com/agroimpacts/segmenter): Source code for the segmentation algorithm. The repository \footnote{github.com/agroimpacts/segmenter} is currently private, but will be opened after completing a security audit.
 
 \clearpage
 # References
