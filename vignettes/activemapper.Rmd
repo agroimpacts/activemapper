@@ -48,6 +48,25 @@ dir(system.file("manuscript", package = "activemapper"), recursive = TRUE)
 ### Raw data scripts
 The scripts used to set up some of the data used to initialize the labelling and machine learning instances used to create the maps, and to process the outputs from these for analysis in this paper, are in a `data-raw` folder. That folder is accessible is the package's repository is cloned locally. 
 
+Scripts:
+
+- `aoi_tiles.R`: Africa wide degree and tile grid, as well as Ghana tiles. 
+- `data_for_instances.R`: Further prepping of degrees, tiles, grid for instances, as well as Ghana AOIs.
+    - `inst/extdata/aois.geojson`
+    - `inst/extdata/degrees.geojson`
+    - `inst/extdata/ghana_tiles.geojson`
+    - `inst/extdata/ghana_grid.csv`
+- `consensus_risk.R`: Reprocessing all digitized labels into consensus labels, to output Bayesian Risk metrics. 
+    - `inst/extdata/consensus_risk.rda`
+- `label_risk.R`: Builds on previous to create summary risk metrics 
+    - `activemapper::label_risk`
+- `iteration_metrics.R`: Processing iteration performance metrics
+    - `activemapper::iteration_metrics` 
+- `consensus_high_low.R`: Processing iteration metrics from labelling strategy experiments performed in four AOIs
+    - `activemapper::consensus_high_low`
+- `train_val_sites.R`: Extract training and validation sites
+    - `activemapper::train_val_sites`
+
 ### Package data
 
 ALl processed datasets are available as either system files or as lazy loading datasets.   

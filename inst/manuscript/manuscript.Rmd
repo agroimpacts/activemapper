@@ -194,7 +194,7 @@ cite_options(citation_format = "pandoc")
 
 <!-- *Keywords*: rmarkdown, reproducible science -->
 
-\singlespace
+<!-- \singlespace -->
 
 \bleft
 
@@ -320,7 +320,7 @@ Standard deviation           5X5            8
 ------------------ ------------- ------------
 Feature extraction and the conversion of image features is handled by a combination of `GeoTrellis`\footnote{https://github.com/locationtech/geotrellis}, `rasterio`\footnote{https://rasterio.readthedocs.io/en/latest/}, and `RasterFrames`\footnote{https://rasterframes.io/}. These collectively extract subsets of imagery from the PlanetScope temporal composites, derive the features, and convert these into Apache Spark DataFrames. Features are extracted on the fly for each cell in the training and validation sets, a functionality enabled by storing the image composites as Cloud-optimized Geotiffs\footnote{https://www.cogeo.org/} (COGs).  
 
-\clearpage
+<!-- \clearpage -->
 
 #### Classification
 Once the features from the training sites are extracted into `RasterFrames`, these are combined with their corresponding labels and passed to the machine learning classifier, a `SparkMLlib` implementation of Random Forests [@BreimanRandomForests2001]. For this study, the model was trained with a balanced sample and a tree depth of 15 and total tree number of 60, which initial testing showed to provide a reasonable balance between computational time and performance.
