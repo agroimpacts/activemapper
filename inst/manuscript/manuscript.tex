@@ -288,9 +288,10 @@ USA\\\\*
 }
 
 %\begin{center}
-This paper is a non-peer reviewed preprint submitted to EarthArXiv. It
-will be periodically updated as it is revised, including information on
-its peer review status.
+This pre-print not yet undergone peer review. It has been submitted to
+the \emph{Frontiers in Artificial Intelligence}. This version will be
+updated as it is revised, and the final published version will be
+accessible through its DOI link.
 %\end{center}
 
 
@@ -361,20 +362,21 @@ Davis et al. 2020) and mitigate (Estes et al. 2016b) agriculture's
 ecological impacts. Answering many of the questions these efforts seek
 to address depends on reliable data that describes the location and
 characteristics of cropland (Fritz et al. 2015), and how these are
-changing over time. Unfortunately, the data that do exist are in many
-places inaccurate. Existing estimates of how much global cropland there
-is tend to vary widely, and they often disagree about where cropland is
-located (e.g. Fritz et al. 2011, 2013). Such errors can propagate in
-subsequent analyses that rely on cropland data as inputs, resulting in
-potentially misleading answers (Estes et al. 2018). Beyond cropland
-distributions, few data are available on key cropland characteristics
-such as field size, an important variable needed to estimate yield and
-other key food security variables (Carletto et al. 2015), and as an
-indicator of farm size (Levin 2006, Samberg et al. 2016), a critical
-component of rural livelihoods given increasing population densities and
-longstanding debates about the relationship between farm size and
-productivity (Feder 1985, Carletto et al. 2013, Desiere and Jolliffe
-2018).
+changing over time, ideally on an annual basis, given the rapid pace of
+change (Gibbs et al. 2010, Bullock et al. 2021). Unfortunately, the data
+that do exist are in many places inaccurate and infrequently updated.
+Existing estimates of how much global cropland there is tend to vary
+widely, and they often disagree about where cropland is located (e.g.
+Fritz et al. 2011, 2013). Such errors can propagate in subsequent
+analyses that rely on cropland data as inputs, resulting in potentially
+misleading answers (Estes et al. 2018). Beyond cropland distributions,
+few data are available on key cropland characteristics such as field
+size, an important variable needed to estimate yield and other key food
+security variables (Carletto et al. 2015), and as an indicator of farm
+size (Levin 2006, Samberg et al. 2016), a critical component of rural
+livelihoods given increasing population densities and longstanding
+debates about the relationship between farm size and productivity (Feder
+1985, Carletto et al. 2013, Desiere and Jolliffe 2018).
 
 These informational inadequacies are due to the fact that cropland data
 in much of the world are derived from remotely sensed landcover maps,
@@ -389,166 +391,167 @@ than 1 ha (Lesiv et al. 2019). This size is small relative to the 30-250
 m resolution of the sensors typically used in many landcover mapping
 efforts (e.g. Chen et al. 2015, Sulla-Menashe et al. 2019), which
 results in errors due to mixed pixels and aspects of the modifiable area
-unit problem (Openshaw and Taylor 1979). In the latter case, the pixel's
-shape may be poorly matched to that of cropland, and is too coarse to
-aggregate to approximate that shape at the characteristic scales of crop
-fields (Dark and Bram 2007, Estes et al. 2018). On top of the matter of
-scale is 1) high intra-class variability of the cropland class,
-compounded by the fact that these particular croplands can be heavily
-intergraded with surrounding vegetation (Debats et al. 2016, Estes et
-al. 2016a), and 2) the substantial temporal variability within
-croplands, both within and between seasons. These latter two aspects
-pose challenges for the classification algorithms that are applied to
-the imagery.
+unit problem (Openshaw and Taylor 1979, Boschetti et al. 2004){]}. In
+the latter case, the pixel's shape may be poorly matched to that of
+cropland, and is too coarse to aggregate to approximate that shape at
+the characteristic scales of crop fields (Dark and Bram 2007, Estes et
+al. 2018). On top of the matter of scale is 1) high intra-class
+variability of the cropland class, compounded by the fact that these
+particular croplands can be heavily intergraded with surrounding
+vegetation (Debats et al. 2016, Estes et al. 2016a), and 2) the
+substantial temporal variability within croplands, both within and
+between seasons. These latter two aspects pose challenges for the
+classification algorithms that are applied to the imagery.
 
-These problems arising from cropland characteristics are increasingly
-being addressed due to technological advances. Recent advances in
-satellite technology have increased the coverage of high (\textless5 m)
-or near-high (10 m) resolution imagery with weekly to near-daily return
+Recent technological advances are helping to overcome these challenges.
+Chief among these are the growing numbers of satellites that collect
+high (\textless5 m) to near-high (10 m) resolution imagery at sub-weekly
 intervals (Drusch et al. 2012, McCabe et al. 2017). This high spatial
-\emph{and} temporal resolution addresses the sensor-field scale
+\emph{and} temporal resolution imagery addresses the sensor-field scale
 mismatch, and more effectively captures the intra-seasonal dynamics of
 cropland, which helps classifiers distinguish cropland from surrounding
 cover types (Debats et al. 2016, Defourny et al. 2019). On top of this,
-advances in cloud computing (Gorelick et al. 2017), the opening of image
-archives (Wulder et al. 2016), and next generation machine learning
-approaches (Zhu et al. 2017, Maxwell et al. 2018) are placing large
-volumes of these moderate to near-high resolution imagery together with
-the computational and algorithmic resources necessary to classify them
-at scale. These capabilities are aleady being used to create a new
-generation of higher resolution (10-30 m) cropland and landcover maps
-for Africa and other regions (Xiong et al. 2017, Lesiv et al. 2017, ESA
-n.d.).
+advances in cloud computing and the opening of satellite image archives
+(Wulder et al. 2016), and next generation machine learning approaches
+are placing large volumes of these moderate to near-high resolution
+imagery together with the computational and algorithmic resources
+necessary to classify them at scale (Gorelick et al. 2017). These
+capabilities are already being used to create a new generation of higher
+resolution (10-30 m) cropland and landcover maps for Africa and other
+regions {[}ESA (n.d.); Lesiv et al. (2017); Xiong et al. (2017); (Zhang
+et al. 2021){]}. However, the potential of the highest resolution
+(\textless5 m) imagery to map cropland over very large extents
+(e.g.~country scales) has yet to be realized, presumably because these
+data are commercial and relatively expensive, and require significant
+computational resource to process.
 
-Despite these advances, the highest resolution (\textless5 m) image
-sources are still not used to map cropland over very large extents,
-presumably because they are commercial and relatively high cost to
-acquire, in addition to the greater computational demands. As such, map
-accuracy can still be a challenge, particular for User's accuracy, which
-ranges between 46 and 76\% for the cropland class (Xiong et al. 2017,
-e.g. Lesiv et al. 2017).
-
-Accuracy may also suffer due to error-inducing factors that are becoming
-somewhat more pronounced as a consequence of these technology advances,
-particularly with respect to algorithms. Advances in machine learning
-are helping to greatly improve classification skill, but these
-algorithms generally require large, high-quality training datasets
-(Maxwell et al. 2018, Ma et al. 2019, Elmes et al. 2020). To satisfy
-this need for more training (and reference) samples, map-makers
-increasingly rely on visual interpretation of high resolution satellite
-or aerial imagery to collect training (or validation) samples (Chen et
-al. 2015, e.g. Xiong et al. 2017, Stehman and Foody 2019). Several
-web-based platforms have been developed to facilitate such efforts,
-which provide convenient and highly scalable tools for training data
-collection (Fritz et al. 2012, Estes et al. 2016a, e.g. Bey et al.
-2016). Visually interpreted training labels present two particular
-problems. The first is that such labels have inevitable interpretation
-errors that can vary substantially according to the skill of the
-interpreter (Estes et al. 2016a, Waldner et al. 2019). These errors are
-typically not accounted for in reported accuracy metrics, despite the
-fact that they can introduce substantial error into the resulting maps
-and subsequent analyses (Estes et al. 2018, Elmes et al. 2020). The
-second problem is that visual interpretation depends on high resolution
-imagery (\textless5 m), as lower resolutions make it difficult for a
-human analyst to discern cropland. Typically the only practical source
-for such imagery are ``virtual globe'' basemaps provided by Microsoft
-and Google, which are composed of mosaics of various high resolution
+Beyond the imagery and computational gains, machine learning algorithms
+are rapidly advancing, providing large gains in classification
+performance (Maxwell et al. 2018, Ma et al. 2019). However, the ability
+to take advantage of these gains is often limited by newer models' need
+for large training datasets, which are typically unavailable, hard to
+collect, or contain numerous errors in developing regions (Ma et al.
+2019, Elmes et al. 2020, Burke et al. 2021). To build sufficient samples
+for training cropland mapping models, as well as the reference data
+needed to objectively assess their performance (we refer collectively to
+both sample types as ``labels,'' distinguishing between each type where
+needed), map-makers rely heavily on visual interpretation of high
+resolution satellite or aerial imagery (Chen et al. 2015, e.g. Xiong et
+al. 2017, Stehman and Foody 2019), as it is impractical and expensive to
+collect these data in the field over large areas, particularly on an
+ongoing basis. Several web-based platforms have been developed to
+facilitate such efforts, which provide convenient and highly scalable
+tools for training data collection (Fritz et al. 2012, Estes et al.
+2016a, e.g. Bey et al. 2016). Visually interpreted labels present two
+particular problems. The first is that they inevitably contain errors of
+interpretation that can vary substantially according to the skill of the
+labeller, particularly over complex croplands with small field sizes
+(Estes et al. 2016a, Waldner et al. 2019). The second problem is that
+visual interpretation depends on high resolution imagery (\textless5 m),
+as field boundaries become increasingly difficult to discern as image
+resolution decreases. Typically the only practical source of high
+resolution imagery is ``virtual globe'' basemaps (e.g.~Bing or Google
+Maps), which are composed of mosaics of various high resolution
 satellite and aerial images that typically span 3-5 years of time within
 a single country (Lesiv et al. 2018). This within-mosaic temporal
 variation can set up a temporal mismatch between the imagery being
 interpreted and the imagery being classified, which is usually from a
 different source (e.g.~Landsat, Sentinel; Xiong et al. (2017)). If a
 land change occurs in the interval between the two image sets (e.g.~a
-new field was created), this can introduce error into the training data
-that is then passed on to the classifier. This source of error may be
-elevated in smallholder-dominated systems in the tropics, where swidden
-practices are common (Van Vliet et al. 2013), or in rapidly developing
-agricultural frontiers (Zeng et al. 2018).
+new field was created), the label, even if accurately drawn, introduces
+error into the classifier. This source of error may be elevated in
+tropical smallholder systems, where swidden agricultural is common (Van
+Vliet et al. 2013), or in rapidly developing agricultural frontiers
+(Zeng et al. 2018). Despite the high potential for label error, they are
+typically not accounted for during model training and map accuracy
+assessment, resulting not only in the potential for maps to be misused
+or misinterpreted in subsequent analyses, but in missed opportunities to
+improve model performance (Estes et al. 2018, Stehman and Foody 2019,
+Elmes et al. 2020).
 
-Improving the accuracy of cropland maps over smallholder-dominated
-systems thus requires an approach that meets three requirements. First,
-it should be based on high spatial and temporal resolution imagery, to
-be able to capture the fine grain and temporal variability of
-smallholders' fields. Second, an algorithm with suitable skill for
-classifying these images must be selected, and combined with the
-computational resources needed to process large imagery volumes. Third,
-a method for collecting large volumes of high quality training and
-validation data based on image interpretation is essential. This method
-should quantify and minimize the errors associated with image
-interpretation. It should also ensure that labels are collected either
-from the same imagery that is being classified, or from contemporanous
-imagery, in order to reduce errors introduced by land change processes.
+Taking into consideration the advances and remaining limitations
+described above, the ability to map smallholder-dominated croplands can
+be further improved by 1) more fully exploiting the profusion of high
+frequency, high resolution imagery provided by CubeSats (McCabe et al.
+2017), and 2) by implementing methods that improve the ability to
+collect and minimize errors in image-interpreted labels. We developed a
+mapping approach that focuses on these two sources of improvement. Our
+approach uses PlanetScope imagery collected by Planet's fleet of Dove
+satellite, which provides 3-4 m resolution imagery over large areas at
+near daily intervals (McCabe et al. 2017, PlanetTeam 2018), at
+relatively low to no cost for academic
+research\footnote{www.planet.com/markets/education-and-research/} and
+non-commercial, sustainability-oriented
+applications\footnote{assets.planet.com/docs/Planet\_ParticipantLicenseAgreement\_NICFI.pdf}.
+Although these data are of lower spectral depth and, in some cases,
+quality, than Landsat, Sentinel, or Worldview imagery, their daily
+revisit enables country- to continent-scale image mosaics to be created
+for multiple periods during a single agricultural year, even over the
+cloudiest forest regions where it is hard to successfully construct
+cloud-free composites from optical imagery with return intervals (even
+by a few days). This ability to capture intra-annual variability can be
+more important for classifying cropland than spectral depth (Debats et
+al. 2016). Beyond the frequency, PlanetScope's 3.7 m
+resolution--although substantially coarser the 0.5-1 m available in most
+areas covered by virtual globes--is sufficiently resolved for humans to
+discern small fields under many conditions (Fourie 2009, e.g.~see Estes
+et al. 2018). This allows labels to be made using the same imagery that
+is classified, which helps to minimize label error. To further reduce
+label noise, we developed a platform that includes rigorous label
+accuracy assessment protocols and a novel approach for creating
+consensus labels, which helps reduce mistakes made by individual
+labellers (Estes et al. 2016a, Elmes et al. 2020). We couple the
+labelling platform with a machine learning model inside an active
+learning (Cohn et al. 1994, Tuia et al. 2011) framework, in which model
+training is done iteratively and interactively, wherein the model's
+prediction uncertainty over unlabelled areas is assessed after each
+training step, and a sample of the most uncertain sites is selected for
+additional labelling (Cohn et al. 1994, Tuia et al. 2011). This approach
+helps boost the performance of the classifier while reducing the overall
+number of labels required to achieve a given level of performance
+(Debats et al. 2017, e.g. Hamrouni et al. 2021). Finally, an
+unsupervised segmentation step is applied to convert pixel-wise cropland
+predictions into vectorized maps of individual field boundaries.
 
-We describe here a cropland mapping system that follows these
-requirements, with an emphasis on delineating field boundaries. The
-first requirement is enabled by the recent availability of CubeSat data
-that provides 3-4 m resolution imagery over large areas at near daily
-intervals (McCabe et al. 2017). Although these data, currently collected
-by Planet's CubeSat fleet, are of lower spectral depth and quality than
-Landsat, Sentinel, or Worldview imagery, they enable country to
-continental scale image mosaics to be created for multiple periods
-during the crop growing calendars, and capturing the intra-annual
-variability can be more important for classifying cropland than spectral
-depth (Debats et al. 2016). This daily revisit capacity is also
-important for developing seasonal composites in cloudy regions, where
-satellites with longer return intervals may fail. Lastly, although this
-imagery being up to \textasciitilde16 times coarser than much of Bing or
-Google imagery, it is sufficiently resolved for humans to discern most
-fields (Fourie 2009, e.g.~see Estes et al. 2018). This allows labels to
-be generated on the same imagery processed by the classifier, thereby
-addressing one of the two needs related to training data (requirement
-3).
+Here we use this approach to create a high resolution, country-scale map
+of crop field boundaries in Ghana, a country where smallholder farming
+predominates, and which has a broad mix of climates and agricultural
+systems, including large areas where shifting agriculture is practiced
+(Samberg et al. 2016, Kansanga et al. 2019). The map we develop
+represents a single agricultural year (2018-2019), as opposed to a
+multi-year composite, thereby demonstrating a capacity for annual, high
+resolution maps that can be used to monitor rapidly evolving small-scale
+agricultural systems, including key characteristics such as field size.
+In addition to presenting one of the most spatially extensive
+agricultural applications of CubeSats to date, we provide a new
+technique for converting daily imagery into seasonal composites, and
+show how best practices for model training and label collection can be
+applied to improve map accuracy (Elmes et al. 2020).
 
-The second requirement is addressed by a computer vision/machine
-learning classifer that is effective for classifying smallholder
-croplands (Debats et al. 2016), re-engineered to run on high
-performance, cloud-based computing clusters with a simplified feature
-set, and following recommended practices for controlling for and
-measuring the errors that occur when training machine learning models
-for remote sensing applications (Elmes et al. 2020). The classifier is
-tightly coupled to a front-end platform for collecting label data, which
-includes rigorous accuracy assessment protocols and a novel approach for
-merging multiple maps into consensus labels, thereby minimizing image
-interpretation error (Estes et al. 2016a, Elmes et al. 2020). The
-training and machine learning components are combined within an active
-learning framework, wherein the machine learning process assesses
-classification uncertainty in unlabelled areas after a training step,
-and selects sites from areas of highest uncertainty for additional
-labelling (Cohn et al. 1994, Tuia et al. 2011). Our framework automates
-this interactive approach to label selection, which is effective in
-boosting the performance of classification models while reducing the
-overall number of training samples required to achieve a given level of
-performance (Debats et al. 2017, e.g. Hamrouni et al. 2021). Finally, an
-unsupervised segmentation step is applied to the imagery and merged with
-the pixel-wise classifications from the machine learning process,
-resulting in a vectorized field boundary map that provides important
-information on field geometry.
+\hypertarget{materials-and-methods}{%
+\section{Materials and Methods}\label{materials-and-methods}}
 
-We demonstrate this approach to map cropland in Ghana, a country where
-smallholder farming predominates, and which has a broad mix of climates
-and agricultural systems, including large areas where shifting
-agriculture is practiced (Samberg et al. 2016, Kansanga et al. 2019).
-
-\hypertarget{methods}{%
-\section{Methods}\label{methods}}
-
-\hypertarget{system-overview}{%
-\subsection{System overview}\label{system-overview}}
-
-The mapping system design has four primary components focused on 1)
-image acquisition and compositing, 2) training and validation data
-collection, 3) image classification, and 4) segmentation. The first
-component is applied as a once-off step to generate an image catalog
-covering the mapping geography. The second component provides tools for
-labelling imagery, and controls an interactive model training and
-classification (component 3) pipeline that produces a map of cropland
-probabilities for each image pixel (Figure \ref{fig:systemoverview}).
-The final segmentation step (component 4) is then initiated and applied
-to both the input image catalog and the posterior probability maps,
-resulting in vectorized field boundaries. Each system component
-comprises an individual software module designed to be implemented on
-cloud computing architecture, and available on a GitHub repository (see
-data and software availability section for details).
+The cropland mapping approach we developed is comprised of four primary
+components (Figure \ref{fig:systemoverview}) that were developed using
+open source software, and is designed to run in a cloud computing
+environment. The first component collects daily PlanetScope imagery for
+a period of several months over a particular mapping geography, and
+converts these into cloud-free seasonal composites. The second component
+is a custom-built platform that a provides a set tools for labelling the
+PlanetScope composites, and built-in procedures for assessing and
+minimizing label error. This platform interacts with the third
+component, a machine learning process running in Apache Spark, which
+includes a routine for 1) selecting new training sites based on their
+prediction uncertainty, and 2) returning these to the labelling platform
+for labeling. This interaction, which represents active learning (Cohn
+et al. 1994, Tuia et al. 2011), repeats until a model performance
+threshold is reached. The fourth and final component is a segmentation
+process that is applied to the seasonal image composites to segment the
+entire image, and then merged with the pixel-wise probability maps
+generated by active learning to identify the segments corresponding to
+croplands, resulting in a final vectorized field boundaries. Each system
+component is available on an open repository (see data and software
+availability section for details).
 
 \begin{figure}
 
@@ -559,11 +562,8 @@ data and software availability section for details).
 \caption{An overview of the primary system components, the data stores that hold the inputs and outputs from each component, and the direction of connections between them. The dashed line indicates iterative interactions, while solid lines indicate one-time or irregular connections.}\label{fig:systemoverview}
 \end{figure}
 
-\hypertarget{system-components}{%
-\subsection{System components}\label{system-components}}
-
 \hypertarget{image-compositing}{%
-\subsubsection{Image compositing}\label{image-compositing}}
+\subsection{Image compositing}\label{image-compositing}}
 
 The image processing components of our system were designed to work with
 PlanetScope Analytic surface reflectance data (PlanetTeam 2018).
@@ -766,7 +766,7 @@ field), \emph{D} is the label assigned to that pixel by a labeller, and
 the probability that the actual cover type is what the labellers who
 mapped it says it is, while P(W\(_i\)\textbar D) is an individual
 labeller's average score over all the accuracy assessment assignments
-they have completed, and P(W\(\theta\)\textbar D, \emph{W\(_i\)}) is the
+they have completed, and P(W\(\theta\)\textbar D, \emph{W}\(_i\)) is the
 labeller's label for that pixel. This approach therefore uses the
 overall accuracy of each labeller to weight their labels when combined
 with those made by other labellers' for the same pixel (see SI for
@@ -1743,6 +1743,12 @@ Turia, G. Gamoga, H. Abe, E. Kaidong, and G. Miceli. 2016. Collect
 {Earth}: {Land Use} and {Land Cover Assessment} through {Augmented
 Visual Interpretation}. Remote Sensing 8:807.
 
+\leavevmode\hypertarget{ref-boschettiAnalysisConflictOmission2004}{}%
+Boschetti, L., S. P. Flasse, and P. A. Brivio. 2004. Analysis of the
+conflict between omission and commission in low spatial resolution
+dichotomic thematic products: {The Pareto Boundary}. Remote Sensing of
+Environment 91:280--292.
+
 \leavevmode\hypertarget{ref-BreimanRandomForests2001}{}%
 Breiman, L. 2001. Random {Forests}. Machine Learning 45:5--32.
 
@@ -1750,6 +1756,11 @@ Breiman, L. 2001. Random {Forests}. Machine Learning 45:5--32.
 Bullock, E. L., S. P. Healey, Z. Yang, P. Oduor, N. Gorelick, S. Omondi,
 E. Ouko, and W. B. Cohen. 2021. Three {Decades} of {Land Cover Change}
 in {East Africa}. Land 10:150.
+
+\leavevmode\hypertarget{ref-burkeUsingSatelliteImagery2021}{}%
+Burke, M., A. Driscoll, D. B. Lobell, and S. Ermon. 2021. Using
+satellite imagery to understand and promote sustainable development.
+Science 371.
 
 \leavevmode\hypertarget{ref-caoHyperspectralImageClassification2020}{}%
 Cao, X., J. Yao, Z. Xu, and D. Meng. 2020. Hyperspectral {Image
@@ -1910,6 +1921,12 @@ Leo, I. McCallum, M. Obersteiner, N. Ramankutty, J. Rocha, H. Tang, P.
 Thornton, C. Vancutsem, M. van der Velde, S. Wood, and C. Woodcock.
 2013. The need for improved maps of global cropland. Eos, Transactions
 American Geophysical Union 94:31--32.
+
+\leavevmode\hypertarget{ref-GibbsTropicalforestswere2010}{}%
+Gibbs, H. K., A. S. Ruesch, F. Achard, M. K. Clayton, P. Holmgren, N.
+Ramankutty, and J. A. Foley. 2010. Tropical forests were the primary
+sources of new agricultural land in the 1980s and 1990s. Proceedings of
+the National Academy of Sciences 107:16732--16737.
 
 \leavevmode\hypertarget{ref-GorelickGoogleEarthEngine2017}{}%
 Gorelick, N., M. Hancher, M. Dixon, S. Ilyushchenko, D. Thau, and R.
@@ -2196,16 +2213,17 @@ Guan, A. Jintrawet, and E. F. Wood. 2018. Highland cropland expansion
 and forest loss in {Southeast Asia} in the twenty-first century. Nature
 Geoscience 11:556--562.
 
+\leavevmode\hypertarget{ref-zhangGLCFCS30Global2021a}{}%
+Zhang, X., L. Liu, X. Chen, Y. Gao, S. Xie, and J. Mi. 2021.
+{GLC}\_{FCS30}: Global land-cover product with fine classification
+system at 30 m using time-series {Landsat} imagery. Earth System Science
+Data 13:2753--2776.
+
 \leavevmode\hypertarget{ref-Zhangimagetransformcharacterize2002}{}%
 Zhang, Y., B. Guindon, and J. Cihlar. 2002. An image transform to
 characterize and compensate for spatial variations in thin cloud
 contamination of {Landsat} images. Remote Sensing of Environment
 82:173--187.
-
-\leavevmode\hypertarget{ref-ZhuDeeplearningremote2017}{}%
-Zhu, X. X., D. Tuia, L. Mou, G.-S. Xia, L. Zhang, F. Xu, and F.
-Fraundorfer. 2017. Deep learning in remote sensing: A review. IEEE
-Geoscience and Remote Sensing Magazine 5:8--36.
 
 \leavevmode\hypertarget{ref-ZhuObjectbasedcloudcloud2012}{}%
 Zhu, Z., and C. E. Woodcock. 2012. Object-based cloud and cloud shadow
