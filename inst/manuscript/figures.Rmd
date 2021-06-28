@@ -72,6 +72,10 @@ aez <- st_read(
 
 # database results
 load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
+
+# Ghana data
+ghana_aois <- tiles %>% pull(aoi1) %>% unique
+ghana_degrees <- tiles %>% pull(aoi2) %>% unique
 ```
 
 
@@ -80,12 +84,13 @@ load(system.file("extdata/", "instance_tbls.rda", package = "activemapper"))
 ### Figure 1: System architecture
 Created in keynote
 
-### Figure 2: Grid system and AOIs
+### Figure 2: Labeller interface
+Taken as a screenshot. 
+
+
+### Figure S1: Grid reference system
 
 ```{r, eval = FALSE}
-ghana_aois <- tiles %>% pull(aoi1) %>% unique
-ghana_degrees <- tiles %>% pull(aoi2) %>% unique
-
 ind <- 8  # index of selected AOI for plotting (from ghana_aois)
 xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]), range(xylims[, 2]))
@@ -130,14 +135,11 @@ p3 <- ggplot(tile_sel %>% slice(169:171, 189:191, 209:211)) +
 
 gp <- cowplot::plot_grid(p1, p2, p3, nrow = 1, scale = c(1, 1, 0.7), 
                          labels = LETTERS[1:3], label_x = 0.05)
-ggsave(pth("figures/figure2.png"), width = 7, height = 3,
+ggsave(pth("figures/reference_system.png"), width = 7, height = 3,
        units = "in", dpi = 300)
 ```
 
-### Figure 3: Labeller interface
-Taken as a screenshot. 
-
-### Figure S1: Bayesian Risk
+### Figure S2: Bayesian Risk
 
 A plot of the Bayesian risk curves associated with different levels of consensus, for both a cropland and non-cropland consensus label.
 ```{r, eval=FALSE}
@@ -160,7 +162,7 @@ ggsave(pth("figures/si_label_risk.png"), width = 5,
 ```
 
 
-### Figure S2: Map reference sample
+### Figure S3: Map reference sample
 ```{r, eval = FALSE}
 ref_sample <- readr::read_csv(
   system.file("extdata", "map_reference_sample.csv", package = "activemapper")
@@ -187,7 +189,7 @@ ggsave(pth("figures/si_map_reference_sample.png"), width = 4,
 
 
 ## Results 
-### Figure 4: Composite quality
+### Figure 3: Composite quality
 ```{r, eval=FALSE}
 data("image_quality")
 
@@ -518,7 +520,8 @@ ggsave(filename = pth("figures/figure7.png"),
 
 ```
 
-### Figure S3: PlanetScope image density
+
+### Figure S4: PlanetScope image density
 The density of imagery available for download from the image catalog. 
 
 ```{r imagedensity, eval=FALSE}
@@ -572,7 +575,7 @@ ggsave(op, bg = "transparent",
 
 
 
-### Figure S4: Initial training site distribution
+### Figure S5: Initial training site distribution
 Figure showing distribution of initial 500 samples per cluster, as well as distribution of points per iteration.  
 ```{r trainingsites, eval=FALSE}
 data("train_val_sites")
@@ -637,7 +640,7 @@ ggsave(pth("figures/si_training_validation_pts.png"), width = 4,
 
 ```
 
-### Figure S5: Label count and quality
+### Figure S6: Label count and quality
 ```{r labelquality, eval=FALSE}
 data("label_summary")
 
@@ -692,7 +695,7 @@ ggsave(pth("figures/si_training_qual_n.png"), width = 4,
        height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figures S6 and S7: Consensus label (Bayesian) risk
+### Figures S7 and S8: Consensus label (Bayesian) risk
 
 Plots of mean risk in space, divided into training and validation sites
 
@@ -810,7 +813,7 @@ label_risk_metrics %>% select(aoi, Metric, Score) %>%
 
 ```
 
-### Figure S8: Random versus active sampling
+### Figure S9: Random versus active sampling
 ```{r, eval=FALSE}
 data("iteration_metrics")
 
@@ -873,7 +876,7 @@ ggsave(pth("figures/si_random_vs_active.png"),
 
 ```
 
-### Figure S9: Training data error impact on probability images
+### Figure S10: Training data error impact on probability images
 ```{r, eval = FALSE}
 probpal <- viridis::viridis
 cprob <- raster(here::here("external/prob/image_c294_r532.tif"))
@@ -899,7 +902,7 @@ dev.off()
 
 ```
 
-### Figure S10: AOI Zones
+### Figure S11: AOI Zones
 
 ```{r, eval=FALSE}
 # zone maps
@@ -1002,7 +1005,7 @@ ggsave(t1, filename = pth("figures/si_aez_accuracies.png"), width = 7,
        height = 3.5, units = "in", dpi = 300)
 ```
 
-### Figures S11 and S12: Segmentation statistics (grid scale)
+### Figures S12 and S13: Segmentation statistics (grid scale)
 
 ```{r segstats, eval=FALSE}
 # data("top_label_data")
@@ -1095,7 +1098,7 @@ ggsave(pth("figures/si_validation_stats_fn2.png"),
 
 ```
 
-### Figure S13: Average fields sizes
+### Figure S14: Average fields sizes
 
 Tile scale field size and number, presented without adjustment
 

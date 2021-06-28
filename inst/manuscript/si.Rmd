@@ -86,7 +86,15 @@ cite_options(citation_format = "pandoc")
 
 
 # Supplemental Methods
-## Assessing quality of composites
+## Map reference system
+The map reference system used in our mapping approach had three different levels. At the coarsest level, Ghana was divided into 16 different mapping zones, or areas of interest (AOIS; Figure \ref{fig:aois}A), that were used to create AOI-specific mapping models. Each AOIs was comprised of 400 to 777 adjacent tiles. These tiles were used to create seasonal image composites, and were defined within a 0.05 degree grid (Figure \ref{fig:aois}B)), with each tile numbered to correspond to a larger 1 degree grid cell that it sits within (dotted lines in Figure \ref{fig:aois}B). Training and reference labels were created within a 0.005 degree grid that nested within each tile (Figure \ref{fig:aois}C). Therefore, each tile has 100 grid cells, and there are 400 tiles per 1X1 degree. The smallest AOI consists of a single 1X1 degree, which fall in the center of the country (AOIs 5, 8, 11, and 14). AOIs falling along Ghana's boundaries were created by tiles from 1X1 degree cells that straddled Ghana's border with those from the closest degree cells that were fully contained within Ghana (e.g. AOI 1), with the exception of AOI 16, which was comprised of tiles in three partial 1X1 degree cells along Ghana's coast. 
+
+```{r aois, echo = FALSE, out.width="100%", fig.cap="The reference system used in this mapping approach, including A) numbered areas of interest (AOIs) that define the minimum mapping geography (solid black lines; dotted lines indicate boundaries of 1 degree grid), B) the 0.05 degree tile used for compositing imagery, and C) the 0.005 degree resolution reference grid used for collecting training data and distributed computing.", fig.align='center'}
+knitr::include_graphics('figures/reference_system.png')
+```
+
+
+## Composites Assessing quality of composites
 The rubric presented in Table \ref{tab:imqcriteria} was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry [@azaveaRasterFoundry2020] overlays within a `labeller` instance set up for the purpose. 
 
 ```{r imqcriteria, echo=FALSE, message=FALSE}
