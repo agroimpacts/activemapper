@@ -31,7 +31,6 @@ spacing: doublespacing
 keywords: rmarkdown, reproducible science
 bibliography: 
   - references.bib
-  - knitcitations.bib
 csl: ecology.csl
 
 ---
@@ -94,7 +93,7 @@ knitr::include_graphics('figures/reference_system.png')
 ```
 
 
-## Composites Assessing quality of composites
+## Assessing quality of composites
 The rubric presented in Table \ref{tab:imqcriteria} was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry [@azaveaRasterFoundry2020] overlays within a `labeller` instance set up for the purpose. 
 
 ```{r imqcriteria, echo=FALSE, message=FALSE}
@@ -327,7 +326,7 @@ knitr::include_graphics('figures/si_map_reference_sample.png')
 #### Response design
 We collected the map reference sample on a separate instance of the labelling platform set up for the purpose. For the sampling unit, we selected a rectangular polygon of ~0.1 ha (0.0002866$^\circ$ resolution). This polygon was centered on the centroid of each grid cell selected for map reference sample, and was presented as the target grid in the labelling platform. Four classes were established for the validation: **cropland**, **non-cropland**, **uncertain but likely cropland**, and **uncertain but likely non-cropland**. The latter two classes were designed to capture information related to swidden dynamics, following the rationale that uncertainty and time since last cropping are likely to be positively correlated. This uncertainty also captures information about the inherent difficulty of the mapping task. Samples were collected by visually interpreting the overlays of PlanetScope composites, following the same interpretation protocols used by the labelling team, with the exception that the polygons placed were square and of 0.0002866$^\circ$ resolution. 
 
-Two supervisors (Ye and Estes) who were not involved in labelling developed the map reference sample evaluated the PlanetScope composites at each site to determine its class membership. The following set of rules were followed in collecting the sample:
+Two supervisors (Ye and Estes), who were not involved in collecting training and validation labels, collected the map reference sample by evaluating the PlanetScope composites at each site to determine its class membership. The following set of rules were followed in collecting the sample:
 
 1. When determining the class corresponding with the initial location of the target grid, if:
   - More than half of the target falls within what appears to be a clear arable crop field, then classify it as **cropland**; 
