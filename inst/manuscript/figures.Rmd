@@ -187,6 +187,65 @@ ggsave(pth("figures/si_map_reference_sample.png"), width = 4,
        height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
+### Figure S4: AOI Zones
+
+```{r, eval=FALSE}
+# zone maps
+zone_grps <- list("aoi" = list(1:3, 4:9, c(10:11, 13, 14, 16), c(12, 15)),
+                  "aez" = list(1, 2:4, 5, 6:7))
+aoi_zones <- aois %>% 
+  mutate(zone = case_when(
+    aois %in% zone_grps$aoi[[1]] ~ "Zone 1", 
+    aois %in% zone_grps$aoi[[2]] ~ "Zone 2", 
+    aois %in% zone_grps$aoi[[3]] ~ "Zone 3", 
+    aois %in% zone_grps$aoi[[4]] ~ "Zone 4")
+  ) %>%
+  group_by(zone) %>% 
+  summarize(area = sum(area))
+
+rmapshaper::ms_simplify(aez) %>% plot()
+aez %>% st_buffer(dist = 0.01) %>% st_union(by_feature = TRUE) %>% 
+  st_buffer(dist = -0.01) %>% 
+  mutate(zone = case_when(
+    ID %in% zone_grps$aez[[1]] ~ "Zone 1", 
+    ID %in% zone_grps$aez[[2]] ~ "Zone 2", 
+    ID %in% zone_grps$aez[[3]] ~ "Zone 3", 
+    ID %in% zone_grps$aez[[4]] ~ "Zone 4")
+  ) %>%
+  group_by(zone) %>% 
+  summarize(area = sum(AREA)) %>% plot()
+
+aez_zones <- rmapshaper::ms_simplify(aez, keep = 1) %>% 
+  mutate(zone = case_when(
+    ID %in% zone_grps$aez[[1]] ~ "Zone 1", 
+    ID %in% zone_grps$aez[[2]] ~ "Zone 2", 
+    ID %in% zone_grps$aez[[3]] ~ "Zone 3", 
+    ID %in% zone_grps$aez[[4]] ~ "Zone 4")
+  ) %>%
+  group_by(zone) %>% 
+  summarize(area = sum(AREA)) 
+# plot(aez_zones["area"])
+# plot(aez["AREA"])
+
+m <- ggplot(aois) + geom_sf(lwd = 0.1) +
+  geom_sf(data = aoi_zones, lwd = 0.5, fill = "transparent") + 
+  geom_sf_text(data = st_centroid(aoi_zones), aes(label = zone), size = 4) + 
+  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
+
+m2 <- ggplot(aez %>% filter(ID != 8)) + geom_sf(lwd = 0.1) +
+  geom_sf(data = aez_zones, lwd = 0.5, fill = "transparent") + 
+  geom_sf_text(data = st_centroid(aez) %>% filter(ID != 8) %>% arrange(ID),
+               aes(label = ID), 
+               nudge_x = c(0.75, 0, 0, -1.25, -1, -1.25, 0),
+               nudge_y = c(0.25, 0, 0, 0.7, 0.25, 1, 0),
+               size = 3, col = "grey60") + 
+  geom_sf_text(data = st_centroid(aez_zones), aes(label = zone), size = 4) + 
+  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
+ggsave(m + m2 + plot_annotation(tag_levels = 'A'), 
+       filename = pth("figures/si_aoi_zones.png"), width = 3.5 * 2, 
+       height = 4.5, units = "in", dpi = 300)
+```
+
 
 ## Results 
 ### Figure 3: Composite quality
@@ -521,7 +580,7 @@ ggsave(filename = pth("figures/figure7.png"),
 ```
 
 
-### Figure S4: PlanetScope image density
+### Figure S5: PlanetScope image density
 The density of imagery available for download from the image catalog. 
 
 ```{r imagedensity, eval=FALSE}
@@ -575,7 +634,7 @@ ggsave(op, bg = "transparent",
 
 
 
-### Figure S5: Initial training site distribution
+### Figure S6: Initial training site distribution
 Figure showing distribution of initial 500 samples per cluster, as well as distribution of points per iteration.  
 ```{r trainingsites, eval=FALSE}
 data("train_val_sites")
@@ -640,7 +699,7 @@ ggsave(pth("figures/si_training_validation_pts.png"), width = 4,
 
 ```
 
-### Figure S6: Label count and quality
+### Figure S7: Label count and quality
 ```{r labelquality, eval=FALSE}
 data("label_summary")
 
@@ -695,7 +754,7 @@ ggsave(pth("figures/si_training_qual_n.png"), width = 4,
        height = 8, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figures S7 and S8: Consensus label (Bayesian) risk
+### Figures S8 and S9: Consensus label (Bayesian) risk
 
 Plots of mean risk in space, divided into training and validation sites
 
@@ -813,7 +872,7 @@ label_risk_metrics %>% select(aoi, Metric, Score) %>%
 
 ```
 
-### Figure S9: Random versus active sampling
+### Figure S10: Random versus active sampling
 ```{r, eval=FALSE}
 data("iteration_metrics")
 
@@ -876,7 +935,7 @@ ggsave(pth("figures/si_random_vs_active.png"),
 
 ```
 
-### Figure S10: Training data error impact on probability images
+### Figure S11: Training data error impact on probability images
 ```{r, eval = FALSE}
 probpal <- viridis::viridis
 cprob <- raster(here::here("external/prob/image_c294_r532.tif"))
@@ -902,64 +961,6 @@ dev.off()
 
 ```
 
-### Figure S11: AOI Zones
-
-```{r, eval=FALSE}
-# zone maps
-zone_grps <- list("aoi" = list(1:3, 4:9, c(10:11, 13, 14, 16), c(12, 15)),
-                  "aez" = list(1, 2:4, 5, 6:7))
-aoi_zones <- aois %>% 
-  mutate(zone = case_when(
-    aois %in% zone_grps$aoi[[1]] ~ "Zone 1", 
-    aois %in% zone_grps$aoi[[2]] ~ "Zone 2", 
-    aois %in% zone_grps$aoi[[3]] ~ "Zone 3", 
-    aois %in% zone_grps$aoi[[4]] ~ "Zone 4")
-  ) %>%
-  group_by(zone) %>% 
-  summarize(area = sum(area))
-
-rmapshaper::ms_simplify(aez) %>% plot()
-aez %>% st_buffer(dist = 0.01) %>% st_union(by_feature = TRUE) %>% 
-  st_buffer(dist = -0.01) %>% 
-  mutate(zone = case_when(
-    ID %in% zone_grps$aez[[1]] ~ "Zone 1", 
-    ID %in% zone_grps$aez[[2]] ~ "Zone 2", 
-    ID %in% zone_grps$aez[[3]] ~ "Zone 3", 
-    ID %in% zone_grps$aez[[4]] ~ "Zone 4")
-  ) %>%
-  group_by(zone) %>% 
-  summarize(area = sum(AREA)) %>% plot()
-
-aez_zones <- rmapshaper::ms_simplify(aez, keep = 1) %>% 
-  mutate(zone = case_when(
-    ID %in% zone_grps$aez[[1]] ~ "Zone 1", 
-    ID %in% zone_grps$aez[[2]] ~ "Zone 2", 
-    ID %in% zone_grps$aez[[3]] ~ "Zone 3", 
-    ID %in% zone_grps$aez[[4]] ~ "Zone 4")
-  ) %>%
-  group_by(zone) %>% 
-  summarize(area = sum(AREA)) 
-# plot(aez_zones["area"])
-# plot(aez["AREA"])
-
-m <- ggplot(aois) + geom_sf(lwd = 0.1) +
-  geom_sf(data = aoi_zones, lwd = 0.5, fill = "transparent") + 
-  geom_sf_text(data = st_centroid(aoi_zones), aes(label = zone), size = 4) + 
-  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
-
-m2 <- ggplot(aez %>% filter(ID != 8)) + geom_sf(lwd = 0.1) +
-  geom_sf(data = aez_zones, lwd = 0.5, fill = "transparent") + 
-  geom_sf_text(data = st_centroid(aez) %>% filter(ID != 8) %>% arrange(ID),
-               aes(label = ID), 
-               nudge_x = c(0.75, 0, 0, -1.25, -1, -1.25, 0),
-               nudge_y = c(0.25, 0, 0, 0.7, 0.25, 1, 0),
-               size = 3, col = "grey60") + 
-  geom_sf_text(data = st_centroid(aez_zones), aes(label = zone), size = 4) + 
-  theme_void() + theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
-ggsave(m + m2 + plot_annotation(tag_levels = 'A'), 
-       filename = pth("figures/si_aoi_zones.png"), width = 3.5 * 2, 
-       height = 4.5, units = "in", dpi = 300)
-```
 
 ### Table S4: AEZ accuracies
 
