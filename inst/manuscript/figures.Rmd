@@ -295,12 +295,12 @@ g <- cowplot::plot_grid(p1, p2, nrow = 2, align = "hv", axis = "l",
                         labels = LETTERS[1:2], label_x = 0, 
                         label_y = c(0.97, 1),   
                         scale = c(1, 1), rel_heights = c(1, 0.7))
-ggsave(pth("figures/figure4.png"), 
+ggsave(pth("figures/figure3.png"), 
        width = 4, height = 6.5, units = "in", dpi = 300)
 
 ```
 
-### Figure 5: Active learning gain
+### Figure 4: Active learning gain
 ```{r, eval=FALSE}
 # iteration metrics
 data("iteration_metrics")
@@ -343,11 +343,11 @@ p <- ggplot(imetrics) +
   theme(strip.background = element_rect(fill = "white"), 
         strip.text = element_text(colour = "black"))
 
-ggsave(pth("figures/figure5.png"), 
+ggsave(pth("figures/figure4.png"), 
        width = 7, height = 4, units = "in", dpi = 300)
 ```
 
-### Figure 6: The impact of training data error
+### Figure 5: The impact of training data error
 ```{r, eval=FALSE}
 data("consensus_high_low")
 
@@ -380,7 +380,7 @@ p <- ggplot(consensus_high_low_mu) +
   theme(legend.position = "bottom", 
         strip.background = element_rect(fill = "white"), 
         strip.text = element_text(colour = "black"))
-ggsave(pth("figures/figure6.png"), height = 4, width = 6, dpi = 300)
+ggsave(pth("figures/figure5.png"), height = 4, width = 6, dpi = 300)
 ```
 
 ### Table 2: Categorical map accuracy
@@ -449,7 +449,7 @@ ggsave(t1, filename = pth("figures/table2.png"), width = 7, height = 7.9,
        units = "in", dpi = 300)
 ```
 
-### Figure 7: Cropland maps
+### Figure 6: Cropland maps
 ```{r, eval=FALSE}
 # segment files
 segment_files <- dir(here("external/data/results/segments/merged"),
@@ -573,7 +573,7 @@ inset_map <- ggdraw() +
   draw_plot(isets[[4]], x = rx, y = 0.07, width = wh[1], height = wh[2])
 # inset_map
 
-ggsave(filename = pth("figures/figure7.png"), 
+ggsave(filename = pth("figures/figure6.png"), 
        plot = inset_map, bg = "transparent", width = diff(maprange[1:2]), 
        height = diff(maprange[3:4]), units = "in", dpi = 300)
 
@@ -631,7 +631,6 @@ ggsave(op, bg = "transparent",
        width = 5, height = 3, dpi = 300, units = "in") 
 
 ```
-
 
 
 ### Figure S6: Initial training site distribution
@@ -699,8 +698,8 @@ ggsave(pth("figures/si_training_validation_pts.png"), width = 4,
 
 ```
 
-### Figure S7: Label count and quality
-```{r labelquality, eval=FALSE}
+### Figure S7: Assignment count
+```{r assignmentcount, eval=FALSE}
 data("label_summary")
 
 # combine with label_quality
@@ -713,8 +712,98 @@ label_quality2 <- left_join(
 toofewq <- label_quality2 %>% group_by(ID) %>% count() %>% filter(n < 10)
 label_quality2 <- label_quality2 %>% filter(!ID %in% toofewq$ID)
 
+# N sites by type
+yl <- c(0, ceiling(max(label_summary$nlabels$n) * 1.01))
+p <- label_summary$nlabels %>% filter(!ID %in% toofewq$ID) %>% 
+  group_by(ID, kml_type) %>% 
+  ggplot() + 
+  geom_bar(aes(x = reorder(ID, -n), y = n, fill = kml_type), 
+           position = "dodge", stat = "identity") +
+  xlab("ID") + ylab("N") + 
+  labs(fill = "Label Type") + 
+  scale_fill_manual(labels = c("Training/validation", "Accuracy assessment"),
+                    values = c("grey40", "grey70")) + 
+  scale_y_continuous(breaks = seq(yl[1], yl[2], by = 200), 
+                     expand = c(0, 0.01), limits = yl) + 
+  theme_linedraw() + 
+  # theme(legend.position = c(0.7, 0.85), axis.text = element_text(size = 11),
+  theme(axis.text = element_text(size = 11), 
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+ggsave(pth("figures/si_training_n.png"), width = 5.5, 
+       height = 4, units = "in", dpi = 300, bg = "transparent")
+```
+
+### Figure S8: Random versus active sampling
+```{r, eval=FALSE}
+data("iteration_metrics")
+
+# Plots
+V1 <- c("Accuracy", "AUC", "F1")
+
+# prepare data
+# remove labeller from AOI and select AOIs 1-16
+aois <- c(paste0("labeller", c(1, 8, 15, "1r", "8r", "15r")))
+imetrics <- iteration_metrics %>% 
+  filter(Metric %in% V1 & AOI %in% aois) %>% 
+  mutate(AOI = gsub("labeller", "", AOI)) %>% 
+  mutate(type = case_when(
+    AOI %in% c(1, 8, 15) ~ "active", 
+    AOI %in% c("1r", "8r", "15r") ~ "random"
+  )) %>% 
+  mutate(AOI = gsub("r", "", AOI)) %>% 
+  tidyr::pivot_wider(names_from = "type", values_from = "Score") %>% 
+  mutate(delta = (active - random) / random * 100) 
+
+imetrics_all <- imetrics %>% filter(Iteration < 4) %>% 
+  group_by(Iteration, Metric) %>% 
+  summarize(active = mean(active), random = mean(random), 
+            delta = mean(delta)) %>%
+  ungroup() %>% mutate(AOI = "All") %>% 
+  select(AOI, Iteration, Metric, active, random, delta)
+imetrics <- bind_rows(imetrics, imetrics_all)
+
+# select out final iteration for each AOI
+mx_metrics <- imetrics %>% group_by(AOI) %>% 
+  filter(Iteration == max(Iteration)) %>% filter(Metric %in% V1)
+
+# plot
+cols <- c(rep("grey50", length(unique(imetrics$AOI)) -1), "black")
+lsize <- c(rep(0.3, length(unique(imetrics$AOI)) -1), 1)
+p <- ggplot(imetrics) + 
+  geom_hline(yintercept = 0, linetype = "dotted", col = "grey40") +
+  geom_line(aes(Iteration, delta, color = AOI, size = AOI)) +
+  geom_point(data = mx_metrics, aes(Iteration, delta, color = AOI), 
+             size = 1.2) +
+  ggrepel::geom_text_repel(
+    data = mx_metrics %>% filter(AOI != "All"), 
+    aes(label = AOI, x = Iteration, y = delta), col = "grey50", 
+    segment.color = "grey60", point.padding = 0.2, min.segment.length = 0.2,
+    segment.size = 0.2, size = 3, nudge_x = 0 
+  ) +
+  scale_color_manual(values = cols, guide = FALSE) +
+  scale_size_manual(values = lsize, guide = FALSE) + 
+  scale_x_continuous(expand = c(0.01, 0.01)) + 
+  scale_y_continuous(expand = c(0.01, 0.01), breaks = seq(-8, 4, 1)) + 
+  ylab("% difference") +                    
+  facet_wrap(vars(Metric), ncol = 3) +
+  theme_linedraw() + 
+  theme(panel.grid.minor.x = element_blank(), 
+        strip.background = element_rect(fill = "white"), 
+        strip.text = element_text(colour = "black"))
+
+ggsave(pth("figures/si_random_vs_active.png"), 
+       width = 6, height = 4, units = "in", dpi = 300)
+
+```
+
+
+### Figure S9: Label quality
+```{r labelquality, eval=FALSE}
+# Plot data from Figure S7
+
 # Q site accuracy
-p1 <- ggplot(label_quality2) + 
+p <- ggplot(label_quality2) + 
   geom_boxplot(aes(x = reorder(ID, -score), y = score, fill = ID), 
                col = "grey50", varwidth = TRUE, show.legend = FALSE,
                outlier.size = 1) + 
@@ -727,34 +816,11 @@ p1 <- ggplot(label_quality2) +
   theme(axis.text = element_text(size = 11), 
         axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
-# N sites by type
-yl <- c(0, ceiling(max(label_summary$nlabels$n) * 1.01))
-p2 <- label_summary$nlabels %>% filter(!ID %in% toofewq$ID) %>% 
-  group_by(ID, kml_type) %>% 
-  ggplot() + 
-  geom_bar(aes(x = reorder(ID, -n), y = n, fill = kml_type), 
-           position = "dodge", stat = "identity") +
-  xlab("ID") + ylab("N") + 
-  labs(fill = "Map Type") + 
-  scale_fill_manual(values = c("grey40", "grey70")) + 
-  scale_y_continuous(breaks = seq(yl[1], yl[2], by = 200), 
-                     expand = c(0, 0.01), limits = yl) + 
-  theme_linedraw() + 
-  theme(legend.position = c(0.7, 0.85), axis.text = element_text(size = 11), 
-        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-
-cp_theme <- theme(axis.text = element_text(size = 11),  
-                  legend.text = element_text(size = 11),
-                  legend.title = element_text(size = 11),
-                  axis.title = element_text(size = 12))
-gp <- cowplot::plot_grid(p2 + cp_theme, p1 + cp_theme, nrow = 2, 
-                         labels = LETTERS[1:2], label_x = 0.0) 
-                         #rel_widths = c(0.65, 0.45))
-ggsave(pth("figures/si_training_qual_n.png"), width = 4, 
-       height = 8, units = "in", dpi = 300, bg = "transparent")
+ggsave(pth("figures/si_label_quality.png"), width = 4, 
+       height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figures S8 and S9: Consensus label (Bayesian) risk
+### Figures S10 and S11: Consensus label (Bayesian) risk
 
 Plots of mean risk in space, divided into training and validation sites
 
@@ -872,70 +938,8 @@ label_risk_metrics %>% select(aoi, Metric, Score) %>%
 
 ```
 
-### Figure S10: Random versus active sampling
-```{r, eval=FALSE}
-data("iteration_metrics")
 
-# Plots
-V1 <- c("Accuracy", "AUC", "F1")
-
-# prepare data
-# remove labeller from AOI and select AOIs 1-16
-aois <- c(paste0("labeller", c(1, 8, 15, "1r", "8r", "15r")))
-imetrics <- iteration_metrics %>% 
-  filter(Metric %in% V1 & AOI %in% aois) %>% 
-  mutate(AOI = gsub("labeller", "", AOI)) %>% 
-  mutate(type = case_when(
-    AOI %in% c(1, 8, 15) ~ "active", 
-    AOI %in% c("1r", "8r", "15r") ~ "random"
-  )) %>% 
-  mutate(AOI = gsub("r", "", AOI)) %>% 
-  tidyr::pivot_wider(names_from = "type", values_from = "Score") %>% 
-  mutate(delta = (active - random) / random * 100) 
-
-imetrics_all <- imetrics %>% filter(Iteration < 4) %>% 
-  group_by(Iteration, Metric) %>% 
-  summarize(active = mean(active), random = mean(random), 
-            delta = mean(delta)) %>%
-  ungroup() %>% mutate(AOI = "All") %>% 
-  select(AOI, Iteration, Metric, active, random, delta)
-imetrics <- bind_rows(imetrics, imetrics_all)
-
-# select out final iteration for each AOI
-mx_metrics <- imetrics %>% group_by(AOI) %>% 
-  filter(Iteration == max(Iteration)) %>% filter(Metric %in% V1)
-
-# plot
-cols <- c(rep("grey50", length(unique(imetrics$AOI)) -1), "black")
-lsize <- c(rep(0.3, length(unique(imetrics$AOI)) -1), 1)
-p <- ggplot(imetrics) + 
-  geom_hline(yintercept = 0, linetype = "dotted", col = "grey40") +
-  geom_line(aes(Iteration, delta, color = AOI, size = AOI)) +
-  geom_point(data = mx_metrics, aes(Iteration, delta, color = AOI), 
-             size = 1.2) +
-  ggrepel::geom_text_repel(
-    data = mx_metrics %>% filter(AOI != "All"), 
-    aes(label = AOI, x = Iteration, y = delta), col = "grey50", 
-    segment.color = "grey60", point.padding = 0.2, min.segment.length = 0.2,
-    segment.size = 0.2, size = 3, nudge_x = 0 
-  ) +
-  scale_color_manual(values = cols, guide = FALSE) +
-  scale_size_manual(values = lsize, guide = FALSE) + 
-  scale_x_continuous(expand = c(0.01, 0.01)) + 
-  scale_y_continuous(expand = c(0.01, 0.01), breaks = seq(-8, 4, 1)) + 
-  ylab("% difference") +                    
-  facet_wrap(vars(Metric), ncol = 3) +
-  theme_linedraw() + 
-  theme(panel.grid.minor.x = element_blank(), 
-        strip.background = element_rect(fill = "white"), 
-        strip.text = element_text(colour = "black"))
-
-ggsave(pth("figures/si_random_vs_active.png"), 
-       width = 6, height = 4, units = "in", dpi = 300)
-
-```
-
-### Figure S11: Training data error impact on probability images
+### Figure S12: Training data error impact on probability images
 ```{r, eval = FALSE}
 probpal <- viridis::viridis
 cprob <- raster(here::here("external/prob/image_c294_r532.tif"))
@@ -1006,7 +1010,7 @@ ggsave(t1, filename = pth("figures/si_aez_accuracies.png"), width = 7,
        height = 3.5, units = "in", dpi = 300)
 ```
 
-### Figures S12 and S13: Segmentation statistics (grid scale)
+### Figures S13 and S14: Segmentation statistics (grid scale)
 
 ```{r segstats, eval=FALSE}
 # data("top_label_data")
@@ -1099,7 +1103,7 @@ ggsave(pth("figures/si_validation_stats_fn2.png"),
 
 ```
 
-### Figure S14: Average fields sizes
+### Figure S15: Average fields sizes
 
 Tile scale field size and number, presented without adjustment
 

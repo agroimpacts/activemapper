@@ -338,7 +338,7 @@ Two supervisors (Ye and Estes), who were not involved in collecting training and
   - More than half falls in what is clearly not a field, then classify it as **non-cropland**; 
   - More than half falls in a location where it is harder to tell whether it is cropland or non-cropland, determine whether it is more likely a crop field or not a crop field, and then assign either **uncertain but likely cropland**, or **uncertain but likely non-cropland**.
   
-2. After determining the class, if
+2. After determining the class, if:
   - The target polygon is contained entirely within a single clear class, then simply digitize a point within the center of the target box, assign the appropriate class label, and complete the assignment;
   - Digitize a square polygon exactly aligned with the initial target, choose the correct class label, and then move the new polygon to the nearest location where it can be contained entirely by the assigned class.
 
@@ -435,10 +435,10 @@ aoi3init <- initial %>% filter(!Cluster %in% 1:3) %>% pull(n)
 aoi3n <- aoi3init + (active %>% filter(aoi == "labeller3") %>% pull(n))
 ```
 
-The number of active learning iterations per AOI was three, for all but four AOIs. AOIs 10 and 14 stopped after one and two iterations, respectively, as they started with high initial validation accuracies (\>83%) and showed little subsequent improvement. The models for these two AOIs were thus trained with `r aoi10n` - `r aoi14n` labels. AOI 15 was run for 4 iterations (`r aoi15n` samples), while AOI 3 underwent a second active learning cycle because the model produced during the first cycle was inaccurate (see SI). In this second run, `r aoi3init` initial training sites randomly selected within the AOI were used (Figure S4A), followed by 2 subsequent active learning iterations, resulting in a training sample of `r aoi3n`. 
+The number of active learning iterations per AOI was three, for all but four AOIs. AOIs 10 and 14 stopped after one and two iterations, respectively, as they started with high initial validation accuracies (\>83%) and showed little subsequent improvement. The models for these two AOIs were thus trained with `r aoi10n` - `r aoi14n` labels. AOI 15 was run for 4 iterations (`r aoi15n` samples), while AOI 3 underwent a second active learning cycle because the model produced during the first cycle was inaccurate (see next section). In this second run, `r aoi3init` initial training sites randomly selected within the AOI were used, followed by 2 subsequent active learning iterations, resulting in a training sample of `r aoi3n`. 
 
 ### Labelling
-The locations of training, training reference, and validation points are shown in Figure \ref{fig:trainval}. In AOI 3, the initial active learning cycle resulted in low accuracy because the northern part of the AOI shows low contrast between fields and the surrounding vegetation in the dry season. Training the model with the initial 500 samples resulted in large commission errors in this part of the AOI, thus we ran a second active learning cycle that began with an inital random draw of 300 training sites confined to this AOI (blue points in Figure \ref{fig:trainval}A)
+The locations of training, training reference, and validation points are shown in Figure \ref{fig:trainval}. In AOI 3, the initial active learning cycle resulted in low accuracy because the northern part of the AOI shows low contrast between fields and the surrounding vegetation in the dry season. Training the model with the initial 500 samples resulted in large commission errors in this part of the AOI, thus we ran a second active learning cycle that began with an inital random draw of 300 training sites confined to this AOI (blue points in Figure \ref{fig:trainval}A).
 ```{r trainval, echo = FALSE, out.width="70%", fig.cap="The distribution of A) initial randomly selected training sites, including 300 points selected to initialize a second run for retrain AOI 3, and the locations of training reference sites, and B) validation points and training sites selected during each active learning iteration. Grey background lines and show the boundaries and ID number of Ghana's agroecozones: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/si_training_validation_pts.png')
 ```
@@ -463,55 +463,13 @@ tsitesc <- tsites %>% mutate(across(where(is.numeric), fmt))
 
 ```
 
-The distribution of training and validation sample collection effort was divided across `r nrow(label_summary$score_stats)` labellers, with a core group of `r label_summary$nlabels %>% filter(kml_type == "Training" & n > 1000) %>% nrow()` who mapped more than 1,000 sites each (Figure \ref{fig:trainqual}A). As each training and reference tasks was mapped by 4 separate labellers, `r tsitesc$tot[1]` sets of vector labels were made. Each labeller digitized an average of `r tsitesc$mu[1]`. Labeller accuracy was scored `r tsitesc$tot[2]` times against `r length(unique(label_summary$scores$name))` unique training reference sites, with each labeller assessed an average of `r tsites$mu[2]` times at a rate of 1 training reference site for every `r round(1 / (tsites$mu[2] / tsites$mu[1]), 2)` training site mapped. The mean of each labeller's average accuracy score was `r round(mean(label_summary$score_stats$Mean), 2)` (range `r round(min(label_summary$score_stats$Mean), 2)` to `r round(max(label_summary$score_stats$Mean), 2)` (Figure \ref{fig:trainqual}B).
+The distribution of training and validation sample collection effort was divided across `r nrow(label_summary$score_stats)` labellers, with a core group of `r label_summary$nlabels %>% filter(kml_type == "Training" & n > 1000) %>% nrow()` who completed more than 1,000 assignment each (Figure \ref{fig:assignmentcount}). As each training/validation task was undertaken by 4 separate labellers, `r tsitesc$tot[1]` sets of labels were made. Each labeller digitized an average of `r tsitesc$mu[1]` training/validation assignments. 
 
-These results include those from re-labelling the initial training in Cluster 2 (AOIs 7-9, 12, 15). This was done because we discovered a small spatial offset in the original image composites, which we corrected by reprocessing the images. We replaced the image overlays in the instance for central-southeast (Figure \ref{fig:trainval}A), and the labelling team mapped these sites a second time during the production run in late 2019. The reprocessed labels were used to initially train the model for AOIs 9, 12, and 15.
-
-
-```{r trainqual, echo = FALSE, out.width="50%", fig.cap="The A) distributions of scores at training reference sites for each labeller (means indicated by X in boxplots), and B) the number of training and training reference sites completed by each labeller. Labellers' identities are anonymized.", fig.align='center', message=FALSE}
-knitr::include_graphics('figures/si_training_qual_n.png')
+```{r assignmentcount, echo = FALSE, out.width="80%", fig.cap="The A) number of training/validation and accuracy assessment assignments completed by each labeller, and B) the distributions of quality scores at training reference sites for each labeller (means indicated by X in boxplots). Labellers' identities are anonymized.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_training_n.png')
 ```
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-data("label_risk")
-murisk <- label_risk$stats %>% group_by(usage) %>% 
-  summarize(Risk = round(mean(Risk), 3)) %>% 
-  tidyr::pivot_wider(names_from = usage, values_from = Risk)
-mintrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
-  filter(Risk == min(Risk))
-maxtrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
-  filter(Risk == max(Risk))
-minvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
-  filter(Risk == min(Risk))
-maxvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
-  filter(Risk == max(Risk))
-
-# label clusters
-cl1 <- label_risk$stats %>% filter(aoi %in% 1:6) %>% group_by(usage) %>% 
-  summarize(Risk = round(mean(Risk), 3))
-cl2 <- label_risk$stats %>% filter(aoi %in% c(7:9, 12, 15)) %>% 
-  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
-cl3 <- label_risk$stats %>% filter(aoi %in% c(10:11, 13:14, 16)) %>% 
-  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
-
-# training clusters
-cl2arisk <- label_risk$stats %>% filter(aoi %in% c("Cl2a")) %>% pull(Risk) %>% 
-  round(3)
-cl2brisk <- label_risk$stats %>% filter(aoi %in% c("Cl2b")) %>% pull(Risk) %>% 
-  round(3)
-```
-
-The average Bayesian Risk of each training and validation site is shown in Figure \ref{fig:labelrisk}, as well as the distribution of risk values per AOI and the initial training clusters (Figure \ref{fig:labelriskhist}). The three initial clusters include the second mapping of Cluster 2. 
-
-The average Bayesian risk was `r murisk$Train` for training labels and `r murisk$Validate` for validation labels. Risk was highest in the northen AOIs (AOIs 1-6; Figures S6-7), falling between `r cl1$Risk[1]` for training and `r cl1$Risk[2]` for validation labels (Figures S6-7), and lowest in the southwestern AOIs (AOIs 10, 11, 13, 14, 16; training risk = `r cl3$Risk[1]`; validation risk = `r cl3$Risk[2]`). Label risk in the central-southeastern AOIs (AOIs 7-9, 12, 15) was slightly lower (training = `r cl2$Risk[1]`; validation = `r cl2$Risk[2]`) than in the north. Labeller experience also appeared to reduce risk, which we observed during a relabelling of the 500 initial random site in this cluster; the mean risk of the updated labels was `r cl2brisk`, compared to `r cl2arisk` for original labels.
-
-```{r labelrisk, echo = FALSE, out.width="80%", fig.cap="The average Bayes Risk of each training and validation site in Ghana.", fig.align='center', message=FALSE}
-knitr::include_graphics('figures/si_label_risk_map.png')
-```
-
-```{r labelriskhist, echo = FALSE, out.width="40%", fig.cap="The distribution of Bayesian Risk values for training (left column) and validation (right column) sites in each AOI, with the average value indicated by vertical lines. The first three rows (panel titles beginning with 'Cl') indicate distributions of Bayes Risk in the initial training clusters, including the first ('Cl2a') and second ('Cl2b') mappings of Cluster 2.", fig.align='center', message=FALSE}
-knitr::include_graphics('figures/si_label_risk_hists.png')
-```
+These results include those from re-labelling the initial training in Cluster 2 (AOIs 7-9, 12, 15). This was done because we discovered a small spatial offset in the original image composites, which we corrected by reprocessing the images. We replaced the image overlays in the instances for this Cluster (Figure \ref{fig:trainval}A), and the labelling team mapped these sites a second time during the production run in late 2019. The reprocessed labels were used to initially train the model for AOIs 9, 12, and 15.
 
 ### Model performance
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
@@ -557,14 +515,61 @@ u <- function(x) unname(x)
 
 The differences in accuracy, AUC, and F1 between the active learning process and the random retraining at each iteration for AOIs 1, 8, and 15 (Figure \ref{fig:randomvactive}). Small differences due to random variations in the RandomForest models are the reason for the non-zero differences at iteration 0, when both models were trained with the same level set.
 
-The lower accuracy of actively versus randomly trained models in earlier iterations was caused by results at AOI 15, where active learning accuracy was `r abs(u(i1acc["15"]))` percent lower than random training after iteration 1 (see Figure \ref{fig:randomvactive}). In comparison, iteration 1 active learning accuracies were `r u(i1acc["1"])` and `r u(i1acc["8"])` percent higher than random training for AOIs 1 and 8, respectively. Accuracy under active learning for AOI 15 exceeded randomized training after 4 iterations.
-
 ```{r randomvactive, echo = FALSE, out.width="90%", fig.cap="The percent difference in performance metrics per iteration for AOIs 1, 8, and 15 (grey lines with numbers indicating AOI; the black line indicates average difference across the three AOIs) when comparing models trained using active learning versus those trained using randomly selected sites. Postive percentages indicate superior performance by active learning, negative percentages the inverse.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/si_random_vs_active.png')
 ```
 
+The lower accuracy of actively versus randomly trained models in earlier iterations was caused by results at AOI 15, where active learning accuracy was `r abs(u(i1acc["15"]))` percent lower than random training after iteration 1 (see Figure \ref{fig:randomvactive}). In comparison, iteration 1 active learning accuracies were `r u(i1acc["1"])` and `r u(i1acc["8"])` percent higher than random training for AOIs 1 and 8, respectively. Accuracy under active learning for AOI 15 exceeded randomized training after 4 iterations.
+
 ### The impact of training data error
-Probability images resulting from Random Forests models trained with labels generated under three different labeling strategies are illustrated in Figure \ref{fig:labelstrategy}. These included consensus labels, and those individual labels that were likely to be the most and least accurate for each training site. Label accuracy was based on the mean score of each labeller against the training reference sites (Figure \ref{fig:trainqual}), as assessed when labelling a given AOI. These images were created for a single tile in AOI 1.    
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data("label_risk")
+murisk <- label_risk$stats %>% group_by(usage) %>% 
+  summarize(Risk = round(mean(Risk), 3)) %>% 
+  tidyr::pivot_wider(names_from = usage, values_from = Risk)
+mintrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
+  filter(Risk == min(Risk))
+maxtrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
+  filter(Risk == max(Risk))
+minvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
+  filter(Risk == min(Risk))
+maxvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
+  filter(Risk == max(Risk))
+
+# label clusters
+cl1 <- label_risk$stats %>% filter(aoi %in% 1:6) %>% group_by(usage) %>% 
+  summarize(Risk = round(mean(Risk), 3))
+cl2 <- label_risk$stats %>% filter(aoi %in% c(7:9, 12, 15)) %>% 
+  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
+cl3 <- label_risk$stats %>% filter(aoi %in% c(10:11, 13:14, 16)) %>% 
+  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
+
+# training clusters
+cl2arisk <- label_risk$stats %>% filter(aoi %in% c("Cl2a")) %>% pull(Risk) %>% 
+  round(3)
+cl2brisk <- label_risk$stats %>% filter(aoi %in% c("Cl2b")) %>% pull(Risk) %>% 
+  round(3)
+```
+
+Two measures of label quality, average quality score per labeller and the Bayesian Risk of labels, were calculated to provide proxy measures of label error. Labeller quality was scored `r tsitesc$tot[2]` times against `r length(unique(label_summary$scores$name))` unique training reference sites, with each labeller assessed an average of `r tsites$mu[2]` times at a rate of 1 training reference site for every `r round(1 / (tsites$mu[2] / tsites$mu[1]), 2)` training site mapped. The mean of each labeller's average accuracy score was `r round(mean(label_summary$score_stats$Mean), 2)` (range `r round(min(label_summary$score_stats$Mean), 2)` to `r round(max(label_summary$score_stats$Mean), 2)`; Figure \ref{fig:labelqual}).
+
+```{r labelqual, echo = FALSE, out.width="70%", fig.cap="Boxplots showing the distributions of quality scores from the accuracy assessment assignments undertaken by each labeller (means indicated by X in boxplots). Labellers' identities are anonymized.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_label_quality.png')
+```
+
+The average Bayesian Risk of each training and validation site is shown in Figure \ref{fig:labelrisk}, and the distribution of risk values per AOI and the initial training clusters in Figure \ref{fig:labelriskhist}. The three initial clusters include the second mapping of Cluster 2 (Figure \ref{fig:trainval}A). 
+
+```{r labelrisk, echo = FALSE, out.width="80%", fig.cap="The average Bayes Risk of each training and validation site in Ghana.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_label_risk_map.png')
+```
+
+```{r labelriskhist, echo = FALSE, out.width="40%", fig.cap="The distribution of Bayesian Risk values for training (left column) and validation (right column) sites in each AOI, with the average value indicated by vertical lines. The first three rows (panel titles beginning with 'Cl') indicate distributions of Bayes Risk in the initial training clusters, including the first ('Cl2a') and second ('Cl2b') mappings of Cluster 2.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_label_risk_hists.png')
+```
+
+The average Bayesian risk was `r murisk$Train` for training labels and `r murisk$Validate` for validation labels. Risk was highest in the northern AOIs (AOIs 1-6; Figures \ref{fig:labelrisk}-\ref{fig:labelriskhist}), falling between `r cl1$Risk[1]` for training and `r cl1$Risk[2]` for validation labels, and lowest in the southwestern AOIs (AOIs 10, 11, 13, 14, 16; training risk = `r cl3$Risk[1]`; validation risk = `r cl3$Risk[2]`). Label risk in the central-southeastern AOIs (AOIs 7-9, 12, 15) was slightly lower (training = `r cl2$Risk[1]`; validation = `r cl2$Risk[2]`) than in the north. Labeller experience also appeared to reduce risk, which we observed during a relabelling of the 500 initial random site in this cluster; the mean risk of the updated labels was `r cl2brisk`, compared to `r cl2arisk` for original labels.
+
+Probability images resulting from Random Forests models trained with labels generated under three different labeling strategies are illustrated in Figure \ref{fig:labelstrategy}. These included consensus labels, and those individual labels that were likely to be the most and least accurate for each training site. Label accuracy was based on the mean score of each labeller against the training reference sites (Figure \ref{fig:labelqual}), as assessed when labelling a given AOI. These images were created for a single tile in AOI 1.    
 
 ```{r labelstrategy, echo = FALSE, out.width="100%", fig.cap="Cropland probability images produced by Random Forests models trained with A) consensus labels, B) the most accurate individual labels, and C) the least accurate individual labels.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/si_label_strategy_probs.png')
@@ -636,7 +641,7 @@ The repositories containing the data, code, and manuscript source files used to 
 - [`imager`](https:github.com/agroimpacts/imager): Source code for the image processing software. The repository\footnote{github.com/agroimpacts/imager} is currently private, but will be opened after completing a security audit. 
 - [`labeller`](https:github.com/agroimpacts/labeller): Source code for the labelling platform. The repository\footnote{github.com/agroimpacts/labeller} is currently private, but will be opened after completing a security audit. 
 - [`learner`](https:github.com/agroimpacts/learner): Source code for the active learning component. The repository\footnote{github.com/agroimpacts/learner} is open.
-- [`segmenter`](https:github.com/agroimpacts/segmenter): Source code for the segmentation algorithm. The repository \footnote{github.com/agroimpacts/segmenter} is currently private, but will be opened after completing a security audit.
+- [`segmenter`](https:github.com/agroimpacts/segmenter): Source code for the segmentation algorithm. The repository \footnote{github.com/agroimpacts/segmenter} is open.
 
 \clearpage
 # References
