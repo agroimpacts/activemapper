@@ -159,9 +159,52 @@ smallholder-dominated croplands at national scales}
 \hypertarget{supplemental-methods}{%
 \section{Supplemental Methods}\label{supplemental-methods}}
 
-\hypertarget{assessing-quality-of-composites}{%
-\subsection{Assessing quality of
-composites}\label{assessing-quality-of-composites}}
+\hypertarget{map-reference-system}{%
+\subsection{Map reference system}\label{map-reference-system}}
+
+The map reference system used in our mapping approach had three
+different levels. At the coarsest level, Ghana was divided into 16
+different mapping zones, or areas of interest (AOIS; Figure
+\ref{fig:aois}A), that were used to create AOI-specific mapping models.
+Each AOIs was comprised of 400 to 777 adjacent tiles. These tiles were
+used to create seasonal image composites, and were defined within a 0.05
+degree grid (Figure \ref{fig:aois}B)), with each tile numbered to
+correspond to a larger 1 degree grid cell that it sits within (dotted
+lines in Figure \ref{fig:aois}B). Training and reference labels were
+created within a 0.005 degree grid that nested within each tile (Figure
+\ref{fig:aois}C). Therefore, each tile has 100 grid cells, and there are
+400 tiles per 1X1 degree. The smallest AOI consists of a single 1X1
+degree, which fall in the center of the country (AOIs 5, 8, 11, and 14).
+AOIs falling along Ghana's boundaries were created by tiles from 1X1
+degree cells that straddled Ghana's border with those from the closest
+degree cells that were fully contained within Ghana (e.g.~AOI 1), with
+the exception of AOI 16, which was comprised of tiles in three partial
+1X1 degree cells along Ghana's coast.
+
+\begin{figure}[!ht]
+
+{\centering \includegraphics[width=1\linewidth,]{figures/reference_system} 
+
+}
+
+\caption{The reference system used in this mapping approach, including A) numbered areas of interest (AOIs) that define the minimum mapping geography (solid black lines; dotted lines indicate boundaries of 1 degree grid), B) the 0.05 degree tile used for compositing imagery, and C) the 0.005 degree resolution reference grid used for collecting training data and distributed computing.}\label{fig:aois}
+\end{figure}
+
+\hypertarget{image-compositing}{%
+\subsection{Image compositing}\label{image-compositing}}
+
+\hypertarget{variation-in-lengths-of-temporal-window-used}{%
+\subsubsection{Variation in lengths of temporal window
+used}\label{variation-in-lengths-of-temporal-window-used}}
+
+The typical window for compositing dry season imagery was December, 2018
+to February, 2019, but in the cloudiest regions (AOIs 10, 11, 13, 14,
+16) we started the dry season window in November, to ensure a sufficient
+density of images for compositing.
+
+\hypertarget{assessing-composite-quality}{%
+\subsubsection{Assessing composite
+quality}\label{assessing-composite-quality}}
 
 The rubric presented in Table \ref{tab:imqcriteria} was used to assess
 the quality of the seasonal image composites. The imagery was evaluated
@@ -549,10 +592,11 @@ composites, following the same interpretation protocols used by the
 labelling team, with the exception that the polygons placed were square
 and of 0.0002866\(^\circ\) resolution.
 
-Two supervisors (Ye and Estes) who were not involved in labelling
-developed the map reference sample evaluated the PlanetScope composites
-at each site to determine its class membership. The following set of
-rules were followed in collecting the sample:
+Two supervisors (Ye and Estes), who were not involved in collecting
+training and validation labels, collected the map reference sample by
+evaluating the PlanetScope composites at each site to determine its
+class membership. The following set of rules were followed in collecting
+the sample:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -583,7 +627,7 @@ rules were followed in collecting the sample:
 \setcounter{enumi}{1}
 \tightlist
 \item
-  After determining the class, if
+  After determining the class, if:
 \end{enumerate}
 
 \begin{itemize}
@@ -607,6 +651,43 @@ values from both the cropland probability and vectorized field boundary
 maps. Accuracies were assessed for the entire country, and with several
 zones consisting of different groupings of AOIs or
 agroecozones\footnote{sourced from https://wheregeospatial.com/agro-ecological-zones-ghana/}
+
+\hypertarget{map-reference-label-uncertainty}{%
+\paragraph{Map reference label
+uncertainty}\label{map-reference-label-uncertainty}}
+
+The size of the collected validation sample was 1207, with 1036 samples
+collected and interpreted by one observer (Su Ye) and 171 collected by a
+second observer (Estes). To evaluate the uncertainty inherent in
+defining the map reference labels, the pair mapped 23 common sites,
+showing an overall level of agreement of 87\%, and a Spearman Rank
+Correlation of 0.76.
+
+Although this overlap between observers was limited, the map reference
+classification scheme provided two additional measures of uncertainty,
+which were classes defined as ``unsure but most likely a field'' or
+``unsure but most likely not a field,'' which the reference labeller
+would choose when they could not with high confidence state whether the
+site was either cropland or not cropland. Of the 487 map reference
+samples that were identified as cropland, 22\% fell into the lower
+confidence category, as did 11.5\% of the 720 non-cropland samples.
+Across both classes, the reference labellers had lower confidence in
+15.7 of sites labelled.
+
+\hypertarget{accuracy-assessment-zones}{%
+\paragraph{Accuracy assessment zones}\label{accuracy-assessment-zones}}
+
+The zones used to assess regional variation in map accuracy are
+illustrated in Figure \ref{fig:aoizones}.
+
+\begin{figure}[!ht]
+
+{\centering \includegraphics[width=0.9\linewidth,]{figures/si_aoi_zones} 
+
+}
+
+\caption{Four zones used to combine the A) AOIs and B) agroecozones (B), in order to assess sub-national mapping accuracy. In B, the ID number of Ghana's individual agroecozones is shown in grey: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.}\label{fig:aoizones}
+\end{figure}
 
 \hypertarget{supplemental-results}{%
 \section{Supplemental Results}\label{supplemental-results}}
@@ -639,8 +720,21 @@ season. The mean difference between the two observers was -0.057 (sd =
 observer scored tiles about 6 percent lower than the other observer, on
 average.
 
-\hypertarget{active-learning-process}{%
-\subsection{Active learning process}\label{active-learning-process}}
+\hypertarget{mapping-cropland-probabilities-with-active-learning}{%
+\subsection{Mapping cropland probabilities with active
+learning}\label{mapping-cropland-probabilities-with-active-learning}}
+
+The number of active learning iterations per AOI was three, for all but
+four AOIs. AOIs 10 and 14 stopped after one and two iterations,
+respectively, as they started with high initial validation accuracies
+(\textgreater83\%) and showed little subsequent improvement. The models
+for these two AOIs were thus trained with 600 - 700 labels. AOI 15 was
+run for 4 iterations (900 samples), while AOI 3 underwent a second
+active learning cycle because the model produced during the first cycle
+was inaccurate (see next section). In this second run, 300 initial
+training sites randomly selected within the AOI were used, followed by 2
+subsequent active learning iterations, resulting in a training sample of
+500.
 
 \hypertarget{labelling}{%
 \subsubsection{Labelling}\label{labelling}}
@@ -653,7 +747,7 @@ the dry season. Training the model with the initial 500 samples resulted
 in large commission errors in this part of the AOI, thus we ran a second
 active learning cycle that began with an inital random draw of 300
 training sites confined to this AOI (blue points in Figure
-\ref{fig:trainval}A)
+\ref{fig:trainval}A).
 
 \begin{figure}[!ht]
 
@@ -664,31 +758,84 @@ training sites confined to this AOI (blue points in Figure
 \caption{The distribution of A) initial randomly selected training sites, including 300 points selected to initialize a second run for retrain AOI 3, and the locations of training reference sites, and B) validation points and training sites selected during each active learning iteration. Grey background lines and show the boundaries and ID number of Ghana's agroecozones: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.}\label{fig:trainval}
 \end{figure}
 
-The distribution of data collection effort and scores from training
-reference sites by labelling team are shown in Figure
-\ref{fig:trainqual}. These results include those from re-labelling the
-initial training in Cluster 2 (AOIs 7-9, 12, 15). This was done because
-we discovered a small spatial offset in the original image composites,
-which we corrected by reprocessing the images. We replaced the image
-overlays in the instance for central-southeast (Figure
-\ref{fig:trainval}A), and the labelling team mapped these sites a second
-time during the production run in late 2019. The reprocessed labels were
-used to initially train the model for AOIs 9, 12, and 15.
+The distribution of training and validation sample collection effort was
+divided across 20 labellers, with a core group of 13 who completed more
+than 1,000 assignment each (Figure \ref{fig:assignmentcount}). As each
+training/validation task was undertaken by 4 separate labellers, 34,014
+sets of labels were made. Each labeller digitized an average of 2,001
+training/validation assignments.
 
 \begin{figure}[!ht]
 
-{\centering \includegraphics[width=0.5\linewidth,]{figures/si_training_qual_n} 
+{\centering \includegraphics[width=0.8\linewidth,]{figures/si_training_n} 
 
 }
 
-\caption{The A) distributions of scores at training reference sites for each labeller (means indicated by X in boxplots), and B) the number of training and training reference sites completed by each labeller. Labellers' identities are anonymized.}\label{fig:trainqual}
+\caption{The A) number of training/validation and accuracy assessment assignments completed by each labeller, and B) the distributions of quality scores at training reference sites for each labeller (means indicated by X in boxplots). Labellers' identities are anonymized.}\label{fig:assignmentcount}
+\end{figure}
+
+These results include those from re-labelling the initial training in
+Cluster 2 (AOIs 7-9, 12, 15). This was done because we discovered a
+small spatial offset in the original image composites, which we
+corrected by reprocessing the images. We replaced the image overlays in
+the instances for this Cluster (Figure \ref{fig:trainval}A), and the
+labelling team mapped these sites a second time during the production
+run in late 2019. The reprocessed labels were used to initially train
+the model for AOIs 9, 12, and 15.
+
+\hypertarget{model-performance}{%
+\subsubsection{Model performance}\label{model-performance}}
+
+The differences in accuracy, AUC, and F1 between the active learning
+process and the random retraining at each iteration for AOIs 1, 8, and
+15 (Figure \ref{fig:randomvactive}). Small differences due to random
+variations in the RandomForest models are the reason for the non-zero
+differences at iteration 0, when both models were trained with the same
+level set.
+
+\begin{figure}[!ht]
+
+{\centering \includegraphics[width=0.9\linewidth,]{figures/si_random_vs_active} 
+
+}
+
+\caption{The percent difference in performance metrics per iteration for AOIs 1, 8, and 15 (grey lines with numbers indicating AOI; the black line indicates average difference across the three AOIs) when comparing models trained using active learning versus those trained using randomly selected sites. Postive percentages indicate superior performance by active learning, negative percentages the inverse.}\label{fig:randomvactive}
+\end{figure}
+
+The lower accuracy of actively versus randomly trained models in earlier
+iterations was caused by results at AOI 15, where active learning
+accuracy was 8.37 percent lower than random training after iteration 1
+(see Figure \ref{fig:randomvactive}). In comparison, iteration 1 active
+learning accuracies were 2.88 and 0.45 percent higher than random
+training for AOIs 1 and 8, respectively. Accuracy under active learning
+for AOI 15 exceeded randomized training after 4 iterations.
+
+\hypertarget{the-impact-of-training-data-error}{%
+\subsubsection{The impact of training data
+error}\label{the-impact-of-training-data-error}}
+
+Two measures of label quality, average quality score per labeller and
+the Bayesian Risk of labels, were calculated to provide proxy measures
+of label error. Labeller quality was scored 9,389 times against 98
+unique training reference sites, with each labeller assessed an average
+of 552 times at a rate of 1 training reference site for every 3.62
+training site mapped. The mean of each labeller's average accuracy score
+was 0.71 (range 0.6 to 0.85; Figure \ref{fig:labelqual}).
+
+\begin{figure}[!ht]
+
+{\centering \includegraphics[width=0.7\linewidth,]{figures/si_label_quality} 
+
+}
+
+\caption{Boxplots showing the distributions of quality scores from the accuracy assessment assignments undertaken by each labeller (means indicated by X in boxplots). Labellers' identities are anonymized.}\label{fig:labelqual}
 \end{figure}
 
 The average Bayesian Risk of each training and validation site is shown
 in Figure \ref{fig:labelrisk}, as well as the distribution of risk
 values per AOI and the initial training clusters (Figure
 \ref{fig:labelriskhist}). The three initial clusters include the second
-mapping of Cluster 2.
+mapping of Cluster 2 (Figure \ref{fig:trainval}A).
 
 \begin{figure}[!ht]
 
@@ -708,28 +855,17 @@ mapping of Cluster 2.
 \caption{The distribution of Bayesian Risk values for training (left column) and validation (right column) sites in each AOI, with the average value indicated by vertical lines. The first three rows (panel titles beginning with 'Cl') indicate distributions of Bayes Risk in the initial training clusters, including the first ('Cl2a') and second ('Cl2b') mappings of Cluster 2.}\label{fig:labelriskhist}
 \end{figure}
 
-\hypertarget{validation}{%
-\subsubsection{Validation}\label{validation}}
-
-The differences in accuracy, AUC, and F1 between the active learning
-process and the random retraining at each iteration for AOIs 1, 8, and
-15 (Figure \ref{fig:randomvactive}). Small differences due to random
-variations in the RandomForest models are the reason for the non-zero
-differences at iteration 0, when both models were trained with the same
-level set.\\
-
-\begin{figure}[!ht]
-
-{\centering \includegraphics[width=0.9\linewidth,]{figures/si_random_vs_active} 
-
-}
-
-\caption{The percent difference in performance metrics per iteration for AOIs 1, 8, and 15 (grey lines with numbers indicating AOI; the black line indicates average difference across the three AOIs) when comparing models trained using active learning versus those trained using randomly selected sites. Postive percentages indicate superior performance by active learning, negative percentages the inverse.}\label{fig:randomvactive}
-\end{figure}
-
-\hypertarget{the-impact-of-training-data-error}{%
-\subsubsection{The impact of training data
-error}\label{the-impact-of-training-data-error}}
+The average Bayesian risk was 0.122 for training labels and 0.127 for
+validation labels. Risk was highest in the northern AOIs (AOIs 1-6;
+Figures S6-7), falling between 0.157 for training and 0.173 for
+validation labels (Figures S6-7), and lowest in the southwestern AOIs
+(AOIs 10, 11, 13, 14, 16; training risk = 0.079; validation risk =
+0.065). Label risk in the central-southeastern AOIs (AOIs 7-9, 12, 15)
+was slightly lower (training = 0.127; validation = 0.136) than in the
+north. Labeller experience also appeared to reduce risk, which we
+observed during a relabelling of the 500 initial random site in this
+cluster; the mean risk of the updated labels was 0.055, compared to
+0.172 for original labels.
 
 Probability images resulting from Random Forests models trained with
 labels generated under three different labeling strategies are
@@ -737,7 +873,7 @@ illustrated in Figure \ref{fig:labelstrategy}. These included consensus
 labels, and those individual labels that were likely to be the most and
 least accurate for each training site. Label accuracy was based on the
 mean score of each labeller against the training reference sites (Figure
-\ref{fig:trainqual}), as assessed when labelling a given AOI. These
+\ref{fig:labelqual}), as assessed when labelling a given AOI. These
 images were created for a single tile in AOI 1.
 
 \begin{figure}[!ht]
@@ -769,28 +905,6 @@ r & -0.824 & -0.568 & 0.456 & 0.629 & 0.206 & 0.688\\
 \hypertarget{map-accuracy}{%
 \subsection{Map accuracy}\label{map-accuracy}}
 
-\hypertarget{reference-label-uncertainty}{%
-\subsubsection{Reference label
-uncertainty}\label{reference-label-uncertainty}}
-
-The size of the collected validation sample was 1207, with 1036 samples
-collected and interpreted by one observer (Su Ye) and 171 collected by a
-second observer (Estes). To evaluate the uncertainty inherent in
-defining the map reference labels, the pair mapped 23 common sites,
-showing an overall level of agreement of 87\%, and a Spearman Rank
-Correlation of 0.76.
-
-Although this overlap between observers was limited, the map reference
-classification scheme provided two additional measures of uncertainty,
-which were classes defined as ``unsure but most likely a field'' or
-``unsure but most likely not a field,'' which the reference labeller
-would choose when they could not with high confidence state whether the
-site was either cropland or not cropland. Of the 487 map reference
-samples that were identified as cropland, 22\% fell into the lower
-confidence category, as did 11.5\% of the 720 non-cropland samples.
-Across both classes, the reference labellers had lower confidence in
-15.7 of sites labelled.
-
 \hypertarget{categorical-accuracy}{%
 \subsubsection{Categorical accuracy}\label{categorical-accuracy}}
 
@@ -799,15 +913,6 @@ zone (reported in main text; see Figure \ref{fig:aoizones}A), the
 accuracies were also assessed within several different groupings of
 agroecozones (Figures \ref{fig:aoizones}B and Table
 \ref{tab:aezaccuracy}).
-
-\begin{figure}[!ht]
-
-{\centering \includegraphics[width=0.9\linewidth,]{figures/si_aoi_zones} 
-
-}
-
-\caption{Four zones used to combine the A) AOIs and B) agroecozones (B), in order to assess sub-national mapping accuracy. In B, the ID number of Ghana's individual agroecozones is shown in grey: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.}\label{fig:aoizones}
-\end{figure}
 
 \begin{table}
 \caption{Map accuracies and adjusted area estimates for the ~3 m pixel-wise classifications (based on RandomForest predictions). Results are provided for four different groupings of Ghana's 8 agroecozones zones (Zone 1 = Coastal savanna; Zone 2 = Wet evergreen, Moist evergreen, and Deciduous forest; Zone 3 = Transitional zone; Zone 4 = Guinea savanna and Sudan savanna) plus the entire country. The error matrix (with reference values in columns) provides the areal percentage for each cell, and the producer's (P), user's (U), and overall (O) map accuracies and their margins of error (in parenthesis) are provided, as well as the sample-adjusted area estimates (in km$^{2}$) and margins of error.}

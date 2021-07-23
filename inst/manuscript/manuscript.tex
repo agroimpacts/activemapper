@@ -289,7 +289,7 @@ USA\\\\*
 
 %\begin{center}
 This pre-print not yet undergone peer review. It has been submitted to
-the \emph{Frontiers in Artificial Intelligence}. This version will be
+\emph{Frontiers in Artificial Intelligence}. This version will be
 updated as it is revised, and the final published version will be
 accessible through its DOI link.
 %\end{center}
@@ -300,46 +300,40 @@ accessible through its DOI link.
 \normalsize
 
 \begin{abstract}
-Understanding agricultural change requires reliable, frequently updated
-maps that describe the characteristics of croplands. Such data are often
-unavailable for regions dominated by smallholder agricultural systems,
-which are particularly challenging for remote sensing. To overcome these
-challenges, we designed a system to minimize several sources of error
-that arise when mapping smallholder croplands. To overcome errors caused
-by mismatches between image resolution and cropland scales, as well as
-persistent cloud cover, the system converts daily, 3.7 m PlanetScope
-imagery into two seasonal composites within a single agricultural year.
-To reduce errors that occur when training classifiers, we built a
-labelling platform that rigorously assesses label accuracy, and creates
-more accurate consensus labels that train a Random Forests model. The
-labelling platform and model interact within an active learning process
-that boosts the accuracy of the resulting cropland probability map,
-which is used in a segmentation process to delineate individual field
-boundaries. We applied this system to map Ghana's croplands for the year
-2018. We divided Ghana into 16 mapping regions (12,160-23,535 km\(^2\)),
-training separate models for each using a total of 6,299 labels, plus
-1,600 for validation. Using an independent map reference sample
-(n=1,207), we found that overall accuracies of the resulting cropland
-probability and field boundary maps were 88\% and 86.7\%, respectively,
-with User's accuracies for the cropland class of 61.2\% and 78.9\%, and
-Producer's accuracies of 67.3\% and 58.2\%. Croplands covered
-16.1-23.2\% of the mapped area, comprising 1,131,146 total fields with
-an average size of 3.92 ha. Estimates based on the map reference sample
-indicate the cropland percentage is 17.1\% (15.4-18.9\%) or 17.6\%
-(15.6-19.6\%), depending on the map used to estimate the standard error.
-Using the labellers' digitized field boundaries to estimate biases in
-field boundary statistics, we calculated an adjusted mean field size of
-1.73 ha and total field count of 1,662,281. Although the cropland class
-contained substantial errors, the system was effective in mitigating
-error and quantifying resulting performance gains. By minimizing
-training errors, consensus labelling improved the model's F1 scores by
-up to 25\%, while 3 iterations of active learning increased the F1 score
-by 9.1\%, on average, which was 2.3\% higher than training models with
-randomly selected labels. Map accuracy can be improved by replacing
-Random Forests with a convolutional neural network. These results
-demonstrate a readily adapted, transferrable framework for developing
-high resolution, annual, nation-scale maps that provide important
-details about smallholder-dominated croplands.
+Mapping the changing characteristics of Africa's smallholder-dominated
+agricultural systems, including the sizes and numbers of fields, is
+crucial for understanding food security and a range of other
+socioeconomic and environmental concerns. However, accurately mapping
+these systems is difficult because of 1) the spatial and temporal
+mismatch between satellite sensors and smallholder fields, and 2) the
+lack of high-quality labels needed to train and assess machine learning
+classifiers. We developed an approach designed to address these two
+problems, which we used to map Ghana's annual croplands for the year
+2018. To overcome the first problem, we converted daily, high resolution
+CubeSat (PlanetScope) imagery into two cloud-free seasonal composites
+covering a single agricultural year. To address the second problem, we
+created a labelling platform that rigorously assesses and minimizes
+label error, and used it to iteratively train a Random Forests
+classifier with active learning, which identifies the most informative
+training sample based on prediction uncertainty. Minimizing label errors
+improved model F1 scores by up to 25\%. Active learning increased F1
+scores by an average of 9.1\% between first and last training
+iterations, and 2.3\% more than models trained with randomly selected
+labels. We used the resulting 3.7 m map of cropland probabilities within
+a segmentation algorithm to delineate crop field boundaries. Based on an
+independent map reference sample (n=1,207), the cropland probability and
+field boundary maps have respective overall accuracies of 88\% and
+86.7\%, user's accuracies for the cropland class of 61.2\% and 78.9\%,
+and producer's accuracies of 67.3\% and 58.2\%. Using the map reference
+sample to calculate an unbiased area estimate from the field boundary
+map, we found that cropland covers 17.1\% (15.4-18.9\%) of Ghana. Using
+the most accurately digitized labels to calculate and correct for biases
+in the segmented field boundaries map, we further estimated the average
+size (1.73 ha) and total number (1,662,281) of crop fields in Ghana. Our
+results demonstrate an adaptable and transferrable approach for mapping
+the characteristics of croplands on an annual basis and over national
+extents, with several features that effectively mitigate the errors
+inherent in remote sensing of smallholder-dominated agriculture.
 \end{abstract}
 \end{singlespace}
 
@@ -353,121 +347,114 @@ Amidst all the challenges posed by global change, a particular concern
 is how agricultural systems will adapt to meet humanity's growing food
 demands, and the impacts that transforming and expanding food systems
 will have on societies, economies, and the environment (Searchinger et
-al. 2019). Significant efforts are being made to address the various
-aspects of this challenge, including work on diagnosing and closing
-yield gaps (Lobell et al. 2009, e.g. Licker et al. 2010, Mueller et al.
-2012), expanding and commercializing production (Morris and Byerlee
-2009), and to understand (Rulli and D'Odorico 2014, Kehoe et al. 2017,
-Davis et al. 2020) and mitigate (Estes et al. 2016b) agriculture's
-ecological impacts. Answering many of the questions these efforts seek
-to address depends on reliable data that describes the location and
-characteristics of cropland (Fritz et al. 2015), and how these are
-changing over time, ideally on an annual basis, given the rapid pace of
-change (Gibbs et al. 2010, Bullock et al. 2021). Unfortunately, the data
-that do exist are in many places inaccurate and infrequently updated.
-Existing estimates of how much global cropland there is tend to vary
-widely, and they often disagree about where cropland is located (e.g.
-Fritz et al. 2011, 2013). Such errors can propagate in subsequent
-analyses that rely on cropland data as inputs, resulting in potentially
-misleading answers (Estes et al. 2018). Beyond cropland distributions,
-few data are available on key cropland characteristics such as field
-size, an important variable needed to estimate yield and other key food
-security variables (Carletto et al. 2015), and as an indicator of farm
-size (Levin 2006, Samberg et al. 2016), a critical component of rural
-livelihoods given increasing population densities and longstanding
-debates about the relationship between farm size and productivity (Feder
-1985, Carletto et al. 2013, Desiere and Jolliffe 2018).
+al. 2019). A number of efforts are underway to address various aspects
+of this challenge, including work on diagnosing and closing yield gaps
+(Lobell et al. 2009, e.g. Licker et al. 2010, Mueller et al. 2012),
+expanding and commercializing production (Morris and Byerlee 2009), and
+to understand (Rulli and D'Odorico 2014, Kehoe et al. 2017, Davis et al.
+2020) and mitigate (Estes et al. 2016b) agriculture's ecological
+impacts. The success of these efforts depends heavily on data that
+accurately describes the location and characteristics of croplands
+(Fritz et al. 2015), and, given the rapid pace of agricultural change
+(Gibbs et al. 2010, Zeng et al. 2018, Bullock et al. 2021), how these
+are changing from one year to the next. Unfortunately, for many regions,
+existing cropland datasets are inaccurate, and are usually created as
+once-off or infrequently update products. As such, estimates of global
+cropland area tend to vary widely, often disagree about where croplands
+are located (e.g. Fritz et al. 2011, 2013), and become rapidly outdated.
+Errors in these maps can propagate in subsequent analyses that use
+cropland data as inputs, resulting in potentially misleading answers
+(Estes et al. 2018). Beyond distributions, few data are available on key
+cropland characteristics such as field size, an important variable
+needed to estimate yield and other key food security variables (Carletto
+et al. 2015), and as an indicator of farm size (Levin 2006, Samberg et
+al. 2016), a critical component of rural livelihoods given increasing
+population densities and longstanding debates about the relationship
+between farm size and productivity (Feder 1985, Carletto et al. 2013,
+Desiere and Jolliffe 2018).
 
-These informational inadequacies are due to the fact that cropland data
-in much of the world are derived from remotely sensed landcover maps,
-which can be notoriously high in error, particularly over regions such
-as Africa (Fritz et al. 2010, Estes et al. 2018), where agricultural
-changes will be largest and the need for accurate baseline data is thus
-greatest (Searchinger et al. 2015, Estes et al. 2016b, Bullock et al.
-2021). Cropland mapping over Africa is difficult for several reasons.
-The primary reason relates to the characteristics of the continent's
-smallholder-dominated croplands, where half of all fields are smaller
-than 1 ha (Lesiv et al. 2019). This size is small relative to the 30-250
-m resolution of the sensors typically used in many landcover mapping
-efforts (e.g. Chen et al. 2015, Sulla-Menashe et al. 2019), which
-results in errors due to mixed pixels and aspects of the modifiable area
-unit problem (Openshaw and Taylor 1979, Boschetti et al. 2004){]}. In
-the latter case, the pixel's shape may be poorly matched to that of
-cropland, and is too coarse to aggregate to approximate that shape at
-the characteristic scales of crop fields (Dark and Bram 2007, Estes et
-al. 2018). On top of the matter of scale is 1) high intra-class
-variability of the cropland class, compounded by the fact that these
-particular croplands can be heavily intergraded with surrounding
-vegetation (Debats et al. 2016, Estes et al. 2016a), and 2) the
-substantial temporal variability within croplands, both within and
-between seasons. These latter two aspects pose challenges for the
+The deficit of information is due to the fact that in many regions the
+only source of cropland data are remotely sensed land cover maps, which
+are prone to error. This is particularly true in Africa (Fritz et al.
+2010, Estes et al. 2018), where agricultural changes will be largest and
+the need for accurate baseline data is thus greatest (Searchinger et al.
+2015, Estes et al. 2016b, Bullock et al. 2021), and where the
+characteristics of croplands exacerbate the error inherent in remote
+sensing analyses. Half of all fields in Africa's smallholder-dominated
+agricultural systems are smaller than 1 ha (Lesiv et al. 2019). This
+size is small relative to the 30-250 m resolution of the sensors
+typically used in many landcover mapping efforts (e.g. Chen et al. 2015,
+Sulla-Menashe et al. 2019), which results in errors due to mixed pixels
+and aspects of the modifiable area unit problem (Openshaw and Taylor
+1979, Boschetti et al. 2004), wherein the pixel's shape does not match
+that of crop fields, and is too coarse to aggregate into an
+approximation of that shape (Dark and Bram 2007, Estes et al. 2018). On
+top of the matter of scale is the high variability within and between
+fields, their tendency to intergrade with surrounding vegetation (Debats
+et al. 2016, Estes et al. 2016a), and the high temporal variability
+within croplands. These last three aspects pose challenges for the
 classification algorithms that are applied to the imagery.
 
 Recent technological advances are helping to overcome these challenges.
 Chief among these are the growing numbers of satellites that collect
 high (\textless5 m) to near-high (10 m) resolution imagery at sub-weekly
-intervals (Drusch et al. 2012, McCabe et al. 2017). This high spatial
-\emph{and} temporal resolution imagery addresses the sensor-field scale
-mismatch, and more effectively captures the intra-seasonal dynamics of
+intervals (Drusch et al. 2012, McCabe et al. 2017). The spatial
+resolution of these imagery addresses the scale mismatch between sensor
+and field, and their high frequency captures the seasonal dynamics of
 cropland, which helps classifiers distinguish cropland from surrounding
 cover types (Debats et al. 2016, Defourny et al. 2019). On top of this,
-advances in cloud computing and the opening of satellite image archives
-(Wulder et al. 2016), and next generation machine learning approaches
-are placing large volumes of these moderate to near-high resolution
-imagery together with the computational and algorithmic resources
-necessary to classify them at scale (Gorelick et al. 2017). These
-capabilities are already being used to create a new generation of higher
-resolution (10-30 m) cropland and landcover maps for Africa and other
-regions {[}ESA (n.d.); Lesiv et al. (2017); Xiong et al. (2017); (Zhang
-et al. 2021){]}. However, the potential of the highest resolution
-(\textless5 m) imagery to map cropland over very large extents
-(e.g.~country scales) has yet to be realized, presumably because these
-data are commercial and relatively expensive, and require significant
-computational resource to process.
+the opening of satellite image archives (Wulder et al. 2016) and
+advances in cloud computing are placing large volumes of moderate to
+near-high resolution imagery together with the computational and
+algorithmic resources necessary to classify them at scale (Gorelick et
+al. 2017). These capabilities have already been used to create a new
+generation of higher resolution (10-30 m) cropland and landcover maps
+for Africa and other regions {[}ESA (n.d.); Lesiv et al. (2017); Xiong
+et al. (2017); (Zhang et al. 2021){]}. However, the potential of the
+highest resolution (\textless5 m) imagery to map cropland over very
+large extents (e.g.~country scales) has yet to be realized, presumably
+because these data are commercial and relatively expensive, and require
+significant computational resource to process.
 
 Beyond the imagery and computational gains, machine learning algorithms
 are rapidly advancing, providing large gains in classification
 performance (Maxwell et al. 2018, Ma et al. 2019). However, the ability
 to take advantage of these gains is often limited by newer models' need
 for large training datasets, which are typically unavailable, hard to
-collect, or contain numerous errors in developing regions (Ma et al.
-2019, Elmes et al. 2020, Burke et al. 2021). To build sufficient samples
-for training cropland mapping models, as well as the reference data
-needed to objectively assess their performance (we refer collectively to
-both sample types as ``labels,'' distinguishing between each type where
+collect, or contain numerous errors (Ma et al. 2019, Elmes et al. 2020,
+Burke et al. 2021). To build sufficient training samples, as well as the
+reference data needed to objectively assess their performance (we refer
+collectively to both types as ``labels,'' distinguishing between each as
 needed), map-makers rely heavily on visual interpretation of high
 resolution satellite or aerial imagery (Chen et al. 2015, e.g. Xiong et
 al. 2017, Stehman and Foody 2019), as it is impractical and expensive to
 collect these data in the field over large areas, particularly on an
-ongoing basis. Several web-based platforms have been developed to
-facilitate such efforts, which provide convenient and highly scalable
-tools for training data collection (Fritz et al. 2012, Estes et al.
-2016a, e.g. Bey et al. 2016). Visually interpreted labels present two
-particular problems. The first is that they inevitably contain errors of
-interpretation that can vary substantially according to the skill of the
-labeller, particularly over complex croplands with small field sizes
+ongoing basis. Consequently, a number of web-based platforms have been
+developed to collect such labels (Fritz et al. 2012, Estes et al. 2016a,
+e.g. Bey et al. 2016). Image-drawn labels present two particular
+problems. The first is that they inevitably contain errors of
+interpretation, which can vary substantially according to the skill of
+the labeller, particularly over complex croplands with small field sizes
 (Estes et al. 2016a, Waldner et al. 2019). The second problem is that
 visual interpretation depends on high resolution imagery (\textless5 m),
-as field boundaries become increasingly difficult to discern as image
-resolution decreases. Typically the only practical source of high
-resolution imagery is ``virtual globe'' basemaps (e.g.~Bing or Google
-Maps), which are composed of mosaics of various high resolution
-satellite and aerial images that typically span 3-5 years of time within
-a single country (Lesiv et al. 2018). This within-mosaic temporal
-variation can set up a temporal mismatch between the imagery being
-interpreted and the imagery being classified, which is usually from a
-different source (e.g.~Landsat, Sentinel; Xiong et al. (2017)). If a
-land change occurs in the interval between the two image sets (e.g.~a
-new field was created), the label, even if accurately drawn, introduces
-error into the classifier. This source of error may be elevated in
-tropical smallholder systems, where swidden agricultural is common (Van
-Vliet et al. 2013), or in rapidly developing agricultural frontiers
-(Zeng et al. 2018). Despite the high potential for label error, they are
-typically not accounted for during model training and map accuracy
-assessment, resulting not only in the potential for maps to be misused
-or misinterpreted in subsequent analyses, but in missed opportunities to
-improve model performance (Estes et al. 2018, Stehman and Foody 2019,
-Elmes et al. 2020).
+as fields are increasingly difficult to discern as image resolution
+decreases. Typically the only available source of high resolution
+imagery is ``virtual globe'' basemaps (e.g.~Bing or Google Maps), which
+present mosaics of high resolution satellite and aerial images collected
+over a span of several years (Lesiv et al. 2018). This within-mosaic
+temporal variation can create a temporal mismatch between the labels and
+the imagery being classified, which is usually from a different source
+(e.g.~Landsat, Sentinel; Xiong et al. (2017)). If a land change occurs
+in the interval between the two image sets (e.g.~a new field was
+created), the label, even if accurately drawn, introduces error into the
+classifier. This source of error may be elevated in croplands where
+swidden agriculture is practiced (Van Vliet et al. 2013), or in rapidly
+developing agricultural frontiers (Zeng et al. 2018). Despite the high
+potential for it, label error is often not considered during model
+training and map accuracy assessment, resulting not only in the
+potential for maps to be misused or misinterpreted, but in missed
+opportunities to improve model performance (Estes et al. 2018, Stehman
+and Foody 2019, Elmes et al. 2020).
 
 Taking into consideration the advances and remaining limitations
 described above, the ability to map smallholder-dominated croplands can
@@ -492,66 +479,61 @@ cloud-free composites from optical imagery with return intervals (even
 by a few days). This ability to capture intra-annual variability can be
 more important for classifying cropland than spectral depth (Debats et
 al. 2016). Beyond the frequency, PlanetScope's 3.7 m
-resolution--although substantially coarser the 0.5-1 m available in most
-areas covered by virtual globes--is sufficiently resolved for humans to
-discern small fields under many conditions (Fourie 2009, e.g.~see Estes
-et al. 2018). This allows labels to be made using the same imagery that
-is classified, which helps to minimize label error. To further reduce
-label noise, we developed a platform that includes rigorous label
-accuracy assessment protocols and a novel approach for creating
-consensus labels, which helps reduce mistakes made by individual
-labellers (Estes et al. 2016a, Elmes et al. 2020). We couple the
-labelling platform with a machine learning model inside an active
-learning (Cohn et al. 1994, Tuia et al. 2011) framework, in which model
-training is done iteratively and interactively, wherein the model's
-prediction uncertainty over unlabelled areas is assessed after each
-training step, and a sample of the most uncertain sites is selected for
-additional labelling (Cohn et al. 1994, Tuia et al. 2011). This approach
-helps boost the performance of the classifier while reducing the overall
+resolution--although substantially coarser than the 0.5-1 m imagery
+available in most areas covered by virtual globes--is sufficiently
+resolved for humans to discern small fields under many conditions
+(Fourie 2009, e.g.~see Estes et al. 2018). This allows labels to be made
+using the same imagery that is classified, which helps to minimize label
+error. To further reduce label noise, we developed a platform that
+includes rigorous label accuracy assessment protocols and a novel
+approach for creating consensus labels, which helps reduce mistakes made
+by individual labellers (Estes et al. 2016a, Elmes et al. 2020). We
+couple the labelling platform with a machine learning model inside an
+active learning (Cohn et al. 1994, Tuia et al. 2011) framework, in which
+the model is trained interactively, using the model's prediction
+uncertainty over unlabelled areas to select new sites for additional
+labelling (Cohn et al. 1994, Tuia et al. 2011). This approach helps
+boost the performance of the classifier while reducing the overall
 number of labels required to achieve a given level of performance
-(Debats et al. 2017, e.g. Hamrouni et al. 2021). Finally, an
-unsupervised segmentation step is applied to convert pixel-wise cropland
+(Debats et al. 2017, e.g. Hamrouni et al. 2021). An unsupervised
+segmentation step is then applied to convert pixel-wise cropland
 predictions into vectorized maps of individual field boundaries.
 
 Here we use this approach to create a high resolution, country-scale map
 of crop field boundaries in Ghana, a country where smallholder farming
-predominates, and which has a broad mix of climates and agricultural
-systems, including large areas where shifting agriculture is practiced
-(Samberg et al. 2016, Kansanga et al. 2019). The map we develop
-represents a single agricultural year (2018-2019), as opposed to a
-multi-year composite, thereby demonstrating a capacity for annual, high
-resolution maps that can be used to monitor rapidly evolving small-scale
-agricultural systems, including key characteristics such as field size.
-In addition to presenting one of the most spatially extensive
-agricultural applications of CubeSats to date, we provide a new
-technique for converting daily imagery into seasonal composites, and
-show how best practices for model training and label collection can be
-applied to improve map accuracy (Elmes et al. 2020).
+predominates across a broad mix of climate and agricultural systems,
+ranging from primarily grain and vegetable crop production in the
+northern savannas to tree crop-dominated systems in the forested
+southwest, including large areas where shifting agriculture is practiced
+(Samberg et al. 2016, Kansanga et al. 2019). The map represents a single
+agricultural year (2018-2019), as opposed to a multi-year epoch, thereby
+demonstrating a capacity for annual, high resolution maps that can be
+used to monitor rapidly evolving small-scale agricultural systems,
+including key characteristics such as field size. In addition to
+providing valuable new data and insight into Ghana's agriculture, our
+study demonstrates one of the most spatially extensive agricultural
+applications of CubeSats to date, provides a new technique for
+converting daily imagery into seasonal composites, and shows how best
+practices for model training and label collection can be applied to
+improve map accuracy (Elmes et al. 2020).
 
 \hypertarget{materials-and-methods}{%
 \section{Materials and Methods}\label{materials-and-methods}}
 
-The cropland mapping approach we developed is comprised of four primary
-components (Figure \ref{fig:systemoverview}) that were developed using
-open source software, and is designed to run in a cloud computing
-environment. The first component collects daily PlanetScope imagery for
-a period of several months over a particular mapping geography, and
-converts these into cloud-free seasonal composites. The second component
-is a custom-built platform that a provides a set tools for labelling the
-PlanetScope composites, and built-in procedures for assessing and
-minimizing label error. This platform interacts with the third
-component, a machine learning process running in Apache Spark, which
-includes a routine for 1) selecting new training sites based on their
-prediction uncertainty, and 2) returning these to the labelling platform
-for labeling. This interaction, which represents active learning (Cohn
-et al. 1994, Tuia et al. 2011), repeats until a model performance
-threshold is reached. The fourth and final component is a segmentation
-process that is applied to the seasonal image composites to segment the
-entire image, and then merged with the pixel-wise probability maps
-generated by active learning to identify the segments corresponding to
-croplands, resulting in a final vectorized field boundaries. Each system
-component is available on an open repository (see data and software
-availability section for details).
+The mapping approach we developed is comprised of four open source
+components (Figure \ref{fig:systemoverview}) that are designed to run in
+a cloud computing environment. The first component collects daily
+PlanetScope imagery and converts them into cloud-free seasonal
+composites. The second is a custom-built platform that provides tools
+for labelling the composites, along with procedures to assess and
+minimize label error. This platform interacts with the third component,
+a machine learning process, within an active learning (Cohn et al. 1994,
+Tuia et al. 2011) loop, to produce a map of predicted cropland
+probabilities for each image pixel. The fourth and final component is an
+algorithm that segments the image composites, then filters the resulting
+polygons using the pixel-wise cropland predictions produced by the
+active learning classifier, resulting in a final set of vectorized field
+boundaries.
 
 \begin{figure}
 
@@ -559,55 +541,56 @@ availability section for details).
 
 }
 
-\caption{An overview of the primary system components, the data stores that hold the inputs and outputs from each component, and the direction of connections between them. The dashed line indicates iterative interactions, while solid lines indicate one-time or irregular connections.}\label{fig:systemoverview}
+\caption{An overview of the primary mapping components, the data stores that hold the inputs and outputs from each component, and the direction of connections between them. The dashed line indicates iterative interactions, while solid lines indicate one-time or irregular connections.}\label{fig:systemoverview}
 \end{figure}
+
+We describe each component in further detail in the following section,
+and how we applied them to map Ghana's annual cropland boundaries,
+excluding tree crops.
 
 \hypertarget{image-compositing}{%
 \subsection{Image compositing}\label{image-compositing}}
 
-The image processing components of our system were designed to work with
-PlanetScope Analytic surface reflectance data (PlanetTeam 2018).
-PlanetScope provides three visual (red, green, blue) and a near-infrared
-band at 3-4 m resolution at nominal daily frequency. Although these
-images are already pre-preprocessed and corrected for atmospheric
-effects, there are residual errors from inter-sensor differences and the
-radiometric normalization process (Houborg and McCabe 2018), variation
-in the orientation of scene footprints, as well as a high frequency of
-cloud cover over the study region (Wilson and Jetz 2016). To correct for
-these factors, we developed a procedure for creating temporal composites
-representing the primary growing and non-growing seasons within a single
-year.
+The image processing component was designed for PlanetScope Analytic
+surface reflectance imagery (PlanetTeam 2018), which provides three
+visual (red, green, blue) and near-infrared bands at 3.7 m resolution at
+nominal daily frequency. The images are provided as ortho-rectified and
+converted to surface reflectance, although there are residual errors
+from inter-sensor differences and the radiometric normalization process
+(Houborg and McCabe 2018), variation in the orientation of scene
+footprints, as well as a high frequency of cloud cover over the study
+region (Wilson and Jetz 2016, Roy et al. 2021) that are not fully
+captured by the provided cloud masks. To minimize the effect of these
+residual errors, we developed a procedure for creating temporal
+composites of the primary growing and non-growing seasons within a
+single 12-month period. For Ghana, we defined the primary growing season
+as May through September, followed by the off (or dry) season from
+November or December through February. We chose these two seasons
+because prior work shows that the contrast between them improves
+cropland classifications (Debats et al. 2016), Furthermore, capturing
+the seasons in this sequence during the same year helps minimize
+differences caused by land change. The wide time intervals we used to
+define each season were necessary for collecting a sufficient number of
+images to make high quality composites, as Ghana's cloud cover renders
+many scenes unusable and therefore unavailable in Planet's catalog, thus
+the effective return interval can be substantially longer than 24 hours
+during the cloudiest months (Roy et al. 2021).
 
-PlanetScope imagery is accessed via the Planet API (PlanetTeam 2018),
-and an initial order is placed for all imagery falling within the
-mapping geography and the date ranges for the two compositing periods.
-The imagery is collected and transferred directly to a cloud storage
-platform (Amazon Web Services {[}AWS{]} S3).
+We collected all available scenes intersecting Ghana and falling within
+these two seasons during the 2018 agricultural year (defined here as
+March, 2018-February, 2019) via the Planet API (PlanetTeam 2018), and
+transferred these to cloud storage (Amazon Web Services {[}AWS{]} S3).
+We then converted each scene into analysis ready data (Dwyer et al.
+2018) by cropping each to the boundaries of a 0.05\(^\circ\) grid that
+it intersected (see Figure S1 in Supplemental Information {[}SI{]}),
+which provided the dimensions for making composited image tiles. We
+chose this cell size for tiling because it is slightly narrower than the
+short axis of a PlanetScope scene, which increases the number of
+intersecting scenes that completely cover the tile, thereby helping to
+minimize edge artifacts in the composites.
 
-Individual images are then transformed into analysis ready data (ARD)
-(Dwyer et al. 2018), by subsetting each downloaded image into 0.05
-degree tiles, regardless of cloud cover. Tiles are organized within a
-larger 1 degree resolution grid that covers the entire continent, which
-defines the minimum mapping area of interest (AOI; Figure
-\ref{fig:aois}).
-
-\begin{figure}
-
-{\centering \includegraphics[width=1\linewidth]{figures/figure2} 
-
-}
-
-\caption{The reference system used in the mapping platform, including A) numbered areas of interest (AOIs) that define the minimum mapping geography (solid black lines; dotted lines indicate boundaries of 1 degree grid), B) the 0.05 degree tile used for compositing imagery, and C) the 0.005 degree resolution reference grid used for collecting training data and distributed computing.}\label{fig:aois}
-\end{figure}
-
-The temporal compositing process is applied to the tiled daily images
-for the time period of interest, which in this case was one of two
-multi-month seasons, the primary growing and dry seasons for a single
-agricultural year. Imagery from two seasons helps to improve the
-performance of cropland classifiers (Debats et al. 2016), while having
-the seasons in the same year helps to minimize differences caused by
-land change. For each pixel in each image in each ARD temporal stack for
-a given season, two weights are calculated:
+To create a seasonal composite, we calculated two weights for the time
+series of each pixel within the ARD stack for a given season:
 
 \begin{equation} \label{eq:cloud}
 \mathrm{W1_t} = \frac{1}{\mathrm{blue_t}^2}
@@ -620,113 +603,180 @@ a given season, two weights are calculated:
   \end{cases}
 \end{equation}
 
-Where \emph{t} is a particular date in near-daily time series of
-PlanetScope images, which begins at date 1 for the given compositing
-period and ends on date \emph{i}, \emph{blue} is the blue band, and
-\emph{NIR} the near infrared band. Equation \ref{eq:cloud} assigns lower
-weights to hazy and clouded pixels as the blue band is sensitive to haze
-and cloud pixels (Zhang et al. 2002), while Equation \ref{eq:shadow}
-assigns low weights to pixels in cloud shadow considering the
-significant darkening effect of the cloud shadows in the Near Infrared
-band (Zhu and Woodcock 2012, Qiu et al. 2020)
+Where \emph{t} is a particular date in the pixel time series, which
+begins at date 1 for the given compositing period and ends on date
+\emph{i}, \emph{blue} is the blue band, and \emph{NIR} the near infrared
+band. Equation \ref{eq:cloud} assigns lower weights to hazy and clouded
+pixels as the blue band is sensitive to these atmospheric features
+(Zhang et al. 2002), while Equation \ref{eq:shadow} assigns low weights
+to pixels in cloud shadow (Zhu and Woodcock 2012, Qiu et al. 2020)
 
-Once these two weights are calculated, the final composited pixel value
-for each of the four PlanetScope bands is:
+After assigning these two weights, we calculated the final composited
+pixel value:
 
 \begin{equation}
 \mathrm{\bar{B} = \frac{\sum_{t=1}^{T}B_t * W1_t * W2_t}{\sum_{t=1}^{T}W1_t * W2_t}}
 \end{equation}
 
-Which is a weighted mean for each pixel for each band \emph{B} for the
-particular compositing period. The composited tiles were then added to
-the S3 store (Figure \ref{fig:systemoverview}), where they are stored as
-cloud-optimized geotiffs, and a ``slippy
+Which is the weighted mean for each pixel for each band \emph{B} for the
+given season.
+
+Each composited seasonal tile was saved as a cloud-optimized geotiff,
+and a ``slippy
 map\footnote{https://wiki.openstreetmap.org/wiki/Slippy\_Map}''
-rendering is created for each composite using Raster Foundry (Azavea
-2020). The web-rendered imagery is presented within the training data
-platform (next section).
+rendering was created for each composite using Raster Foundry (Azavea
+2020), for display within the labelling platform (next section).
 
-\hypertarget{labelling-platform}{%
-\subsubsection{Labelling platform}\label{labelling-platform}}
+We generated a catalog of 16232 composite tiles (hereafter simply
+``tiles'') for Ghana, consisting of a seasonal pair for each of the 8116
+0.05\(^\circ\) tile grid cells covering Ghana. To assess the quality of
+the resulting composites, 50 tile grid cells were randomly selected, and
+two separate observers graded each corresponding seasonal composite
+using a four category that evaluated the degree of 1) residual cloud and
+2) cloud shadow, 3) the number of visible scene boundary artifacts, and
+4) the proportion of the image with resolution degraded below the 3.7 m
+PlanetScope resolution (e.g.~because of between-date image
+mis-registrations). Each category was qualitatively ranked from 0-3,
+with 0 being the lowest quality, and 3 the highest (see SI for complete
+protocol), making the highest possible score 12. We rescaled scores to
+fall between 0 and 1.
 
-Training and reference data are collected by a custom labelling
-platform, which was originally designed for AWS's Mechanical Turk job
-marketplace (Estes et al. 2016a). The basic structure of the system
-remains the same, but we converted it into a standalone platform that
-allows us to enroll and pay people directly for their labelling, and is
-designed to control and supervise the machine learning process. The
-platform runs on a Linux virtual machine hosted on an AWS EC2 instance
-and is comprised of a database (PostGIS/Postgres), a mapping interface
-(OpenLayers 3), an image server (Raster Foundry), and a set of utilities
-for managing, assessing, and converting digitization work into
-rasterized labels for training a machine learning algorithm. Each
-instance of the platform focuses on a specific AOI (Figure
-\ref{fig:aois}A)
+\hypertarget{mapping-cropland-probabilities-with-active-learning}{%
+\subsection{Mapping cropland probabilities with active
+learning}\label{mapping-cropland-probabilities-with-active-learning}}
 
-The following sections provide an overview of the labelling platform's
-architecture.
+The first step in creating a country-wide field boundary map of Ghana
+was to create a pixel-wise classification of cropland probabilities
+throughout the country. Given the high resolution of the imagery and the
+need to minimize the computational burden, we divided Ghana into 16
+distinct mapping regions, or Areas of Interest (AOIs). We constructed
+the AOIs by grouping together tile grids into blocks representing the
+larger 1\(^\circ\) cells used to assign tile identifiers (Figure S1A).
+We grouped tile cells from 1\(^\circ\) degree cells that overlapped
+Ghana's boundaries together with those from the nearest 1\(^\circ\) cell
+contained entirely within Ghana (with the exception of AOI 16, which was
+comprised of tile grids from the 1\(^\circ\) cells along Ghana's
+southern coast. The average extent of the resulting AOIs was 15,457
+km\(^2\) (range 12,160-23,535 km\(^2\)).
 
-\hypertarget{mapping-workflow}{%
-\paragraph{Mapping workflow}\label{mapping-workflow}}
+We used the active learning process to develop a separate cropland
+classification model for each of these AOIs, based on an approach
+described by Debats et al (2017). We initiated the process by training a
+starter model using labels from a set of randomly selected training
+sites drawn from a 0.005\(^\circ\) grid that was nested within the
+tiling grid. This finer grid, which we refer to as the ``primary grid''
+for simplicity, provided the target area for creating labels (section
+2.2.1), as well as the unit for distributing computing jobs (section
+2.2.2). We then assessed the performance of the starter model against a
+separate set of validation labels developed for each AOI, applied the
+model to predict cropland probabilities for pixels in unlabelled primary
+grid cells in each AOI, and calculated an uncertainty criterion (Debats
+et al. 2017):
 
-\hypertarget{selecting-training-and-reference-sites}{%
-\subparagraph{Selecting training and reference
-sites}\label{selecting-training-and-reference-sites}}
+\begin{equation}
+\mathrm{Q_I = \sum_{I(x, y) \epsilon I} (p(x, y) - 0.5)^2}
+\end{equation}
 
-The labelling process begins with the random selection of a subset
-(e.g.~500) of cells from a 0.005 degree grid, with the selection itself
-potentially split into a training and validation sample, according to
-predetermined proportions. The grid, which is nested within the tiling
-and larger 1 degree grids (Figure \ref{fig:aois}C) defines the spatial
-unit for a labelling job. The selected cells are placed into a queue
-within the platform's database, and then converted into a mapping
-\emph{task} that has a specified number of \emph{assignments}
-(boundaries drawn by an individual labeller) that must be completed
-before the task is complete.
+Where Q is the uncertainty for each unlabelled primary grid cell I,
+calculated from the predicted probability \emph{p} of a randomly
+selected subset of pixels (x, y) drawn from it. Pixels with predicted
+probabilities closer to 0.5 are least certain as to their
+classification, thus the lowest values of \(Q\) represent primary grid
+cells posing the most difficulty for the classifier.
 
-\hypertarget{mapping-assignments}{%
-\subparagraph{Mapping assignments}\label{mapping-assignments}}
+We ranked the unlabelled primary grid cells from least to most certain,
+randomly selected a subset of cells from the top 30\% of the ranking (to
+minimize the risk of spatial autocorrelation), and sent these back to
+the labelling platform. After these new sites were labelled, they were
+added to the starter pool of labels, the model was retrained with the
+larger training set, its performance and prediction uncertainty was
+reassessed, and a new sample of the most uncertain primary grid cells
+was again sent for labelling. This loop repeated until model performance
+gains saturated or reached a pre-defined threshold, after which a final
+map of cropland probabilities was made for the AOI.
 
-Labellers registered in the system log in to the mapping platform (built
-with Flask) and navigate to the OpenLayers-based field mapping interface
-(Figure \ref{fig:labeller}), where they are presented with a white
-target box representing the randomly selected grid cell, a set of
-digitizing tools, and different image backdrops, including true and
-false color renderings of the growing season and off-growing season
-PlanetScope composites, and several virtual globe basemaps. Following a
-set of pre-defined digitizing rules (see SI), the labeller uses the
-polygon drawing tool to digitize the boundaries of all crop fields
-intersecting the target grid cell that are visible within the
-PlanetScope overlays. To aid with interpretation, the labeller can
-toggle between the PlanetScope renderings and the basemaps to help form
-a judgement about what constitutes a field. The labeller assigns each
-polygon a class category (e.g.~annual cropland), and upon completing all
-fields submits the assignment to the database. In cases where the target
-grid cell does not contain any fields, the labeller simply submits the
-assignment to mark it complete. The labeller is then directed to the
-next available assignment from a different labelling task.
+In the next two sections, we describe the labelling and machine learning
+components of the active learning process in more detail.
+
+\hypertarget{labelling}{%
+\subsubsection{Labelling}\label{labelling}}
+
+To collect the initial randomized samples for model training, we grouped
+the AOIs (Figure S1A) into three clusters based on approximate
+agro-ecological similarity: the 6 northernmost savanna-zone AOIs
+(Cluster 1), a central to southeastern cluster (Cluster 2) consisting of
+the 3 middle (AOIs 7-9) and 2 southeastern AOIs (12 and 15), and a
+southwestern cluster (Cluster 3) made up of the forest zone AOIs (10,
+11, 13, 14, 16). Within each cluster, we randomly selected and labelled
+500 primary grid cells, which provided relatively large initial training
+samples for these agro-ecologically similar regions, while helping to
+minimize the overall amount of labelling effort. To create validation
+samples, we randomly selected and labelled 100 primary grid cells per
+AOI, and a further 100 cells were labelled in each AOI during each
+active learning iteration.
+
+In addition to training and validation labels, we also collected
+training reference labels and map reference labels (Elmes et al. 2020).
+The former were a set of 98 primary grid cells selected to represent the
+range of cropland types and densities in Ghana, which were labelled by
+expert analysts (the lead researchers on this project). We used these to
+assess the performance of the individual labellers collecting training
+and validation labels. Map reference labels were collected and used to
+assess the accuracy of the final map (see Section 2.4).
+
+We collected all labels using a custom-built platform that we adapted
+from an earlier prototype we developed for crowdsourced labelling (Estes
+et al. 2016a). We enhanced this platform by making several major
+additions, including an independent backend that allowed us to recruit
+and manage our own labelling teams, improved procedures for assessing
+and improving label accuracy, and processes for automating the machine
+learning component. The platform runs on a cloud-hosted Linux virtual
+server (AWS EC2) and is comprised of a database (PostGIS/Postgres), a
+mapping interface (OpenLayers 3), an image server (Raster Foundry), and
+a set of utilities for managing, assessing, and converting digitized
+field boundaries into rasterized labels.
+
+We created a separate labelling instance for each AOI. To create
+training and validation labels, labellers (the co-authors of this paper)
+logged into the website (built with Flask) for a particular AOI and
+navigated to the mapping interface (Figure \ref{fig:labeller}), where
+they were presented with a white target box representing a primary grid
+cell to label, a set of digitizing tools, and several different sources
+of imagery. These included true and false color renderings of the
+growing season and dry season PlanetScope composites, and several
+virtual globe basemaps. They then used the polygon drawing tool to
+digitize the boundaries of all crop fields visible within the
+PlanetScope overlays that intersect the target grid cell. For this
+project, labellers were instructed to digitize active or recently active
+crop fields, avoiding tree crops, and fallow or potentially abandoned
+fields (see SI for digitizing rules) To aid with interpretation,
+labellers toggled between the PlanetScope renderings and the basemaps to
+help form a judgement about what constitutes a field. The labeller
+assigned each digitized polygon a class category (e.g.~annual cropland),
+saved all completed fields to the database, and were then presented with
+the next target to label. If the target grid cell did not contain any
+fields, labellers simply pressed save to go to the next cell.
 
 \begin{figure}
 
-{\centering \includegraphics[width=0.95\linewidth]{figures/figure3} 
+{\centering \includegraphics[width=0.95\linewidth]{figures/figure2} 
 
 }
 
 \caption{An overview of the labelling platform's interface}\label{fig:labeller}
 \end{figure}
 
-\hypertarget{processing-completed-assignments}{%
-\subparagraph{Processing completed
-assignments}\label{processing-completed-assignments}}
-
-All submitted polygons are cleaned to fix topological irregularities
-that arose during digitization (see supporting information {[}SI{]}) and
-stored in a PostGIS table. Each completed assignment represents one of
-two types of tasks: 1) accuracy assessment, or 2) model training or
-validation. For the former type, an accuracy assessment routine is
-invoked that executes a series of comparisons between the labeller's
-results and a training reference dataset, resulting in a assignment
-score:
+The flow of labelling targets presented to each worker was determined by
+the platform's built-in scheduler. Each primary grid cell selected for
+labeling was placed into a queue within the platform's database, and
+converted into a labelling \emph{task} with a specified number of
+\emph{assignments} (the boundaries drawn by an individual labeller) that
+had to be completed in order to finish the task. There were two types of
+tasks, accuracy assessment or model training/validation, with the
+assignments for each indistinguishable to labellers. Upon completing an
+accuracy assessment assignment, the platform invoked a scoring algorithm
+that compared the labeller's digitized boundaries against a set of
+training reference polygons, resulting in a label quality score:
 
 \begin{equation} \label{eq:qaqc}
 \mathrm{score_i}=\beta_0\mathrm{I}+\beta_1\mathrm{O}+\beta_2\mathrm{F}+\beta_3\mathrm{E}+\beta_4\mathrm{C}
@@ -744,17 +794,16 @@ labeller's thematic labels (see SI for individual formulae). Equation
 \ref{eq:qaqc} is an extension of the approach described by Estes et
 al.~(2016).
 
-Over time, labellers are assessed multiple times across a range of
-accuracy tasks, which are selected to represent the variability of the
-agricultural system being mapped. Each labeller's score history is
-averaged to provide an overall accuracy measure, and this information is
-used for creating labels, the second task.
+We configured the platform's scheduler to present workers with accuracy
+assessment assignments at a rate of 1 for every 5 assignments mapped.
+This generated a history of accuracy assessment scores that we used to
+assess label quality and minimize label error.
 
-If the labeller's completed assignment was a training/validation task,
-their maps remain stored in the database until the task's outstanding
-assignments are completed by other labellers. Once complete, another
-routine is invoked, which combines the task's completed assignments into
-a single consensus label using a Bayesian merging approach:
+For training and validation, where there was no reference data to assess
+label accuracy, we set each task to have four assignments, i.e.~each was
+completed by four separate labellers. When all four assignments were
+complete, a Bayesian merging routine was invoked to combine the four
+sets of labels into a single consensus label:
 
 \begin{equation}
 P(\theta|\mathrm{D})=\sum_{i=1}^{n}\mathrm{P}(\mathrm{W_i}|\mathrm{D})\mathrm{P}(\mathrm{\theta}|\mathrm{D}, \mathrm{W_i})
@@ -762,45 +811,43 @@ P(\theta|\mathrm{D})=\sum_{i=1}^{n}\mathrm{P}(\mathrm{W_i}|\mathrm{D})\mathrm{P}
 
 Where \(\theta\) represents the true cover type of a pixel (field or not
 field), \emph{D} is the label assigned to that pixel by a labeller, and
-\(W_i\) is an individual labeller. P(\(\theta\)\textbar D) is therefore
-the probability that the actual cover type is what the labellers who
-mapped it says it is, while P(W\(_i\)\textbar D) is an individual
-labeller's average score over all the accuracy assessment assignments
-they have completed, and P(W\(\theta\)\textbar D, \emph{W}\(_i\)) is the
-labeller's label for that pixel. This approach therefore uses the
-overall accuracy of each labeller to weight their labels when combined
-with those made by other labellers' for the same pixel (see SI for
-further details). As a further measure of confidence in the final
-consensus label, its average Bayesian Risk can be calculated (see SI).
-This measure ranges between 0 and 1, with 0 indicating full agreement
-between labellers for all pixels (n = 40000) in the label, and 1
+\(W_i\) is an individual labeller. P(\(\theta\)\textbar D) is the
+probability that the actual cover type is what the labellers who mapped
+it says it is, while P(W\(_i\)\textbar D) is the average score (ranging
+between 0 and 1) of the accuracy assessment assignments an individual
+labeller completed within the AOI, and P(W\(\theta\)\textbar D,
+\emph{W}\(_i\)) is the labeller's label for that pixel. This approach
+therefore used the average assignment quality score for to weight each
+labeller's label for a given pixel (see SI for further details). Each
+pixel in the target grid cell was merged using this approach (n =
+40000), which helps to minimize individual labellers' errors. We
+estimated a confidence measure for each consensus label by calculating
+its Bayesian Risk (see SI), which ranges between 0 and 1, with 0
+indicating full agreement between labellers for all pixels, and 1
 indicating complete disagreement.
 
-\hypertarget{classification-pipeline}{%
-\subsubsection{Classification pipeline}\label{classification-pipeline}}
+\hypertarget{cropland-classification-model}{%
+\subsubsection{Cropland classification
+model}\label{cropland-classification-model}}
 
-Upon completion of a batch of labels, the platform automatically
-launches an ephemeral Elastic Map
-Reduce\footnote{https://docs.aws.amazon.com/emr/latest/APIReference/emr-api.pdf}
-cluster consisting of tens of instances, depending on the size of the
-AOI.
+Upon completing each batch of labels, the platform automatically
+launched a machine learning cluster (Elastic Map
+Reduce\footnote{https://docs.aws.amazon.com/emr/latest/APIReference/emr-api.pdf})
+comprised of several hundred to a thousand CPUs, depending on the size
+of the AOI.
 
-\hypertarget{feature-extraction}{%
-\paragraph{Feature extraction}\label{feature-extraction}}
-
-The first step is the extraction of additional features from each
-seasonal image composite. Previous work showed that a large number of
-simple features that summarize the statistical properties of reflectance
-and vegetation indices in local neighborhoods are highly effective for
-classifying smallholder croplands (Debats et al. 2016). We followed this
-logic in this study, but were constrained to use a smaller feature space
-because the storage and memory requirements for our mapping geographies
-in this case were several orders of magnitude larger. For this
-implemention, we thus extract a set of 16 features, which are the mean
-and standard deviations calculated within an 11X11 and 5X5 moving
-window, respectively (initial tests revealed these two window sizes to
-be most effective), resulting in 24 overall features, including the
-original bands (Table 1).
+The first step in the process was to derive a set of features from the
+image composites. Previous work showed that a large number of simple
+features summarizing image reflectance and vegetation indices within
+local neighborhoods were highly effective for classifying smallholder
+croplands (Debats et al. 2016). We followed that logic in this study,
+but used a smaller feature set because the storage and memory required
+for our mapping geographies were several orders of magnitude larger. For
+each seasonal composite, we calculated the mean and standard deviation
+of each band within an 11X11 and 5X5 moving window, respectively
+(initial tests revealed these two window sizes to be most effective).
+This provided an overall set of 24 features, including the unmodified
+bands of both composites (Table 1).
 
 \begin{center}Table 1. List of image features.\end{center}
 
@@ -815,409 +862,247 @@ Standard deviation & 5X5 & 8 \\
 \bottomrule
 \end{longtable}
 
-Feature extraction and the conversion of image features is handled by a
-combination of
+We used a combination of
 \texttt{GeoTrellis}\footnote{https://github.com/locationtech/geotrellis},
 \texttt{rasterio}\footnote{https://rasterio.readthedocs.io/en/latest/},
-and \texttt{RasterFrames}\footnote{https://rasterframes.io/}. These
-collectively extract subsets of imagery from the PlanetScope temporal
-composites, derive the features, and convert these into Apache Spark
-DataFrames. Features are extracted on the fly for each cell in the
-training and validation sets, a functionality enabled by storing the
-image composites as Cloud-optimized
-Geotiffs\footnote{https://www.cogeo.org/} (COGs).
+and \texttt{RasterFrames}\footnote{https://rasterframes.io/} to derive
+the features on the fly (which was enabled by converting the composites
+to Cloud-optimized Geotiffs\footnote{https://www.cogeo.org/}) and
+convert them into Apache Spark DataFrames. The extracted features were
+combined with their corresponding training and validation labels and
+passed to the machine learning classifier, a \texttt{SparkMLlib}
+implementation of Random Forests (Breiman 2001). We trained the model
+with a balanced sample and a tree depth of 15 and total tree number of
+60, which initial testing showed to provide a reasonable balance between
+computational time and performance.
 
-\hypertarget{classification}{%
-\paragraph{Classification}\label{classification}}
+\hypertarget{model-performance}{%
+\subsubsection{Model performance}\label{model-performance}}
 
-Once the features from the training sites are extracted into
-\texttt{RasterFrames}, these are combined with their corresponding
-labels and passed to the machine learning classifier, a
-\texttt{SparkMLlib} implementation of Random Forests (Breiman 2001). For
-this study, the model was trained with a balanced sample and a tree
-depth of 15 and total tree number of 60, which initial testing showed to
-provide a reasonable balance between computational time and performance.
-
-After fitting, the model is applied to the features of the model
-validation set, and a set of performance metrics is calculated,
-including binary accuracy, the F1 score (the geometric mean of precision
-and recall), and the area under the curve of the Receiver Operating
-Characteristic (Pontius and Si 2014).
-
-\hypertarget{the-active-learning-loop}{%
-\subsubsection{The active learning
-loop}\label{the-active-learning-loop}}
-
-After fitting and model evaluation a second prediction is undertaken to
-enable active learning. The feature extraction process is repeated for
-the rest of the mapping geography that falls outside of the training and
-validation sample, but applied to a subset of randomly drawn pixels from
-each cell in order to reduce computational demand. The fitted model is
-applied to predict the cropland probability for these selected pixels,
-and an uncertainty criterion (Debats et al. 2017) is calculated for each
-grid cell:
-
-\begin{equation}
-\mathrm{Q_I = \sum_{I(x, y) \epsilon I} (p(x, y) - 0.5)^2}
-\end{equation}
-
-Where Q is the uncertainty for grid cell I, calculated from the
-predicted probability \emph{p} of the randomly selected subset of pixels
-(x, y) drawn from it. Pixels with predicted probabilities closer to 0.5
-are least certain as to their classification, thus images with the
-lowest values of \(Q\) represent sites posing the most difficulty for
-the classifier.
-
-After scoring with the uncertainty criterion, the top \emph{N} most
-uncertain grid cells are selected and sent back to the labelling
-platform, which are then digitized by the labellers. The resulting
-consensus labels from the actively selected sample are added to the
-initial randomly selected sample, and a new cluster is launched. The
-model is retrained, assesses uncertainty across the remaining unlabelled
-sites, and selects the next most uncertain sites for labelling. This
-loop repeats until model performance gains against the validation set
-show diminishing returns.
-
-\hypertarget{segmentation}{%
-\subsubsection{Segmentation}\label{segmentation}}
-
-After the final iteration, the segmentation algorithm is invoked, which
-entails several steps. In the first step, the meanshift algorithm
-(Yizong Cheng 1995) is applied to the original bands of the dry season
-composite. A Sobel filter is then applied to the green, red, and
-near-infrared mean-shifted bands and the probability map, and a combined
-edge image is computed using the sum of these four edge images for the
-dry season only. A compact watershed algorithm (Neubert and Protzel
-2014) is then run on the weighted edge image, with a high level of
-segmentation specified. In this case, we specified \textbf{6400}
-segments per tile.
-
-Third, a region adjacency graph is constructed for each image tile, in
-which each node represents all pixels within each polygon created in the
-previous step. The edge between two adjacent regions (polygons) is
-calculated as the norm of the difference between the means of normalized
-colors of all bands. Hierarchical merging is then applied, in which the
-most similar pairs of adjacent nodes are merged until there are no edges
-remaining below a predetermined threshold of 0.05.
-
-In the fourth step, the merged polygons are overlaid with the posterior
-probabilities resulting from the final active learning loop, and
-polygons in which the average posterior probability is greater than a
-predetermined threshold (here 0.5, but could vary locally) are retained
-as field polygons.
-
-In the final step, the retained polygons are refined by removing holes
-and smoothing their boundaries using the Visvalingam algorithm
-(Visvalingam and Whyatt 1993). Neighboring polygons that overlap along
-tile boundaries are then merged.
-
-To assess the accuracy of the final segmented boundaries, we used a
-two-step approach. First, we assessed the overall thematic accuracy of
-the resulting classification against our map reference data. Second, to
-assess the quality of the segmentation, we compared the mean area and
-relative frequencies of the segmented polygons within different size
-classes against the same metrics derived from the digitized fields of
-the most accurate worker to create the given map. We selected this
-relatively simple procedure, as opposed to more complex measures of
-object accuracy (Ye et al. 2018), because, on the one hand, both the
-automated segmentation algorithm and labellers are cueing in on the same
-features--abrupt, physically detectable breaks within the imagery. On
-the other hand, no matter how well the intepreted/segmented boundaries
-align with the boundaries of fields in the imagery, it is logistically
-difficult to evaluate performance against real-world boundaries as the
-spectral distinction of field boundaries will vary across different crop
-types and land use arrangements.
-
-\hypertarget{applying-the-system-to-map-ghana}{%
-\subsection{Applying the system to map
-Ghana}\label{applying-the-system-to-map-ghana}}
-
-We applied the system to map Ghana's croplands, excluding areas
-primarily cultivated with tree crops. Ghana has several distinct
-agricultural regions, ranging from the primarily grain and vegetable
-crop producing regions in the northern savannas to tree crop-dominated
-system in the forested southwest, where cocoa and oil palm are among the
-dominant crops. For these latter regions, we did not attempt to classify
-tree crops, and instead mapped clearings that potentially contain field
-crops or newly felled or recently replanted tree crops. We made this
-decision because PlanetScope's resolution is not high enough for
-labellers to distinguish many tree crops from surrounding forest, and
-the boundaries of many tree crops (e.g.~cocoa) are often not visible.
-
-To create the cropland maps, we divided the country into 16 distinct
-AOIs, which were developed by grouping together each one degree cell
-fully contained within Ghana with the tiles belonging to any adjacent
-degree cell that overlapped neighboring countries (Figure
-\ref{fig:aois}A). The exception was AOI 16, which consisted of the four
-degree cells intersecting Ghana's southern coast. The resulting AOIs
-ranged from 12,160 to 23,535 km\(^2\) in extent (average = 15,457
-km\(^2\)), A separate active learning and segmentation process was run
-for each of these AOIs.
-
-To collect the initial randomized samples for model training, we grouped
-the AOIs into three clusters: a northern cluster comprising the 6
-northernmost AOIs (Cluster 1), a central to southeastern cluster
-(Cluster 2) consisting of the 3 middle (AOIs 7-9) and 2 southeastern
-AOIs (12 and 15), and a southwestern cluster (Cluster 3) made up of the
-forest zone AOIs (10, 11, 13, 14, 16). Within each cluster, we randomly
-selected and labelled 500 grid cells, which provided relatively large
-initial training samples for these agro-ecologically similar regions,
-while helping to minimize the overall amount of labelling effort. In
-addition to these samples, we randomly selected and labelled 100 grid
-cells within each AOI to provide a validation sample.
-
-After collecting the initial training and validation samples, we trained
-a starter model for each cluster and applied it to each of the block's
-AOI. For each iteration, 100 samples were actively selected within each
-AOI, and added to the training pool.
-
-During the collection of training and validation samples, labellers were
-tasked to only digitize active or recently active crop fields, avoiding
-tree crops, and fallow or potentially abandoned fields (see SI for the
-digitizing rules).
-
-To evaluate the performance of the system, we performed several analyses
-described in sections 2.3.1-4.
-
-\hypertarget{image-quality}{%
-\subsubsection{Image quality}\label{image-quality}}
-
-We evaluated the overall quality of the resulting seasonal image
-composites by assessing a random selection of 50 tiles. We graded both
-seasonal composites for each tile using a four category quality score,
-which evaluated the degree of 1) residual cloud and 2) cloud shadow, 3)
-the number of visible scene boundary artifacts, and 4) the proportion of
-the image that had its resolution degraded below the typical 3-4 m
-PlanetScope resolution (e.g.~because of between-date image
-mis-registrations). Each category was qualitatively ranked from 0-3,
-with 0 being the lowest quality, and 3 the highest (see SI for complete
-protocol), making the highest possible score 12. We rescaled scores to
-fall between 0 and 1.
-
-\hypertarget{model-gains-per-iteration}{%
-\subsubsection{Model gains per
-iteration}\label{model-gains-per-iteration}}
-
-To assess the gain in model performance due to active learning, we
-measured the change in accuracy, F1, and AUC (see 2.2.3.2) between each
-iteration and between the first and last iterations for each AOI.
+To assess performance of the Random Forests classifier, we used the
+validation sample to calculate binary accuracy, the F1 score (the
+geometric mean of precision and recall), and the area under the curve of
+the Receiver Operating Characteristic (Pontius and Si 2014), as well as
+the false positive rate. We calculated these measures each time the
+model was retrained for a given AOI, in order to assess the change in
+classifier performance with each active learning iteration.
 
 To evaluate whether active learning improved model performance relative
-to a purely random approach to selecting new training sites, we ran
-additional tests within a subset of AOIs (1, 8, and 15). We first
-randomly selected and labelled 300-400 sites in each AOI. We then
-progressively added 100 of the randomly selected samples to the relevant
-training pool and retrained the model, repeating the process so that the
-number of iterations and samples matched those from the active learning
-process. We then compared the difference in accuracy, AUC, and F1
-between the randomly trained models and those trained with active
-learning (Debats et al. 2017).
-
-\hypertarget{accounting-for-label-error}{%
-\subsubsection{Accounting for label
-error}\label{accounting-for-label-error}}
+to randomized label selection, we ran an additional test within three
+AOIs (1, 8, and 15), in which we retrained the model with 100 randomly
+selected labels for each iteration. We then compared the differences in
+accuracy, AUC, and F1 between the actively and randomly trained models
+(Debats et al. 2017).
 
 To quantify the potential impact of label error on classification
-results, we evaluated the performance differences between models trained
-with three different sets of labels: 1) those from the lowest scoring
-labeller to map each training site, 2) those from the highest scoring
-labeller, and 3) the consensus labels. This assessment follows
-recommended Tier 1 (i.e.~best practice) standards to account for
-training data errors (Elmes et al. 2020).
+results, we conducted two further analyses. We evaluated the performance
+differences between models trained with three different sets of labels:
+1) those from the lowest scoring labeller to map each training site, 2)
+those from the highest scoring labeller, and 3) the consensus labels. We
+also calculated the correlations between the mean Bayesian Risk of
+labels in each AOI and the corresponding model performance metrics
+(Table S3).
 
-\hypertarget{accuracy-assessment}{%
-\subsubsection{Accuracy assessment}\label{accuracy-assessment}}
+\hypertarget{segmentation}{%
+\subsection{Segmentation}\label{segmentation}}
 
-The model performance assessments described above (2.3.2-3) were not
-fully independent because they used the same validation sites over
-multiple iterations (Elmes et al. 2020). To independently assess the
-accuracy of our final map products, we followed recommended guidelines
-(Stehman and Foody 2019) to create a separate map reference sample. We
-used a stratified design, randomly assigning square polygons of
-\textasciitilde0.1 ha extent into cropland and non-cropland strata,
-developed the map of segmented field boundaries. Four classes were used
-for the map reference sample: cropland; non-cropland; unsure but likely
-cropland; unsure but likely non-cropland. The latter two classes were
-used to provide insight into the degree of uncertainty in the map
-reference sample. For efficiency, two separate supervisors evaluated
-separate portions of the reference sample, but both jointly assessed a
-small subset of the sample. We calculated their level of agreement on
-this subset to provide an additional assessment of uncertainty in the
-map reference sample (Stehman and Foody 2019). The SI contains further
-details on the design and collection of the map reference sample.
+Upon completion of the active learning process, we deployed a five-step
+algorithm to create a segmented map of field boundaries. In the first
+step, we identified edge features within the imagery. To do this, we
+applied the meanshift algorithm (Yizong Cheng 1995) to each dry-season
+composite tile, and then passed a Sobel filter over the mean-shifted
+green, red, and near-infrared bands, and the corresponding map of
+predicted cropland probabilities. We then summed the four resulting edge
+images to produce a combined edge image.
 
-The map reference polygons were then intersected with both the
-probability images and the segmented field boundaries, and confusion
-matrixes between the map reference labels and the extracted map classes
-were constructed to assess the categorical accuracy of each map product.
-We calculated the overall accuracy for each map, as well as the
-class-wise User's and Producer's accuracy, as well as the 95\%
-confidence intervals for each accuracy measure (Olofsson et al. 2013,
-2014, Stehman and Foody 2019).
+In the second step, we used a compact watershed algorithm (Neubert and
+Protzel 2014) to segment the edge image, specifying a high number of
+segments (6,400) segments per tile, so that the mean segment size
+(\textless0.5 ha) was finer than the expected mean field size
+(\textgreater1 ha).
 
-To assess the accuracy of the segmented field boundaries, we compared
-the size class distributions of the segmented field boundaries against
-those of the workers' digitized polygons at map validation sites. We
-chose this approach because of existing uncertainties in polygon-based
-accuracy assessment methods (Ye et al. 2018), and because the map's
-ability to represent field sizes was of greatest interest. To undertake
-this comparison, we selected the field polygons from the most accurate
-labeller to digitize each of the 100 validation sites in each AOI, and
-calculated the site-wise average area and number of polygons. We then
-calculated the same statistics from the segmented boundaries that
-intersected each validation grid. We compared the distributions and
-proximity of two measures of central tendency (mean and median)
-calculated from the two datasets for each AOI, and across all AOIs.
+In the third step, we hierarchically merged the resulting polygons. We
+first constructed a region adjacency graph for each tile, with each node
+representing all image pixels within each polygon. The edge between two
+adjacent regions (polygons) was calculated as the difference between the
+means of the normalized colors of all bands. We then merged the most
+similar pairs of adjacent nodes until there were no edges remaining
+below the predetermined threshold of 0.05.
 
-\hypertarget{assessing-the-characteristics-of-ghanaian-cropland}{%
-\subsection{Assessing the characteristics of Ghanaian
-cropland}\label{assessing-the-characteristics-of-ghanaian-cropland}}
+In the fourth step, we overlaid the merged polygons with the cropland
+probability images, and polygons in which the mean probability was
+greater than 0.5 were retained as crop fields.
 
-Using the final mapped results, we calculated the estimated area of
-cropland in Ghana, as well as the average size and total number of
-fields in the different AOIs. We used the map reference sample to
-calculate adjusted area estimates and confidence intervals for each map
-class, and used the differences between labellers' polygons and
-segmented boundaries at validation sites to calculate bias-adjusted
-estimates of mean field sizes and the total number of fields.
+In the fifth and final step, we refined the crop field polygons, by
+removing holes and smoothing boundaries using the Visvalingam algorithm
+(Visvalingam and Whyatt 1993). We then merged neighboring polygons that
+overlapped along tile boundaries.
+
+The resulting map represents dry season crop field boundaries, as we did
+not segment growing season images. We made this choice because labels
+were primarily drawn on dry season composites, when boundaries were
+typically more visible.
+
+\hypertarget{map-assessment}{%
+\subsection{Map assessment}\label{map-assessment}}
+
+We followed recommended guidelines (Stehman and Foody 2019) to conduct
+an independent assessment of the categorical accuracy of the final maps,
+using a set of 1207 (487 cropland; 720 non-cropland) point-based, map
+reference labels, which were placed across Ghana using a stratified
+random sample design, and collected through the labelling platform by
+two expert supervisors (see SI for full details on sample design and
+collection). For efficiency, the supervisors labelled separate portions
+of the sample, but overlapped on a small subset (n = 23). We calculated
+the label agreement (87\%) on this subset to estimate uncertainty in the
+map reference sample (Stehman and Foody 2019). In addition to this, the
+sample was labelled with four classes: cropland; non-cropland; unsure
+but likely cropland; unsure but likely non-cropland. The last two
+classes, which constituted 15.7\% of the sample, provided a further
+measure of uncertainty in the map reference sample
+
+We used the sample to calculate the overall accuracy for each map, the
+class-wise User's and Producer's accuracy, and the 95\% confidence
+intervals for each accuracy measure (Olofsson et al. 2013, 2014, Stehman
+and Foody 2019). We calculated these measures across the entire country,
+as well as several different zones, to evaluate regional difference in
+accuracy. We defined two sets of zonations (Figure S4), each containing
+four zones, the first created by grouping 1) the three northern AOIs
+(1-3), 2) the six central AOIs (4-9), 3) the four southwestern AOIs (10,
+11, 13, 14, 16), and 4) the two southeastern zones (13, 15). This
+grouping differs from the three clusters used to collect initial model
+training samples, as we designed these to divide the country more
+finely, and to isolate the less forested southeastern third of Ghana
+from the more forest northwest. The second zonation was developed by
+grouping the country's eight agro-ecological zones into four broader
+clusters (Figure S4B). We applied this zonation only to the per-pixel
+classification, to better understand patterns of error in the model.
+
+To assess how effectively the segmentations captured field
+characteristics, we compared the size class distributions of the
+segmented field boundaries against the field boundaries digitized by the
+labellers' over the 100 validation sites in each AOI. We chose this
+approach because of existing uncertainties in polygon-based accuracy
+assessment methods (Ye et al. 2018), and because the map's ability to
+represent field sizes was of greatest interest. To undertake this
+comparison, we selected the polygons from the most accurate labeller to
+digitize the 100 validation grids in each AOI, and calculated the
+average area and number of polygons in each cell. We then calculated the
+same statistics from the segmented boundaries that intersected each
+validation grid, and compared the two sets of statistics.
+
+We used the final maps to evaluate the characteristics of Ghana's
+croplands. We calculated the estimated area of cropland in Ghana, as
+well as the average size and total number of fields in the different
+AOIs. We used the map reference sample to calculate adjusted area
+estimates and confidence intervals for each map class, and used the
+differences between labellers' polygons and segmented boundaries at
+validation sites to calculate bias-adjusted estimates of mean field
+sizes and the total number of fields.
 
 \hypertarget{results}{%
 \section{Results}\label{results}}
 
-We developed maps of Ghana's cultivated croplands within an area of
-247,299 km\(^2\), which included portions of neighboring countries
-overlapped by images tiles.
+Our results produced two separate maps of Ghana's annual croplands, over
+a total area of 248,343 km\(^2\) that included portions of the
+neighboring countries overlapped by image tiles.
 
-\hypertarget{image-catalog-and-quality}{%
-\subsection{Image catalog and quality}\label{image-catalog-and-quality}}
+\hypertarget{image-quality}{%
+\subsection{Image quality}\label{image-quality}}
 
-To develop the maps, we first generated an image catalog for the 8,116
-tiles covering Ghana. This entailed processing all PlanetScope imagery
-intersecting these tiles between May-September, 2018 (the growing
-season) and December, 2018 to February, 2019 (the subsequent dry
-season). The longer period was necessary for the growing season because
-of the frequent cloud cover, which substantially limits the number of
-clear scenes for any tile (Figure S3). For the cloudiest regions (AOIs
-10, 11, 13, 14, 16) we started the dry season window in November.
-
-An assessment with two observers (see SI for observer details) found
-that average quality per growing season composite tile was 0.88, with 70
-percent having scores \(\geq\) 0.85, while the average quality of dry
-season composites was 0.92 (74 percent \(\geq\) 0.85). Composite quality
-in both seasons was highest in the northern half of the country and
-lowest in the southwest (Figure \ref{fig:imqual}A), where the
-substantially greater cloud cover resulted in a much lower density of
-available PlanetScope imagery for each time period (Figure S3).
+The assessment of image composites found that their quality in both
+seasons was highest in the northern half of the country and lowest in
+the southwest, (Figure \ref{fig:imqual}A), where the substantially
+greater cloud cover resulted in a much lower density of available
+PlanetScope imagery for each time period (Figure S5). The average
+quality score of growing season composites was 0.88, with 70 percent
+having scores \(\geq\) 0.85 (out of 1; Figure \ref{fig:imqual}B), while
+the mean score of dry season composites was 0.92 (74 percent \(\geq\)
+0.85).
 
 \begin{figure}
 
-{\centering \includegraphics[width=0.7\linewidth]{figures/figure4} 
+{\centering \includegraphics[width=0.7\linewidth]{figures/figure3} 
 
 }
 
 \caption{The location and quality scores of 100 randomly selected tiles for the growing (A) and off-growing season (B), and the corresponding distributions of the quality scores for each season, respectively (C and D).}\label{fig:imqual}
 \end{figure}
 
-\hypertarget{active-learning}{%
-\subsection{Active learning}\label{active-learning}}
+\hypertarget{cropland-probabilities}{%
+\subsection{Cropland probabilities}\label{cropland-probabilities}}
 
-\hypertarget{training-data-collection}{%
-\subsubsection{Training data
-collection}\label{training-data-collection}}
-
-After training of models with the initial randomly selected label sets,
-the active learning process was run for 3 iterations for 12 of the 16
-AOIs, resulting in 800 labels per AOI. AOIs 10 and 14 stopped after one
-and two iterations, respectively, as they started with high initial
-validation accuracies (\textgreater83\%) and showed little subsequent
-improvement. The models for these two AOIs were thus trained with 600 -
-700 samples. AOI 15 was run for 4 iterations (900 samples), while AOI 3
-underwent a second active learning cycle because the model produced
-during the first cycle was inaccurate (see SI). In this second run, 300
-initial training sites randomly selected within the AOI were used
-(Figure S4A), followed by 2 subsequent active learning iterations,
-resulting in a training sample of 500. Labels collected during the
-active learning iterations showed distinct patterns in several AOIs,
-which often fell along ecotones, such as the boundaries between
-agroecozones (see Figure S4A). The total number of unique training and
-validation sites across the country were 6,299 and 1,600, respectively.
-
-The distribution of training and validation sample collection effort was
-divided across 20 labellers, with a core group of 13 who mapped more
-than 1,000 sites each. As each training site was mapped by 4 separate
-labellers, 34,014 sets of vector labels were made. Each labeller
-digitized an average of 2,001 (see Figure S5A for more details on
-labelling effort). Labeller accuracy was scored 9,389 times against 98
-unique training reference sites (Figure S4A), with each labeller
-assessed an average of 552 times at a rate of 1 training reference site
-for every 3.62 training site mapped. The mean of each labeller's average
-accuracy score was 0.71 (range 0.6 to 0.85; see Figure S5B for detailed
-score distributions).
-
-After each site was mapped by four labellers, consensus labels were
-generated. The Bayesian Risk (see SI) of each training and validation
-label was calculated as an additional measure of label quality. The
-average risk was 0.122 for training labels and 0.127 for validation
-labels. Risk was highest in the northen AOIs (AOIs 1-6; Figures S6-7),
-falling between 0.157 for training and 0.173 for validation labels
-(Figures S6-7), and lowest in the southwestern AOIs (AOIs 10, 11, 13,
-14, 16; training risk = 0.079; validation risk = 0.065). Label risk in
-the central-southeastern AOIs (AOIs 7-9, 12, 15) was slightly lower
-(training = 0.127; validation = 0.136) than in the north. Labeller
-experience also appeared to reduce risk, which we observed during a
-relabelling of the 500 initial random site in this cluster (see SI); the
-mean risk of the updated labels was 0.055, compared to 0.172 for
-original labels.
+To make the initial maps of cropland probabilities, the active learning
+process ran for 3 iterations in 12 of 16 AOIs, varying from as little as
+1 to as many as 4 iterations across the other 4 AOIs, with the number of
+iterations varying according to the performance of the starter models
+(i.e.~AOIs with higher starting performance stopped after fewer
+iterations, see SI). Each AOI's model was trained by 300-500 randomly
+selected labels (Figure S6A), plus an additional 600 - 900 (typically
+800) within each the AOI that were selected by active learning. Actively
+selected labels showed distinctive patterns in several AOIs (Figure
+S6B), such as concentrating along ecotones or the boundaries of
+agro-ecological zones. A total of 6,299 training and 1,600 validation
+labels were collected by 20 labellers to develop and assess model
+performance (Figure S7).
 
 \hypertarget{performance-gains-during-active-learning}{%
 \subsubsection{Performance gains during active
 learning}\label{performance-gains-during-active-learning}}
 
-Model performance was calculated for each iteration within each AOI. The
-average accuracy, AUC, and F1 at iteration 0 were 0.786, 0.809, and
-0.464, respectively, increasing to 0.825, 0.818, and 0.507 by iteration
-3 (Figure \ref{fig:alperformance}). These differences represent
-respective gains of 4.9, 1.1, and 9.1 percent for the three metrics. The
-largest gains for each metric occurred on iteration 1, averaging 2.9, 1,
-and 3.8 percent for accuracy, AUC, and F1, while the lowest gains were
-realized on iteration 3, with accuracy, F1, and AUC respectively
-increasing by just 1.2\%, 0.9\%, and 0.3\%. The scores achieved on the
-final iteration varied substantially across AOIs and metrics. Accuracy
-ranged between 0.725 (AOI 15) and 0.948 (AOI 16), while AUC varied from
-0.725 (AOI 4) and 0.93 (AOI 11), and F1 from 0.252 (AOI 13) and 0.636
-(AOI 8).
+The performance of the Random Forest classifier typically improved with
+each active learning iteration. The average accuracy, AUC, and F1 at
+iteration 0 were 0.786, 0.809, and 0.464, respectively, increasing to
+0.825, 0.818, and 0.507 by iteration 3 (Figure \ref{fig:alperformance}).
+These differences represent respective gains of 4.9, 1.1, and 9.1
+percent for the three metrics. The largest gains for each metric
+occurred on iteration 1, averaging 2.9, 1, and 3.8 percent for accuracy,
+AUC, and F1, while the lowest gains were realized on iteration 3, with
+accuracy, F1, and AUC respectively increasing by just 1.2\%, 0.9\%, and
+0.3\%. The scores achieved on the final iteration varied substantially
+across AOIs and metrics. Accuracy ranged between 0.725 (AOI 15) and
+0.948 (AOI 16), while AUC varied from 0.725 (AOI 4) and 0.93 (AOI 11),
+and F1 from 0.252 (AOI 13) and 0.636 (AOI 8).
 
 \begin{figure}
 
-{\centering \includegraphics[width=1\linewidth]{figures/figure5} 
+{\centering \includegraphics[width=1\linewidth]{figures/figure4} 
 
 }
 
 \caption{Scores for overall accuracy, area under the curve of the Receiver Operating Characteristic, and the F1 scores for the Random Forests model results after each iteration of the active learning loop for each AOI (gray lines), as well as the mean score per iteration across all AOIs (black lines).}\label{fig:alperformance}
 \end{figure}
 
-The comparison of active versus randomized training sample collection
-(in AOIs 1, 8, and 15) showed that the former approach outperformed the
-latter. After three iterations, the accuracy, AUC, and F1 scores
-resulting from active learning were respectively 0.8, 0.6, and 2.3
-percent higher than the scores from a randomly trained model (Figure
-S8). However, there was more variability in earlier iterations, with
-average score differences of -1.7 (accuracy), 0.6 (AUC), and 0.8 percent
-(F1) after iteration 1, and -0.3 (accuracy), 0.4 (AUC), and 1.8 (F1)
-percent after iteration 2. The negative results for accuracy was caused
-by results at AOI 15, where active learning accuracy was 8.37 percent
-lower than random training after iteration 1 (see Figure
-\ref{fig:alperformance}). In comparison, iteration 1 active learning
-accuracies were 2.88 and 0.45 percent higher than random training for
-AOIs 1 and 8, respectively. Accuracy under active learning for AOI 15
-exceeded randomized training after 4 iterations.
+The experiment conducted in three AOIs (in AOIs 1, 8, and 15) showed
+that training models with active learning improved performance compared
+to randomized approaches to label selection. After three iterations, the
+accuracy, AUC, and F1 scores for the actively trained models were
+respectively 0.8, 0.6, and 2.3 percent higher than those for randomly
+trained models (Figure S8). However, there was more variability in
+earlier iterations, with average score differences of -1.7 (accuracy),
+0.6 (AUC), and 0.8 percent (F1) after iteration 1, and -0.3 (accuracy),
+0.4 (AUC), and 1.8 (F1) percent after iteration 2 (see SI for more
+details).
 
-\hypertarget{the-impact-of-training-data-error}{%
-\subsubsection{The impact of training data
-error}\label{the-impact-of-training-data-error}}
+\hypertarget{the-impact-of-label-error-and-uncertainty-on-model-performance}{%
+\subsubsection{The impact of label error and uncertainty on model
+performance}\label{the-impact-of-label-error-and-uncertainty-on-model-performance}}
 
-The potential impact of label errors on map quality was assessed in four
-AOIs (1, 2, 8, and 15). The results of these tests showed that the
+We used the two measures of label quality calculated by the platform,
+the average quality score of each labeller and Bayesian Risk (or simply
+``label risk''), to assess the potential impacts of label error on model
+performance. The average of each labeller's AOI-specific accuracy score
+was 0.71 (range 0.6 to 0.85; see Figures S4 and S5 for details on label
+scores and number of assignments per labeller). The average Bayesian
+Risk was 0.124, with highest label risk (0.165) in the northern AOIs
+(AOIs 1-6; Figures S6-7), lowest (0.165) in the southwestern AOIs (AOIs
+10, 11, 13, 14, 16), and intermediate (0.131) in the
+central-southeastern AOIs (AOIs 7-9, 12, 15).
+
+Treating each labeller's average label quality scores (Figure S9) as a
+proxy for error, we used these scores to develop training sets to test
+the impact of label error on model performance. The results of these
+tests, which were conducted in AOIs 1, 2, 8, and 15, showed that the
 average accuracy, AUC, and F1 scores for models trained with the
 consensus labels were respectively 0.772, 0.8, and 0.555 (Figure
 \ref{fig:trainingimpact}). Performance metrics from consensus-trained
@@ -1228,25 +1113,25 @@ accurate individual labels (accuracy = 0.606; AUC = 0.716; F1 = 0.44).
 
 \begin{figure}
 
-{\centering \includegraphics[width=1\linewidth]{figures/figure6} 
+{\centering \includegraphics[width=1\linewidth]{figures/figure5} 
 
 }
 
 \caption{Scores for overall accuracy, area under the curve of the Receiver Operating Characteristic, and the F1 score resulting from models trained with consensus labels, and labels made by the most and least accurate labellers to map each site. Comparisons were made for AOIs 1, 2, 8, and 15, denoted by grey symbols, while the mean scores across these AOIs are shown for each metric.}\label{fig:trainingimpact}
 \end{figure}
 
-A second measure of the impact of label error is found within the
-correlations between the mean label risk per AOI and the model
-performance metrics (Table S3). Accuracy and AUC had strong (Spearman's
-Rank Correlation = -0.824 to moderate (r = -0.568) negative correlations
-with label risk, while F1 had a weaker but moderate positive association
-(r = 0.456). The positive sign of the latter relationship is
-counter-intuitive, but is explained by risk's association with
-precision, one of two inputs to F1, which was moderately positive
-(0.629), whereas risk had a negligible correlation with recall (0.206),
-F1's other component. The correlation between risk and the false
-positive rate (0.688), another important performance metric, shows that
-labelling uncertainty may increase model commission error.
+Correlations (Table S3) between the mean label risk per AOI (Figures
+S10-11) and model performance metrics showed strong (Spearman's Rank
+Correlation = -0.824) to moderate (r = -0.568) negative correlations
+between label risk and accuracy and AUC, respectively, while F1 had a
+weaker but moderate positive association (r = 0.456). The positive sign
+of the latter relationship is counter-intuitive, but is explained by
+risk's association with precision, one of two inputs to F1, which was
+moderately positive (r = 0.629), whereas risk had a negligible
+correlation with recall (r = 0.206), F1's other component. The
+correlation between risk and the false positive rate (r = 0.688),
+another important performance metric, shows that labelling uncertainty
+may increase model commission error.
 
 \hypertarget{map-accuracy}{%
 \subsection{Map accuracy}\label{map-accuracy}}
@@ -1254,25 +1139,16 @@ labelling uncertainty may increase model commission error.
 \hypertarget{categorical-accuracy}{%
 \subsubsection{Categorical accuracy}\label{categorical-accuracy}}
 
-We used a map reference sample of 1207 sites (487 cropland; 720
-non-cropland) to evaluate the accuracy of the per-pixel classifications
-(resulting from thresholding the Random Forests probability), as well as
-the segmented field boundary maps. We first evaluated the uncertainty in
-the map reference classes by assessing 1) the overall agreement between
-map reference labels collected by two separate supervisors at 23 sites,
-and 2) the confidence of the labels assigned by the supervisors (see SI
-for details). The first measure showed that the two individual
-supervisors' labels agreed at 87\% of common sites, while the second
-showed that 15.7 of sites were labelled with the two classes that
-indicated a level of uncertainty.
-
-We found that the overall accuracy of the pixel-wise classifications was
+We used the map reference sample to evaluate the accuracy of the
+cropland probability map (after classifying it using a threshold
+probability of 0.5) and the map of segmented field boundary maps. We
+found that the overall accuracy of the pixel-wise classifications was
 88\% against this map reference sample (Table \ref{tab:mapaccuracy}).
-Confining the map reference sample to four distinct zones (Figure S10A)
+Confining the map reference sample to four distinct zones (Figure S4A)
 shows that overall accuracy ranged from 83.3\% in Zone 1 (AOIs 1-3) to
 93.6\% in Zone 3 (AOIs 10, 11, 13, 15, and 16). The Producer's accuracy
 of the cropland class was 61.7\% across Ghana, ranging from 45.6\% in
-Zone 3 to 67.9\% in Zone 1, while the User's accuracy for was 67.3\%
+Zone 3 to 67.9\% in Zone 1, while the User's accuracy was 67.3\%
 overall, ranging from 59.8\% in Zone 4 to 71.2\% in Zone 1. Both
 measures of accuracy were substantially higher for the non-cropland
 class across all zones, typically exceeding 90\%. The lowest accuracies
@@ -1293,19 +1169,19 @@ commission error.
 \label{tab:mapaccuracy}
 \end{table}
 
-\hypertarget{segmentation-accuracy}{%
-\subsubsection{Segmentation accuracy}\label{segmentation-accuracy}}
+\hypertarget{segmentation-quality}{%
+\subsubsection{Segmentation quality}\label{segmentation-quality}}
 
 The comparisons of digitized versus segmented field boundaries showed
 that the mean field size across all validation sites averaged 4.97 ha
 (Median = 3.75; StDev = 6.04), which was 1.41 times larger than the 2.06
 ha (Median = 1.35; StDev = 3.26) mean area of labeller-digitized
 polygons. This discrepancy was primarily caused by results in four AOIs
-(2, 3, 7, and 15; Figure S11), where segments averaged between 7.76 and
+(2, 3, 7, and 15; Figure S13), where segments averaged between 7.76 and
 10.76 ha, compared to 2.18 - 2.77 ha for the corresponding
 hand-digitized polygons. The number of segmented fields per validation
 site averaged 3.08 (median = 2.66; StDev = 2.9) compared to 4.4 (median
-= 3.38; StDev = 4.52) for digitized polygons (Figure S12).
+= 3.38; StDev = 4.52) for digitized polygons (Figure S14).
 
 \hypertarget{ghanas-croplands}{%
 \subsection{Ghana's croplands}\label{ghanas-croplands}}
@@ -1319,50 +1195,49 @@ region (AOI 7, the northeastern and northwestern corners of AOIs 10 and
 11, and the south of AOI 8), and the northeastern quadrant stretching
 from AOI 9 through AOIs 5 and 6 and up to AOIs 2 and 3. The northern
 third of AOI 1 also has noticeable densities of cropland. Several
-notable areas of low cropland density are also apparent, indicating the
-presence of large protected areas, such as Mole National Park in the
-southeastern corner of AOI 1 and Digya National Park in the northwestern
-corner of AOI 12. In contrast, the relative absence of cropland in AOIs
-13, 14, and 16 does not reflect the scarcity of agriculture in these
-areas, but rather the predominance of tree crops, which we did not map.
+prominent areas of low cropland density indicate the presence of large
+protected areas, such as Mole National Park in the southeastern corner
+of AOI 1 and Digya National Park in the northwestern corner of AOI 12.
+The relative absence of cropland in AOIs 13, 14, and 16 does not reflect
+the scarcity of agriculture in these areas, but rather the predominance
+of tree crops, which we did not map.
 
 \begin{figure}
 
-{\centering \includegraphics[width=0.9\linewidth]{figures/figure7} 
+{\centering \includegraphics[width=0.9\linewidth]{figures/figure6} 
 
 }
 
 \caption{The distribution of croplands in Ghana. The main map shows the percentage of croplands in each 0.005 degree grid cell, derived from the predicted cropland probabilities. The insets  on the margins illustrate predicted probabilities (top map in each couplet) at original image resolution (0.000025 degrees) and segmented field boundaries overlaid on the dry season PlanetScope composite, for four separate tiles. Each tile's position is shown on the main map, and is color-coded to the boundary lines around its corresponding inset.}\label{fig:mainmap}
 \end{figure}
 
-Both the per-pixel and vectorized maps, when combined with the map
-reference sample, enable separate estimates of the total extent of
-croplands in Ghana. The cropland extent estimated from the vectorized
-map is 42,359 km\(^2\) (with a margin of error of 4,395 km\(^2\)), or
-17.1 (15.4-18.9\%) of the mapped area. The estimate based on the per
-pixel map is 43,233 km\(^2\) (margin of error = 4,904 km\(^2\)), or 17.6
-(15.6-19.6\%) of area.
+Using the map reference sample and each map, we made two separate
+estimates of the total cropland area in Ghana in 2018. The cropland
+extent estimated from the field boundary map was 42,359 km\(^2\) (with a
+margin of error of 4,395 km\(^2\)), or 17.1\% (15.4-18.9\%) of the
+mapped area. The estimate from the per pixel map was 43,233 km\(^2\)
+(margin of error = 4,904 km\(^2\)), or 17.6\% (15.6-19.6\%) of area.
 
-The vectorized map provides additional information on how the
-characteristics of croplands can vary geographically, ranging from
-narrow, strip-like fields in parts of AOI 15 (Figure \ref{fig:mainmap}'s
-lower right inset) to more densely packed, less distinctly shaped fields
-in AOI 5 (upper right inset in Figure \ref{fig:mainmap}). To explore how
-field characteristics varied geographically, we mapped the average field
-size and total number of fields within each 0.05 degree tile (Figure
-S13). These patterns generally correspond to those seen in the cropland
+The field boundary map provides additional information on how the
+characteristics of croplands vary across Ghana, ranging from narrow,
+strip-like fields in parts of AOI 15 (Figure \ref{fig:mainmap}'s lower
+right inset) to more densely packed, less distinctly shaped fields in
+AOI 5 (upper right inset in Figure \ref{fig:mainmap}). To explore how
+field characteristics varied geographically, we mapped the average size
+and total number of fields within each 0.05 degree tile grid (Figure
+S15). These patterns generally correspond to those seen in the cropland
 density map (Figure \ref{fig:mainmap}), with larger sizes and field
-counts generally occurring in areas of higher field density, although
-the biases inherent in both measures (Figures S11-12) complicate the
-interpretation of those variations. However, we can use the estimated
-biases to develop adjusted estimates of field sizes and counts for each
-AOI, and for Ghana overall (Table \ref{tab:sizentab}). These adjusted
-estimates show that the typical field size in Ghana is 1.73 ha, ranging
-from 0.96 in AOI 4 to 2.82 ha in AOI 4, with fields in the forest zone
-AOIs (10, 11, 13, 14, 16) generally smaller than those in the northern
-half of the country (Table \ref{tab:sizentab}). The total number of
-fields was estimated to be 1,662,281 overall, or 205 fields per tile on
-average, ranging from 108/tile in AOI 4 to 399/tile in AOI 6.
+counts occurring where field densities are higher, although the biases
+(relative to the validation labels) in both measures (Figures S13-14)
+complicate interpretations of those variations. To minimize this
+complication, we used the calculated biases to develop adjusted
+estimates of field size and count (Table \ref{tab:sizentab}). These
+adjusted estimates show that the typical field size in Ghana is 1.73 ha,
+ranging from 0.96 in AOI 4 to 2.82 ha in AOI 4, with fields in the
+forest zone AOIs (10, 11, 13, 14, 16) generally smaller than those in
+the northern half of the country (Table \ref{tab:sizentab}). The
+estimated total number of fields is 1,662,281, or 205 fields per tile
+grid cells, varying from 108 fields/tile cell in AOI 4 to 399 in AOI 6.
 
 \begin{table}[!h]
 
@@ -1399,247 +1274,221 @@ Ghana & 8,116 & 3.92 & 1.73 & 1,131,146 & 139 & 1,662,281 & 205\\
 \hypertarget{discussion}{%
 \section{Discussion}\label{discussion}}
 
-These results demonstrate a capability for mapping the characteristics
-of smallholder-dominated cropping systems at high spatial resolution,
+These results demonstrate a capability to map the characteristics of
+smallholder-dominated cropping systems at high spatial resolution,
 annual time steps, and national scales. The resulting maps provide an
 updated and more granular view of the distribution and extent of
 croplands in Ghana, complementing existing national to regional land
-cover maps derived from moderate resolution sensors (Hackman et al.
-2017, Xiong et al. 2017, ESA n.d.). This prior work found that cropland
-covered 19.4 (Xiong et al. 2017) to 32\% (Hackman et al. 2017) of Ghana
-in 2015, whereas our 2018 maps have cropland cover of 16.1-23.2\% (Table
-\ref{tab:mapaccuracy}), and our map reference sample-based estimates
-finds 17.1-17.6\% cover. Our results thus suggest that Ghana's cropland
-is less than previously estimated, but the difference is perhaps
-attributable to our use of a cropland definition that excluded longer
-fallows and abandoned fields, which in some regions can account for over
-half of the total area that could be counted as cropland (Tong et al.
-2020).
+cover maps derived from moderate resolution imagery (Hackman et al.
+2017, Xiong et al. 2017, ESA n.d.). Those prior studies estimated that
+cropland covers 19.4 (Xiong et al. 2017) to 32\% (Hackman et al. 2017)
+of Ghana in 2015. In contrast, our 2018 maps provide a raw estimate of
+16.1-23.2\% cover (Table \ref{tab:mapaccuracy}), and our map reference
+sample-based estimate was 17.1-17.6\%. Our results thus suggest that
+Ghana's croplands are less extensive than those previous estimates.
+However, this difference may arise from our use of a cropland definition
+that excludes longer fallows and abandoned fields, which in some regions
+may comprise over half of total cropland area (Tong et al. 2020).
 
-In addition to the more detailed update of cropland extent, our maps
-also provide new information on the size and number of fields in Ghana
-(Figures \ref{fig:mainmap}, S11-12). Previous work to estimate such
-agricultural characteristics have often focused on farm, rather than
-field, size using census data (Von Braun 2004, Samberg et al. 2016,
-Jayne et al. 2016, Lowder et al. 2016). Efforts to map field boundaries
-in smallholder-dominated agricultural systems have either used \emph{in
+In addition to this updated information on Ghana's cropland extent and
+distribution, our results provide new insights into field size and
+number at a national scale (Figures \ref{fig:mainmap}, S11-12). Previous
+efforts to map smallholder field boundaries have either used \emph{in
 situ} data collection (Carletto et al. 2013, 2015) or remote sensing
 studies over relatively small (e.g. Forkuor et al. 2014, Persello et al.
 2019) or discontiguous (Estes et al. 2016a) areas. The most extensive
-studies to date used crowdsourced volunteers to classify fields into
-broad size classes, based on their interpretations of imagery sampled
-from high resolution virtual globes (Fritz et al. 2015, Lesiv et al.
-2019). Those efforts included country-specific results for Ghana (n =
-263), which can be converted into an average field size estimate of 5.33
-ha\footnote{Obtained by calculating the weighted mean from the count of the five size classes and the mean of the hectare range provided for the four smallest size classes, and the lower bound of the size range provided the largest size class. Data sourced from Table S3 in Lesiv et al. 2019.}.
+studies to date enlisted crowdsourced volunteers to classify fields
+visible within high resolution imagery sampled from virtual globes into
+broad size categories (Fritz et al. 2015, Lesiv et al. 2019). Those
+efforts included country-specific results for Ghana (n = 263), which
+yield an average field size estimate of 5.33
+ha\footnote{Obtained by calculating the weighted mean from the count of the five size classes and the mean of the hectare range provided for the four smallest size classes, and the lower bound of the size range provided for the largest size class. Data sourced from Table S3 in Lesiv et al. 2019.}.
 This estimate exceeds our Ghana-wide average segment size (3.92 ha;
 Table \ref{tab:sizentab}), but is closer to the mean (4.97 ha) within
 AOIs 1-9, 12, and 15, which is where most of the crowdsourced sample
-appears to have been collected. However, our bias-corrected estimates of
+appears to have been collected. However, our bias-adjusted estimates of
 1.73 (Ghana-wide) and 1.87 (AOIs 1-9, 12, and 15) ha were much smaller.
 
 \hypertarget{map-accuracy-and-key-sources-of-error}{%
 \subsection{Map accuracy and key sources of
 error}\label{map-accuracy-and-key-sources-of-error}}
 
-Although the maps generated by our system provide valuable new
-information, they nevertheless contain substantial errors. The overall
-map accuracies (86.7-88\%, Table \ref{tab:mapaccuracy}) are near the
-boundary of what might be considered \emph{achievable} map accuracy
-(Elmes et al. 2020), given the inherent uncertainty in the map reference
-sample, our best estimate of the ``truth,'' in which we have roughly
-85\% confidence. However, accuracies for the cropland class were much
-lower, falling between 62 (Producer's) to 67 (User's) percent
-country-wide for the per-pixel map (Table \ref{tab:mapaccuracy}),
-meaning the model produced substantial commission and omission errors
-for this class. The segmented boundary maps had fewer omission errors
-(Producer's accuracy = 79\%), but higher false positive errors (User's
-accuracy = 58.2\%). These accuracies are near the middle to upper ranges
-of those reported for the cropland class in other large-area mapping
-studies (Hackman et al. 2017, Xiong et al. 2017, Lesiv et al. 2017).
+Although these maps provide valuable new information, they nevertheless
+contain substantial errors. The overall accuracies (86.7-88\%, Table
+\ref{tab:mapaccuracy}) are near the boundary of what might be considered
+\emph{achievable} map accuracy (Elmes et al. 2020), given that we only
+have \textasciitilde85\% confidence in our map reference sample, which
+is our best estimate of the ``truth.'' However, accuracies for the
+cropland class were much lower, falling between 62 (producer's) to 67
+(user's) percent country-wide for the per-pixel map (Table
+\ref{tab:mapaccuracy}), meaning the model produced substantial
+commission and omission errors for this class. The segmented boundary
+maps had fewer omission errors (producer's accuracy = 79\%), but higher
+false positives (user's accuracy = 58.2\%). These accuracies are near
+the middle to upper ranges of those reported for the cropland class in
+other large-area mapping studies (Hackman et al. 2017, Xiong et al.
+2017, Lesiv et al. 2017).
 
-The patterns of cropland-class accuracies varied by zone. These zones
-largely align, albeit with some discrepancies, with the country's
-agroecozones, thus the accuracy patterns may be partially attributed to
-some regions being harder to map than others. Producer's accuracies for
-both maps were highest in the two northern zones (1 and 2), which are
-primarily savannas (Figure S10), and lowest in zones 3 and 4, which are
-comprised of forest or coastal savannas. User's accuracies followed a
-similar pattern, with the exception of Zone 3, which had the highest
-User's accuracy, albeit from a very small sample. Aligning the reference
-samples more precisely with agroecozone boundaries (Figure S10B)
-provides further insight into error patterns (Table S4). Coastal
-savannas in the southeast had the highest Producer's accuracy but lowest
-User's accuracy for the per-pixel map, presumably because this region's
-numerous areas of high density cropland, combined with low woody cover
-in surrounding uncultivated areas, helped to promote commission error.
-Maps in the two northern savanna agroecozones had the best balance
+The patterns of accuracies within the cropland class varied by zone.
+These zones largely align, albeit with some discrepancies, with the
+country's agro-ecological zones (AEZs), thus the accuracy patterns may
+be in part because some regions are simply more difficult to map.
+Producer's accuracy for both maps was highest in the two northern zones
+(1 and 2), which are primarily savannas (Figure S4), and lowest in zones
+3 and 4, which are comprised of forest or coastal savannas. User's
+accuracy followed a similar pattern, with the exception of Zone 3, which
+had the highest user's accuracy, albeit from a very small sample.
+Aligning the reference samples more precisely with agroecozone
+boundaries (Figure S4B) provides further insight into error patterns
+within the per-pixel map's cropland class (Table S4). Coastal savannas
+in the southeast had the highest producer's and lowest user's accuracy,
+perhaps because this region has high density cropland inter-mixed with
+uncultivated areas that have low woody cover, which could help promote
+commission error. Maps in the northern savannas had the best balance
 between omission and commission error, and had the highest overall
-User's accuracy. The transitional (between forest and savanna)
-agroecozone had a very low Producer's accuracy (21\%), which likely
-reflects the fact that it was divided between several AOIs for mapping
-(Figure S4), within which it typically covered a smaller share of area
-relative to the other agroecozones. This likely caused insufficient
-representation of this AEZ in training samples, particularly in AOIs 10
-and 11 (Figure S4B).
+user's accuracy. The transitional zone between forest and savanna had a
+very low Producer's accuracy (21\%), which likely reflects the fact that
+it was divided between several AOIs for mapping (Figure S4), and thus
+was under-represented in the training samples, particularly in AOIs 10
+and 11 (Figure S6B).
 
 Beyond the errors linked to regional differences, several other
-important factors contributed to reducing the accuracies in the cropland
-class. The first of these stems from the overall mapping extent and the
-high resolution of the data. Given the goal of developing a
-country-scale map at high resolution, the attendant data volume required
-us to use a relatively small set of image features and less than the
+important factors contributed to map error. The first of these related
+to the large mapping extent and image resolution. Given the goal of
+developing a high resolution, country-scale map, the large data volume
+constrained us to use a relatively small feature set and less than the
 recommended tree number and depth (Maxwell et al. 2018) in our Random
-Forests implementation, in order to limit computational costs. Previous
-work found that Random Forests achieves much better performance on
+Forests models, in order to limit computational costs. Previous work
+found that Random Forests achieves much better performance on
 small-scale croplands when trained on a much larger number of features
-(Debats et al. 2016). However, applying such a large feature set within
-the extent of our AOIs was intractable, as the computing time would have
-been several-fold larger than the \textasciitilde4-8 hours of runtime on
-800 CPUs required for a single active learning iteration, followed by
-\textasciitilde10-14 hours for prediction. This reduced the skill of the
-model, particularly when it came to differentiating cropland from
-adjacent bare patches or natural vegetation with sparse herbaceous
-cover, which were common in many AOIs.
+(Debats et al. 2016, Lebourgeois et al. 2017). However, applying such a
+large feature set within the extent of our AOIs was not possible, as the
+computing time and costs would have been several times
+larger\footnote{Each active learning iteration ran for $\sim$4-8 hours on 800 CPUs, followed by a final $\sim$10-14 hours for prediction}.
+This reduced the skill of the model, particularly when it came to
+differentiating cropland from bare or sparsely vegetated patches, which
+were common in many AOIs.
 
 The inherent difficulty of the labelling task was another major limiting
-factor. Our system was designed to minimize the error inherent in
-labelling, but determining croplands from non-croplands in these
-agricultural systems can be a difficult task. Labellers have to evaluate
-multiple image sources and to rely heavily on judgement, which
-inevitably leads to errors. Interpretation is particularly hard where
-the background savanna vegetation and croplands have similar reflectance
-during the dry season, which is a particular problem in AOIs 2 and 3.
-Smaller field sizes also complicate labelling, as these become
-increasingly indistinct in the \textasciitilde4 m PlanetScope
-composites. The difficulty of labelling is reflected in the magnitude of
-the Bayesian Risk metrics (Figure S6), and by the average score achieved
-by each labeller against our training reference dataset (71\%; Figure
-S5B). Although prior work (Rodriguez-Galiano et al. 2012, Mellor et al.
-2015) found that Random Forests are robust to label errors, we found
-that they have substantial impact (Figure \ref{fig:trainingimpact}),
-which suggest that simply improving label quality may be one of the
-single most important investments towards improved model accuracy.
+factor. Our platform was designed to minimize label errors, but
+determining croplands from non-croplands in these agricultural systems
+can be difficult. Labellers had to evaluate multiple image sources and
+to rely heavily on their judgment, which inevitably led to errors.
+Interpretation was particularly hard where croplands and surrounding
+landscapes had similar dry season reflectances, which was a particular
+problem in the northernmost savannas. Smaller field sizes also
+complicated labelling, as these become increasingly indistinct in the
+\textasciitilde4 m PlanetScope composites. The difficulty of labelling
+is reflected in the magnitude of the Bayesian Risk metrics (Figures
+S10-11), and by the average assignment quality scores of each labeller
+(71\%; Figure S9). Although prior work (Rodriguez-Galiano et al. 2012,
+Mellor et al. 2015) found that Random Forests are robust to label error,
+we found that it has substantial impact (Figure
+\ref{fig:trainingimpact}), which suggests that improving label quality
+is one of the most important factors in increasing model accuracy. Newer
+models, such as convolutional neural networks, may be less sensitive to
+label error, provided the error is random and the map reference samples
+are of high quality (Burke et al. 2021). However, over many smallholder
+systems training label errors will likely be biased in a particular
+direction (e.g.~towards omission when fields are not easily
+distinguished from the background), and our results show that reference
+labels can have substantial uncertainty.
 
 Image quality was another issue, although primarily in the forested
-AOIs, where frequent cloud cover reduced the number of available images
-in all seasons, resulting in composites with more brightness artifacts
-and blur (Figure \ref{fig:imqual}). This impacted labellers' abilities
-to discern fields, and doubtless affected model predictions. There is
-little to be done to mitigate these errors, short of confining imagery
-to the less cloudy dry season, which may further undermine model
-performance, given the importance of multi-temporal imagery for cropland
-classification (Debats et al. 2016, Defourny et al. 2019). Composite
-quality could be improved by using imagery from the same seasons over
-multiple years, but this would undermine the goal of developing annual
-maps, while the dynamism of the croplands would blur field boundaries
-within the imagery.
+AOIs, where frequent cloud cover and the corresponding lower number of
+available images resulted in lower quality composites (Figure
+\ref{fig:imqual}), with more brightness artifacts and blur. This
+impacted labellers' abilities to discern fields, and doubtless affected
+model predictions. Little can be done to mitigate these errors, short of
+confining imagery to the less cloudy dry season, which could reduce
+model performance by removing the temporal contrast (Debats et al. 2016,
+Defourny et al. 2019), or by adding radar data to the predictor set,
+which would reduce map resolution. Composite quality could be improved
+by using imagery from the same seasons over multiple years, but this
+would undermine the goal of developing annual maps, while the dynamism
+of the croplands would blur field boundaries within the imagery.
 
 The final major source of error arose from the segmentation process. The
 vectorized maps had high commission errors caused by uncertainties in
-the Random Forests predictions. Model uncertainty led to many pixels
-over non-crop areas with probabilities straddling the 0.5 classification
-threshold. Segments that intersected such areas were retained as fields
-when the average probability of intersecting pixels exceeded 0.5. A more
-accurate classifier would reduce such errors, or the application of a
-locally varying classification threshold (e.g. Waldner and Diakogiannis
-2020). Over-merging was another source of error in the segmentation
-algorithm, which in some areas led to overestimated field sizes and
-unrealistic shapes, particularly in high density croplands (e.g.~in AOIs
-2 and 8; Figure \ref{fig:mainmap}) where the boundaries between adjacent
-fields are often indistinct in the PlanetScope imagery. Minimizing or
-preventing merging would help in such cases, although could would result
-in the opposite problem, over-segmentation, and thereby underestimate
-field size.
+the Random Forests predictions. Model uncertainty meant that many pixels
+in non-cropland areas had probabilities with values near 0.5. Segments
+in these areas were retained if the average probability of intersected
+pixels exceeded the 0.5 classification threshold. A more accurate
+classifier would reduce such errors, as would a locally varying
+classification threshold (e.g. Waldner and Diakogiannis 2020).
+Over-merging was another source of error in the segmentation algorithm,
+which led to overestimated field sizes and unrealistic shapes in some
+areas, particularly in high density croplands (e.g.~in AOIs 2 and 8;
+Figure \ref{fig:mainmap}) where boundaries between adjacent fields were
+indistinct in the imagery. Preventing merging could help in such cases,
+but potentially lead to over-segmentation, thereby underestimating field
+sizes.
 
 \hypertarget{error-mitigation-features}{%
 \subsection{Error mitigation features}\label{error-mitigation-features}}
 
-Despite the error sources mentioned above, several features of the
-system proved effective in mitigating error, leading to a higher overall
-accuracy than would have otherwise been possible. Label accuracy
-assessment and consensus labelling appeared to be the most effective
-error mitigation tools. Label accuracy measures allowed us to quantify
-the substantial impact of label error on model performance (Figure
-\ref{fig:trainingimpact}), while consensus labels substantially reduced
-individual labelling errors, resulting in maps that were more accurate
-than they would have been had we used individually generated labels.
-Labeller-specific accuracy measures also helped to improve the quality
-of the consensus labels, by placing higher weight on labels more likely
-to be accurate during the merging process, rather than giving equal
-weight to potentially less accurate labels. The ability to select the
-most accurate individual labels for a site also allowed us to develop
-independent estimates of field size to which measures of confidence can
-be attached (Figure S5B), which we were in turn able to correct
-estimates of field sizes and numbers (Table \ref{tab:sizentab}).
+Despite these numerous source of errors, our approach was effective in
+mitigating several of these error sources. Label quality assessment and
+consensus labelling were the most effective error mitigation tools.
+Label quality scores allowed us to quantify the impact of label error on
+model performance (Figure \ref{fig:trainingimpact}), while consensus
+labels produced maps that were more accurate than they would have been
+if we had relied on individually generated labels. The quality scores
+also helped to improve the overall accuracy of consensus labels, by
+placing higher weight on the work of more accurate labellers. In
+addition to these benefits, label quality scores (Figure S9) also
+allowed us to select the labels most likely to accurately capture field
+sizes and numbers, which we used to estimated and correct the biases in
+these two measures derived from the segmented field boundaries.
 
-The active learning approach helped to improve overall model performance
-relative to randomized training site selection, in line with findings
-from two recent efforts (Debats et al. 2017, Hamrouni et al. 2021).
-Although the performance gains relative to randomized model training
-that we observed were smaller (e.g. Debats et al. (2017) 29\% higher
-model performance after one iteration, and 8\% higher on the final
-iterations), those comparisons were made from lower initial bases, with
-initial training samples that were less than 1/10 the size, in terms of
-pixels, of our initial training sample. Our large initial randomly
-selected sample (500 grid cells) meant that our models were
-substantially trained before they were exposed to actively selected
-labels, thereby diluting their impact on performance. Nevertheless, the
-higher average performance of the active approach across three
-performance metrics demonstrated its effectiveness. Most notable were
-the larger improvements seen in the F1 score (Figure S8), a balanced
-performance metric. Gains in accuracy and AUC were smaller. For
-accuracy, the reduced advantage was primarily due to active learning
-being outperformed by randomized training after the first iteration in
-AOI 15, which proved one of the hardest AOIs to both map and label.
-Active learning likely resulted in the selection of sites that were
-harder to label than randomly selected ones, leading to more label
-error, and thus initially lower model accuracy. However, this deficit
-was overcome by the 5th iteration. The plateau in AUC gains at 0.5\%
-better than randomized training reflects the findings that active
-learning reduced both the false and true positive rates, the two inputs
-to AUC. Although the decline of the false positive rate (30.7\% between
-Iterations 0 and 3) was nearly three times larger than that of the true
-positive rate (10.9\%), AUC should be quite sensitive to the reduction
-in the latter, as it assesses how the tradeoff between the two rates
-varies across a full range of possible classification thresholds
-(Pontius and Si 2014).
+Active learning improved overall model performance relative to
+randomized training site selection, in line with findings from two
+recent efforts (Debats et al. 2017, Hamrouni et al. 2021). Although the
+relative performance gains that we observed were smaller (e.g. Debats et
+al. (2017) 29\% higher model performance after one iteration, and 8\%
+higher on the final iterations), those comparisons were made by starting
+with a training sample that was \textless1/10 the size of ours. Our
+large starter sample meant that the models were substantially trained
+before they were exposed to actively selected labels, thereby diluting
+their impact on performance. Nevertheless, we found higher performance
+from active learning, most notably in the F1 score (Figure S8), a
+balanced performance metric, which further demonstrates its
+effectiveness.
 
-The detail, temporal precision, and large extent of these maps was
-enabled by the system's ability to process PlanetScope data, which is
-currently the only source of sub-5 meter imagery with daily coverage
-(McCabe et al. 2017). Daily revisits are important for creating seasonal
-composites within a single year over cloudy areas. The compositing
-technique we developed allowed us to develop a complete image catalog
-for the country representing the two seasons for 2018 agricultural year.
-Although Sentinel-2 is free, has better radiometric quality, and has
-sufficiently high resolution (10 m) to accurately classify small-scale
+The detail, temporal precision, and large extent of our maps was enabled
+by the ability to process PlanetScope data, which is currently the only
+source of sub-5 meter imagery with daily coverage (McCabe et al. 2017).
+Daily revisits are important for creating seasonal composites within a
+single year over cloudy areas. The compositing technique we developed
+allowed us to develop a complete image catalog for the country
+representing the two seasons for 2018 agricultural year. Although
+Sentinel-2 is free, has better radiometric quality, and has sufficient
+spatial resolution (10 m) to accurately classify small-scale
 agricultural systems (e.g. Defourny et al. 2019, Kerner et al. 2020),
-its 5-day interval may be too infrequent to generate sufficiently
-cloud-free composites during the growing season over southern Ghana.
-Sentinel-1 is not affected by the same problem, but labelling fields in
-more coarsely resolved radar images is challenging.
+its 5-day interval may be too infrequent to generate cloud-free
+composites during the growing season over southern Ghana. Sentinel-1 is
+not affected by the same problem, but labeling fields in radar images is
+more challenging.
 
 \hypertarget{lingering-questions}{%
 \subsection{Lingering questions}\label{lingering-questions}}
 
 Several potential issues not addressed in our assessment merit further
-exploration. One of these is the degree of correspondence between image-
-and ground-collected labels. However, such comparisons may reveal
-unresolvable differences between the two perspectives. The highly
-dynamic nature of many agricultural systems means that relatively narrow
-differences between the dates of ground- and image-based digitizing
-campaigns can lead to substantial disagreement between the resulting
-field boundaries, simply because the fields themselves may have shifted
-during the interval (Elmes et al. 2020). These discrepancies could be
-further exacerbated by differences in the definition of what constitutes
-a field, which might vary on the ground depending on who is being asked,
-or who is doing the collecting. These factors suggest that ground versus
-image label differences would not necessarily indicate how far
-image-based labellers were from the ``truth.'' Nevertheless, a
-comparison against ground data would help to assess how accurately
-image-collected labels capture the typical size of fields, and thus
-merits further investigation for this reason.
+exploration. One of these was the degree of correspondence between
+image- and ground-collected labels. However, such comparisons may reveal
+unresolvable discrepancies between the two perspectives. The highly
+dynamic nature of these agricultural systems means that relatively
+narrow differences between the dates of ground- and image-based label
+collection can lead to substantial disagreement, simply because the
+fields themselves may have shifted during the interval (Elmes et al.
+2020). These discrepancies can be exacerbated by the definition used to
+determine what constitutes a field, which might vary on the ground
+depending on who is being asked, or who is doing the collecting. These
+factors suggest that difference between ground- and image-collected
+labels would not necessarily indicate how far image labellers were from
+the ``truth.'' Nevertheless, a comparison against ground data would help
+to assess how accurately image-collected labels capture the typical size
+of fields, and thus merits further investigation.
 
 The temporal discrepancies mentioned above (and discussed in Elmes et
 al. 2020) are another reason why we chose not to label on basemap
@@ -1649,64 +1498,47 @@ whether the higher label accuracy one might achieve by digitizing on a
 \textless1-2 m resolution basemap would offset model errors caused by
 temporal mismatches.
 
-Another potential issue is the degree to which our assessment of the
-impact of label error on model performance (Figure
-\ref{fig:trainingimpact}) was influenced by the validation labels we
-used, which were generated using the consensus method. This could have
-confounded the assessment, particularly when comparing models trained
-with the most accurate individual label and those trained with consensus
-labels. However, the visual assessment of their resulting probability
-maps confirm the differences in scores: consensus and most accurate
-individual labels produce nearly identical maps with relatively high
-certainty, while low quality labels led to a markedly less certain map
-(Figure S9).
+Another potential issue is the degree to which our assessment of label
+error on model performance (Figure \ref{fig:trainingimpact}) was
+influenced by the validation dataset we used, which was based on
+consensus labels. This could have confounded the analysis, particularly
+when comparing the consensus label-trained models with those trained
+with the most accurate individual labels. However, a visual assessment
+of the resulting probability maps confirms that models trained with the
+consensus and most accurate individual labels were more precise than the
+model trained with lower quality labels (Figure S12).
 
-\hypertarget{next-steps}{%
-\subsection{Next steps}\label{next-steps}}
-
-The maps presented here represent a version 1 product that is freely
-available to use, along with its underlying code (see SI for details).
-These data were developed according to the recommended best practices
-for training and assessing error in machine learning models (Elmes et
-al. 2020). In their current form, the maps may be useful for a variety
-of research applications. For example, analyzing the distributions of
-values in the probability maps may provide additional insight into the
-relative extents of active versus fallow croplands (Tong et al. 2020).
-However, use of these data, particularly for decision-making processes
-(e.g.~cropped area estimates), should be careful to account for the
-reported errors (Olofsson et al. 2014, Stehman and Foody 2019).
-
-To facilitate the next step, generating more accurate version 2 maps,
-several improvements will be made. The first is to replace Random
-Forests with a more advanced convolutional neural network (CNN), which
-can generate and learn from a large number of features representing a
-variety of spatial scales (Ma et al. 2019). Recent work suggests that a
-common architecture such as U-Net, when trained to distinguish field
-edges from interiors and combined with a post-hoc segmentation routine,
-is effective in delineating field boundaries (Waldner and Diakogiannis
-2020). Our system can readily incorporate such a model. The labelling
-platform already provides the methods needed to develop and assess the
-quality of labels that include field edges and interior classes, while
-active learning has proven to be effective for optimizing training
-datasets for deep learning models (Liu et al. 2017, Cao et al. 2020).
-Our current framework can be adjusted so that it starts by training a
-CNN from scratch with a large initial random sample, and then uses a
-transfer learning approach (Pan and Yang 2010) to update the model with
-the most informative samples from different AOIs or agroecozones.
-
-\hypertarget{conclusion}{%
-\subsection{Conclusion}\label{conclusion}}
+\hypertarget{broader-applications}{%
+\subsection{Broader applications}\label{broader-applications}}
 
 This work demonstrates a proof of concept for developing high
 resolution, annual maps of smallholder-dominated croplands at national
-to regional scales, using a framework that can be readily updated to
-improve map accuracy as technologies improve. Maps that include
-information on field boundaries can help improve remote estimation of
-crop planted area and yield, and provide deeper insights into important
-socioeconomic aspects of agricultural systems, such as the relationships
-between agricultural productivity and livelihoods. Such maps will be
-important for developing an understanding of the rapid agricultural
-change that is currently unfolding throughout much of the continent.
+to regional scales, using an approach that follows recommended best
+practices for training and assessing machine learning models (Elmes et
+al. 2020). This approach can be readily updated to integrate
+improvements, such as newer machine learning models. Beyond providing
+valuable insights into field characteristics, field boundary maps can
+help improve remote estimation of crop areas and yield (e.g. Estes et
+al. 2013), and provide deeper insights into important socioeconomic
+aspects of agricultural systems, such as the relationships between
+agricultural productivity and farm size (Feder 1985, Carletto et al.
+2013, Desiere and Jolliffe 2018). Such maps will be important for
+understanding the rapid agricultural change that is currently occurring
+in Africa.
+
+\hypertarget{data-availability-and-usage}{%
+\subsection{Data availability and
+usage}\label{data-availability-and-usage}}
+
+The maps presented here are a version 1 product that is freely available
+to use, along with its underlying code (see SI). In their current form,
+they may be useful for a variety of research applications. For example,
+analyzing the distributions of values in the probability maps may
+provide additional insight into the relative extents of active versus
+fallow croplands (Tong et al. 2020). However, use of these data,
+particularly for decision-making processes (e.g.~cropped area
+estimates), should be careful to account for the reported errors
+(Olofsson et al. 2014, Stehman and Foody 2019).
 
 \hypertarget{acknowledgements}{%
 \section{Acknowledgements}\label{acknowledgements}}
@@ -1761,11 +1593,6 @@ in {East Africa}. Land 10:150.
 Burke, M., A. Driscoll, D. B. Lobell, and S. Ermon. 2021. Using
 satellite imagery to understand and promote sustainable development.
 Science 371.
-
-\leavevmode\hypertarget{ref-caoHyperspectralImageClassification2020}{}%
-Cao, X., J. Yao, Z. Xu, and D. Meng. 2020. Hyperspectral {Image
-Classification With Convolutional Neural Network} and {Active Learning}.
-IEEE Transactions on Geoscience and Remote Sensing 58:4604--4616.
 
 \leavevmode\hypertarget{ref-CarlettoGuesstimatesGPStimatesLand2015}{}%
 Carletto, C., S. Gourlay, and P. Winters. 2015. From {Guesstimates} to
@@ -1854,6 +1681,13 @@ Estes, L., P. Chen, S. Debats, T. Evans, S. Ferreira, T. Kuemmerle, G.
 Ragazzo, J. Sheffield, A. Wolf, E. Wood, and K. Caylor. 2018. A
 large-area, spatially continuous assessment of land cover map error and
 its impact on downstream analyses. Global Change Biology 24:322--337.
+
+\leavevmode\hypertarget{ref-EstesProjectedclimateimpacts2013}{}%
+Estes, L. D., H. Beukes, B. A. Bradley, S. R. Debats, M. Oppenheimer, A.
+C. Ruane, R. Schulze, and M. Tadross. 2013. Projected climate impacts to
+{South African} maize and wheat production in 2055: A comparison of
+empirical and mechanistic modeling approaches. Global Change Biology
+19:3762--3774.
 
 \leavevmode\hypertarget{ref-Estesplatformcrowdsourcingcreation2016}{}%
 Estes, L. D., D. McRitchie, J. Choi, S. Debats, T. Evans, W. Guthe, D.
@@ -1950,12 +1784,6 @@ Houborg, R., and M. McCabe. 2018. Daily {Retrieval} of {NDVI} and {LAI}
 at 3 m {Resolution} via the {Fusion} of {CubeSat}, {Landsat}, and {MODIS
 Data}. Remote Sensing 10:890.
 
-\leavevmode\hypertarget{ref-jayneAfricaChangingFarm2016}{}%
-Jayne, T. s., J. Chamberlin, L. Traub, N. Sitko, M. Muyanga, F. K.
-Yeboah, W. Anseeuw, A. Chapoto, A. Wineman, C. Nkonde, and R. Kachule.
-2016. Africa's changing farm size distribution patterns: The rise of
-medium-scale farms. Agricultural Economics 47:197--214.
-
 \leavevmode\hypertarget{ref-KansangaTraditionalagriculturetransition2019}{}%
 Kansanga, M., P. Andersen, D. Kpienbaareh, S. Mason-Renton, K. Atuoye,
 Y. Sano, R. Antabe, and I. Luginaah. 2019. Traditional agriculture in
@@ -1973,6 +1801,13 @@ intensification. Nature Ecology and Evolution 1:1129--1135.
 Kerner, H., G. Tseng, I. Becker-Reshef, C. Nakalembe, B. Barker, B.
 Munshell, M. Paliyam, and M. Hosseini. 2020. Rapid {Response Crop Maps}
 in {Data Sparse Regions}. arXiv:2006.16866 {[}cs, eess{]}.
+
+\leavevmode\hypertarget{ref-lebourgeoisCombinedRandomForest2017}{}%
+Lebourgeois, V., S. Dupuy, É. Vintrou, M. Ameline, S. Butler, and A.
+Bégué. 2017. A {Combined Random Forest} and {OBIA Classification Scheme}
+for {Mapping Smallholder Agriculture} at {Different Nomenclature Levels
+Using Multisource Data} ({Simulated Sentinel}-2 {Time Series}, {VHRS}
+and {DEM}). Remote Sensing 9:259.
 
 \leavevmode\hypertarget{ref-LesivEvaluationESACCI2017}{}%
 Lesiv, M., S. Fritz, I. McCallum, N. Tsendbazar, M. Herold, J.-F. Pekel,
@@ -2008,20 +1843,10 @@ Monfreda, and N. Ramankutty. 2010. Mind the gap: How do climate and
 agricultural management explain the {`yield gap'} of croplands around
 the world? Global Ecology and Biogeography 19:769--782.
 
-\leavevmode\hypertarget{ref-liuActiveDeepLearning2017}{}%
-Liu, P., H. Zhang, and K. B. Eom. 2017. Active {Deep Learning} for
-{Classification} of {Hyperspectral Images}. IEEE Journal of Selected
-Topics in Applied Earth Observations and Remote Sensing 10:712--724.
-
 \leavevmode\hypertarget{ref-lobellCropYieldGaps2009}{}%
 Lobell, D. B., K. G. Cassman, and C. B. Field. 2009. Crop {Yield Gaps}:
 {Their Importance}, {Magnitudes}, and {Causes}. Annual Review of
 Environment and Resources 34:179--204.
-
-\leavevmode\hypertarget{ref-LowderNumberSizeDistribution2016}{}%
-Lowder, S. K., J. Skoet, and T. Raney. 2016. The {Number}, {Size}, and
-{Distribution} of {Farms}, {Smallholder Farms}, and {Family Farms
-Worldwide}. World Development 87:16--29.
 
 \leavevmode\hypertarget{ref-maDeepLearningRemote2019}{}%
 Ma, L., Y. Liu, X. Zhang, Y. Ye, G. Yin, and B. A. Johnson. 2019. Deep
@@ -2076,10 +1901,6 @@ Openshaw, S., and P. J. Taylor. 1979. A million or so correlation
 coefficients: Three experiments on the modifiable areal unit problem.
 Statistical applications in the spatial sciences 21:127--144.
 
-\leavevmode\hypertarget{ref-panSurveyTransferLearning2010}{}%
-Pan, S. J., and Q. Yang. 2010. A {Survey} on {Transfer Learning}. IEEE
-Transactions on Knowledge and Data Engineering 22:1345--1359.
-
 \leavevmode\hypertarget{ref-perselloDelineationAgriculturalFields2019}{}%
 Persello, C., V. A. Tolpekin, J. R. Bergado, and R. A. de By. 2019.
 Delineation of agricultural fields in smallholder farms from satellite
@@ -2105,6 +1926,12 @@ Rodriguez-Galiano, V. F., B. Ghimire, J. Rogan, M. Chica-Olmo, and J. P.
 Rigol-Sanchez. 2012. An assessment of the effectiveness of a random
 forest classifier for land-cover classification. ISPRS Journal of
 Photogrammetry and Remote Sensing 67:93--104.
+
+\leavevmode\hypertarget{ref-royGlobalAnalysisTemporal2021}{}%
+Roy, D. P., H. Huang, R. Houborg, and V. S. Martins. 2021. A global
+analysis of the temporal availability of {PlanetScope} high spatial
+resolution multi-spectral imagery. Remote Sensing of Environment
+264:112586.
 
 \leavevmode\hypertarget{ref-RulliFoodappropriationlarge2014}{}%
 Rulli, M. C., and P. D'Odorico. 2014. Food appropriation through large
@@ -2159,10 +1986,6 @@ Van Vliet, N., O. Mertz, T. Birch-Thomsen, and B. Schmook. 2013. Is
 \leavevmode\hypertarget{ref-visvalingamLineGeneralisationRepeated1993}{}%
 Visvalingam, M., and J. D. Whyatt. 1993. Line generalisation by repeated
 elimination of points. The Cartographic Journal 30:46--51.
-
-\leavevmode\hypertarget{ref-VonBraunSmallscalefarmersliberalized2004}{}%
-Von Braun, J. 2004. Small-scale farmers in a liberalized trade
-environment. Page 21.
 
 \leavevmode\hypertarget{ref-waldnerDeepLearningEdge2020}{}%
 Waldner, F., and F. I. Diakogiannis. 2020. Deep learning on edge:

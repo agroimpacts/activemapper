@@ -136,9 +136,10 @@ geometry: margin=1in
 linenumbers: no
 spacing: doublespacing
 footerdate: no
+note: This pre-print not yet undergone peer review. It has been submitted to \emph{Frontiers in Artificial Intelligence}. This version will be updated as it is revised, and the final published version will be accessible through its DOI link.
 abstract: Mapping the changing characteristics of Africa's smallholder-dominated agricultural systems, including the sizes and numbers of fields, is crucial for understanding food security and a range of other socioeconomic and environmental concerns. However, accurately mapping these systems is difficult because of 1) the spatial and temporal mismatch between satellite sensors and smallholder fields, and 2) the lack of high-quality labels needed to train and assess machine learning classifiers. We developed an approach designed to address these two problems, which we used to map Ghana’s annual croplands for the year 2018. To overcome the first problem, we converted daily, high resolution CubeSat (PlanetScope) imagery into two cloud-free seasonal composites covering a single agricultural year. To address the second problem, we created a labelling platform that rigorously assesses and minimizes label error, and used it to iteratively train a Random Forests classifier with active learning, which identifies the most informative training sample based on prediction uncertainty. Minimizing label errors improved model F1 scores by up to 25%. Active learning increased F1 scores by an average of 9.1% between first and last training iterations, and 2.3% more than models trained with randomly selected labels. We used the resulting 3.7 m map of cropland probabilities within a segmentation algorithm to delineate crop field boundaries. Based on an independent map reference sample (n=1,207), the cropland probability and field boundary maps have respective overall accuracies of 88% and 86.7%, user’s accuracies for the cropland class of 61.2% and 78.9%, and producer’s accuracies of 67.3% and 58.2%. Using the map reference sample to calculate an unbiased area estimate from the field boundary map, we found that cropland covers 17.1% (15.4-18.9%) of Ghana. Using the most accurately digitized labels to calculate and correct for biases in the segmented field boundaries map, we further estimated the average size (1.73 ha) and total number (1,662,281) of crop fields in Ghana. Our results demonstrate an adaptable and transferrable approach for mapping the characteristics of croplands on an annual basis and over national extents, with several features that effectively mitigate the errors inherent in remote sensing of smallholder-dominated agriculture.  
 
-keywords: active learning, machine learning, CubeSat, PlanetScope, smallholder, cropland, segmentation, field size, consensus labels, Ghana, Africa
+keywords: active learning, machine learning, CubeSat, PlanetScope, smallholder, cropland, segmentation, field size, label error, Ghana, Africa
 
 bibliography: 
   - references.bib
@@ -1036,11 +1037,6 @@ This work demonstrates a proof of concept for developing high resolution, annual
 
 ## Data availability and usage
 The maps presented here are a version 1 product that is freely available to use, along with its underlying code (see SI). In their current form, they may be useful for a variety of research applications. For example, analyzing the distributions of values in the probability maps may provide additional insight into the relative extents of active versus fallow croplands [@Tongforgottenlanduse2020]. However, use of these data, particularly for decision-making processes (e.g. cropped area estimates), should be careful to account for the reported errors [@OlofssonGoodpracticesestimating2014; @StehmanKeyissuesrigorous2019].
-
-
-
-
-
 
 # Acknowledgements
 The primary support for this work was provided by Omidyar Network's Property Rights Initiative, now PLACE. Additional support was provided by NASA (80NSSC18K0158), the National Science Foundation (SES-1801251; SES-1832393), and Princeton University. Computing support was provided by the AWS Cloud Credits for Research program and the Amazon Sustainability Data Initiative. Azavea provided significant contributions in engineering the machine learning pipeline. We thank Meridia for providing information about local cropping systems and the characteristics of fields, and Radiant Earth Foundation for advice and guidance regarding machine learning best practices. We thank Manushi Trivedi, Sitian Xiong, and Tammy Woodard for their contributions to the underlying datasets and methods, and Michelle Gathigi, Omar Shehe, and Primoz Kovacic for support and management of the labelling efforts.
