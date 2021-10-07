@@ -1,8 +1,8 @@
 activemapper
 ================
 
-Repository for the manuscript *High resolution, annual maps of the
-characteristics of smallholder-dominated croplands at national scales*.
+Repository for the manuscript *High resolution, annual maps of field
+boundaries for smallholder-dominated croplands at national scales*.
 
 This branch contains version 3 of the manuscript posted on *EarthArxiv*.
 
