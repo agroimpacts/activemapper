@@ -527,6 +527,21 @@ Since 0.621 \textgreater{} 0.5, we label the particular pixel a field.
 Using equation \ref{eq:pixelrisk}, the corresponding risk associated
 with this particular pixel's label is thus 0.379 (i.e., 1 - 0.621).
 
+\hypertarget{segmentation}{%
+\subsubsection{Segmentation}\label{segmentation}}
+
+An overview of the two inputs to and outputs from the segmentation
+algorithm are shown in Figure \ref{fig:segfig}.
+
+\begin{figure}[!ht]
+
+{\centering \includegraphics[width=1\linewidth,]{figures/si_segmentation_workflow} 
+
+}
+
+\caption{An overview of the inputs and key outputs from the five-step segmentation algorithm.}\label{fig:segfig}
+\end{figure}
+
 \hypertarget{accuracy-assessment}{%
 \subsubsection{Accuracy assessment}\label{accuracy-assessment}}
 
@@ -832,10 +847,10 @@ was 0.71 (range 0.6 to 0.85; Figure \ref{fig:labelqual}).
 \end{figure}
 
 The average Bayesian Risk of each training and validation site is shown
-in Figure \ref{fig:labelrisk}, as well as the distribution of risk
-values per AOI and the initial training clusters (Figure
-\ref{fig:labelriskhist}). The three initial clusters include the second
-mapping of Cluster 2 (Figure \ref{fig:trainval}A).
+in Figure \ref{fig:labelrisk}, and the distribution of risk values per
+AOI and the initial training clusters in Figure \ref{fig:labelriskhist}.
+The three initial clusters include the second mapping of Cluster 2
+(Figure \ref{fig:trainval}A).
 
 \begin{figure}[!ht]
 
@@ -857,15 +872,15 @@ mapping of Cluster 2 (Figure \ref{fig:trainval}A).
 
 The average Bayesian risk was 0.122 for training labels and 0.127 for
 validation labels. Risk was highest in the northern AOIs (AOIs 1-6;
-Figures S6-7), falling between 0.157 for training and 0.173 for
-validation labels (Figures S6-7), and lowest in the southwestern AOIs
-(AOIs 10, 11, 13, 14, 16; training risk = 0.079; validation risk =
-0.065). Label risk in the central-southeastern AOIs (AOIs 7-9, 12, 15)
-was slightly lower (training = 0.127; validation = 0.136) than in the
-north. Labeller experience also appeared to reduce risk, which we
-observed during a relabelling of the 500 initial random site in this
-cluster; the mean risk of the updated labels was 0.055, compared to
-0.172 for original labels.
+Figures \ref{fig:labelrisk}-\ref{fig:labelriskhist}), falling between
+0.157 for training and 0.173 for validation labels, and lowest in the
+southwestern AOIs (AOIs 10, 11, 13, 14, 16; training risk = 0.079;
+validation risk = 0.065). Label risk in the central-southeastern AOIs
+(AOIs 7-9, 12, 15) was slightly lower (training = 0.127; validation =
+0.136) than in the north. Labeller experience also appeared to reduce
+risk, which we observed during a relabelling of the 500 initial random
+site in this cluster; the mean risk of the updated labels was 0.055,
+compared to 0.172 for original labels.
 
 Probability images resulting from Random Forests models trained with
 labels generated under three different labeling strategies are
@@ -1006,8 +1021,7 @@ used to produce this paper are listed below:
 \item
   \href{https:github.com/agroimpacts/segmenter}{\texttt{segmenter}}:
   Source code for the segmentation algorithm. The repository
-  \footnote{github.com/agroimpacts/segmenter} is currently private, but
-  will be opened after completing a security audit.
+  \footnote{github.com/agroimpacts/segmenter} is open.
 \end{itemize}
 
 \clearpage
@@ -1024,11 +1038,11 @@ Azavea. 2020. Raster {Foundry}.
 https://github.com/raster-foundry/raster-foundry.
 
 \leavevmode\hypertarget{ref-hijmansRasterGeographicData2020}{}%
-Hijmans, R. J. 2020. Raster: {Geographic} data analysis and modeling.
+Hijmans, R. J. 2020. Raster: Geographic data analysis and modeling.
 Manual.
 
 \leavevmode\hypertarget{ref-pebesmaSimpleFeaturesStandardized2018}{}%
-Pebesma, E. 2018. Simple features for r: {Standardized} support for
+Pebesma, E. 2018. Simple features for r: Standardized support for
 spatial vector data. The R Journal 10:439--446.
 
 \leavevmode\hypertarget{ref-planetteamPlanetApplicationProgram2018}{}%

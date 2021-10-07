@@ -82,7 +82,7 @@ ghana_degrees <- tiles %>% pull(aoi2) %>% unique
 ## Methods 
 
 ### Figure 1: System architecture
-Created in keynote
+Created in Keynote
 
 ### Figure 2: Labeller interface
 Taken as a screenshot. 
@@ -161,8 +161,10 @@ ggsave(pth("figures/si_label_risk.png"), width = 5,
        height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
+### Figure S3: Segmentation workflow 
+Created in Keynote. 
 
-### Figure S3: Map reference sample
+### Figure S4: Map reference sample
 ```{r, eval = FALSE}
 ref_sample <- readr::read_csv(
   system.file("extdata", "map_reference_sample.csv", package = "activemapper")
@@ -187,7 +189,7 @@ ggsave(pth("figures/si_map_reference_sample.png"), width = 4,
        height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figure S4: AOI Zones
+### Figure S5: AOI Zones
 
 ```{r, eval=FALSE}
 # zone maps
@@ -497,10 +499,10 @@ impath <- osimgs %>%
 # aoi 15:
 
 # read in field segments
-flds_1 <- read_sf(segment_files$file[1])
-flds_5 <- read_sf(segment_files$file[5])
-flds_11 <- read_sf(segment_files$file[11])
-flds_15 <- read_sf(segment_files$file[15])
+flds_1 <- read_sf(segment_files$file[1]) %>% st_make_valid()
+flds_5 <- read_sf(segment_files$file[5]) %>% st_make_valid()
+flds_11 <- read_sf(segment_files$file[11]) %>% st_make_valid()
+flds_15 <- read_sf(segment_files$file[15]) %>% st_make_valid()
 
 # ggplot(aois %>% filter(aois == 1)) + geom_sf() + 
 #   geom_sf(data = tile_ss)
@@ -514,7 +516,8 @@ flds_tile4 <- flds_15 %>% filter(st_intersects(., tile_ss[4, ], sparse = FALSE))
 # mxval <- st_apply(img, 3, max) %>% pull(max)
 # imgngb <- st_rgb(img[, , , 4:2], 3, maxColorValue = mxval[4:2])
 vpal <- viridis::viridis(20)
-inset_cols <- c("red", "orange", "pink", "brown")
+# inset_cols <- c("red", "orange", "pink", "brown")
+inset_cols <- rep("red", 4)
 fld_tiles <- list(flds_tile1, flds_tile2, flds_tile3, flds_tile4)
 isets <- lapply(1:4, function(x) {  # x <- 1
   imgr <- brick(impath[x])[[2:4]]
@@ -547,20 +550,56 @@ xylims <- st_coordinates(ghana)
 maprange <-  c(range(xylims[, 1]) + c(-1.2, 1.2), 
                range(xylims[, 2]))
 
+# create lines to point to insets
+tile_ss_xy <- st_coordinates(st_centroid(tile_ss))
+lns <- st_sfc(
+  list(
+    st_linestring(
+      rbind(tile_ss_xy[1, ], c(maprange[1] * 0.9, maprange[4] * 0.885))
+    ), 
+    st_linestring(
+      rbind(tile_ss_xy[2, ], c(maprange[2] * 0.9, maprange[4] * 0.8517))
+    ),
+    st_linestring(
+      rbind(tile_ss_xy[3, ], c(maprange[1] * 0.9, maprange[4] * 0.619))
+    ),
+    st_linestring(
+      rbind(
+        tile_ss_xy[4, ], c(maprange[2] * 0.9, maprange[4] * 0.5681))
+    )
+  ), crs = 4326
+)
+
+
 # cropland fractions
 p <- ggplot(africa) + 
-  geom_sf(fill = "gray40", color = "grey", size = 0.25) +  
+  geom_sf(fill = "gray60", color = "grey", size = 0.25) +  
   geom_stars(data = cropfrac) +
   geom_sf(data = aois, size = 0.1, fill = "transparent", col = "grey") +
   geom_sf(data = tile_ss, fill = inset_cols, col = inset_cols, size = 0.1) +
-  # geom_sf(data = tile_ss, fill = "red", col = "red") +
+  geom_sf(data = lns, col = inset_cols) + 
+  geom_sf(data = tile_ss, fill = "red", col = "red") +
   scale_fill_viridis_c(name = "%", na.value = "transparent") +
   coord_sf(xlim = maprange[1:2], ylim = maprange[3:4]) + 
+  ggsn::north(symbol = 16, scale = 1.2, x.min = 0.5, x.max = 1, 
+              y.min = 10.5, y.max = 11) +
+  ggsn::scalebar(ghana, dist = 100, dist_unit = "km", location = "bottomleft", 
+                 transform = TRUE, model = "WGS84", st.size = 3, st.dist = 0.01, 
+                 anchor = c(x = -0.7, y = 4.8), border.size = 0.1) + 
   theme_void() + 
-  theme(legend.position = c(0.64, 0.08), legend.direction = "horizontal", 
-        legend.key.height = unit(0.3, "cm"), 
+  theme(legend.position = c(0.675, 0.1), legend.direction = "horizontal",
+        legend.key.height = unit(0.3, "cm"),
+        legend.key.width = unit(0.67, "cm"),
         legend.text = element_text(colour = "black"),
-        legend.title = element_text(size = 10, colour = "black"))
+        legend.text.align = 0.5,
+        legend.title.align = 1,
+        legend.spacing.y = unit(0.05, "cm"),
+        legend.title = element_text(
+          vjust = 1, size = 11, colour = "black"
+        )
+  )
+
+
 # with insets added
 wh <- c(0.4, 0.4)
 lx <- -0.1
@@ -580,7 +619,7 @@ ggsave(filename = pth("figures/figure6.png"),
 ```
 
 
-### Figure S5: PlanetScope image density
+### Figure S6: PlanetScope image density
 The density of imagery available for download from the image catalog. 
 
 ```{r imagedensity, eval=FALSE}
@@ -633,7 +672,7 @@ ggsave(op, bg = "transparent",
 ```
 
 
-### Figure S6: Initial training site distribution
+### Figure S7: Initial training site distribution
 Figure showing distribution of initial 500 samples per cluster, as well as distribution of points per iteration.  
 ```{r trainingsites, eval=FALSE}
 data("train_val_sites")
@@ -698,7 +737,7 @@ ggsave(pth("figures/si_training_validation_pts.png"), width = 4,
 
 ```
 
-### Figure S7: Assignment count
+### Figure S8: Assignment count
 ```{r assignmentcount, eval=FALSE}
 data("label_summary")
 
@@ -734,7 +773,7 @@ ggsave(pth("figures/si_training_n.png"), width = 5.5,
        height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figure S8: Random versus active sampling
+### Figure S9: Random versus active sampling
 ```{r, eval=FALSE}
 data("iteration_metrics")
 
@@ -798,7 +837,7 @@ ggsave(pth("figures/si_random_vs_active.png"),
 ```
 
 
-### Figure S9: Label quality
+### Figure S10: Label quality
 ```{r labelquality, eval=FALSE}
 # Plot data from Figure S7
 
@@ -820,7 +859,7 @@ ggsave(pth("figures/si_label_quality.png"), width = 4,
        height = 4, units = "in", dpi = 300, bg = "transparent")
 ```
 
-### Figures S10 and S11: Consensus label (Bayesian) risk
+### Figures S11 and S12: Consensus label (Bayesian) risk
 
 Plots of mean risk in space, divided into training and validation sites
 
@@ -939,7 +978,7 @@ label_risk_metrics %>% select(aoi, Metric, Score) %>%
 ```
 
 
-### Figure S12: Training data error impact on probability images
+### Figure S13: Training data error impact on probability images
 ```{r, eval = FALSE}
 probpal <- viridis::viridis
 cprob <- raster(here::here("external/prob/image_c294_r532.tif"))
@@ -1010,7 +1049,7 @@ ggsave(t1, filename = pth("figures/si_aez_accuracies.png"), width = 7,
        height = 3.5, units = "in", dpi = 300)
 ```
 
-### Figures S13 and S14: Segmentation statistics (grid scale)
+### Figures S14 and S15: Segmentation statistics (grid scale)
 
 ```{r segstats, eval=FALSE}
 # data("top_label_data")
@@ -1103,7 +1142,7 @@ ggsave(pth("figures/si_validation_stats_fn2.png"),
 
 ```
 
-### Figure S15: Average fields sizes
+### Figure S16: Average field sizes
 
 Tile scale field size and number, presented without adjustment
 

@@ -313,6 +313,13 @@ Since `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj` > 0.5, we label 
 
 Using equation \ref{eq:pixelrisk}, the corresponding risk associated with this particular pixel's label is thus `r rj * (1 - 1) + (1 - rj) * 1` (i.e., 1 - `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj`). 
 
+### Segmentation
+An overview of the two inputs to and outputs from the segmentation algorithm are shown in Figure \ref{fig:segfig}. 
+
+```{r segfig, echo = FALSE, fig.align='center', out.width="100%", message=FALSE, warning=FALSE, fig.cap="An overview of the inputs and key outputs from the five-step segmentation algorithm."}
+knitr::include_graphics('figures/si_segmentation_workflow.png')
+```
+
 
 ### Accuracy assessment
 We designed and implemented a map accuracy assessment protocol following procedures summarized by @StehmanKeyissuesrigorous2019. This entailed the creation of a map reference sample, which first entailed designing a sample, and then designing how the sample response would be collected.
