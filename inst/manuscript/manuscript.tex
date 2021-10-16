@@ -286,16 +286,6 @@ USA\\\\*
 \href{mailto:lestes@clarku.edu}{\nolinkurl{lestes@clarku.edu}}
 \stepcounter{num}
 }
-
-%\begin{center}
-This pre-print is a revised version of a manuscript that has undergone
-one round of peer review in \emph{Frontiers in Artificial Intelligence},
-where it has been resubmitted. This version will be updated as it is
-further revised, and the final published version will be accessible
-through its DOI link.
-%\end{center}
-
-
 \end{justify}
 %%Adds date from YAML
 \normalsize
@@ -1470,7 +1460,7 @@ The detail, temporal precision, and large extent of our maps was enabled
 by our use of PlanetScope data, which is currently the only source of
 sub-5 meter imagery with daily coverage (McCabe et al. 2017). These
 spatial-temporal characteristics, together with the compositing
-technique we developed, allowed us to develop a complete image catalog
+technique we developed, allowed us to create a complete image catalog
 for Ghana covering the two major seasons in the 2018 agricultural year.
 Daily revisits were key to this capability, as they increased the number
 of cloud-free observations that could be collected in each season. Over
@@ -1528,26 +1518,39 @@ of the resulting probability maps confirms that models trained with the
 consensus and most accurate individual labels were more precise than the
 model trained with lower quality labels (Figure S13).
 
-\hypertarget{broader-applications}{%
-\subsection{Broader applications}\label{broader-applications}}
+\hypertarget{conclusion}{%
+\subsection{Conclusion}\label{conclusion}}
 
 This work demonstrates a proof of concept for developing high
-resolution, annual maps of smallholder-dominated croplands at national
-to regional scales, using an approach that follows recommended best
-practices for training and assessing machine learning models (Elmes et
-al. 2020). This approach can be readily updated to integrate
-improvements, such as newer machine learning models. Beyond providing
-valuable insights into field characteristics, field boundary maps can
-help improve remote estimation of crop areas and yield (e.g. Estes et
-al. 2013), and provide deeper insights into important socioeconomic
-aspects of agricultural systems, such as the relationships between
-agricultural productivity and farm size (Feder 1985, Carletto et al.
-2013, Desiere and Jolliffe 2018). Such maps will be important for
-understanding the rapid agricultural change that is currently occurring
-in Africa.
+resolution, annual maps of field boundaries in smallholder-dominated
+croplands at national to regional scales. The approach we used to
+develop these maps includes a novel procedure for compositing daily
+PlanetScope imagery, and follows recommended best practices for training
+and assessing machine learning models (Elmes et al. 2020). Using
+PlanetScope data enabled us to make a country-wide, high-resolution,
+two-season catalog of imagery for a single year, even over areas with
+frequent cloud cover. Methods to assess labeller accuracy and to create
+consensus labels helped to minimize training label errors, which in turn
+substantially improved the accuracy of the mapping model. Model
+performance was further enhanced by using an active learning framework,
+which selects the most informative training sample. This mapping
+approach can be readily updated to integrate improvements, such as newer
+machine learning models.
+
+The resulting maps provide valuable information on Ghana's agricultural
+systems, including an updated estimate of cropped area, and new data on
+the characteristics of Ghana's cropping systems, such as the sizes and
+numbers of fields. Beyond the information about field characteristics,
+field boundary maps can help improve remote estimation of crop areas and
+yield (e.g. Estes et al. 2013), and provide deeper insights into
+important socioeconomic aspects of agricultural systems, such as the
+relationships between agricultural productivity and farm size (Feder
+1985, Carletto et al. 2013, Desiere and Jolliffe 2018). Such maps will
+be important for understanding the rapid agricultural change that is
+currently occurring in Africa.
 
 \hypertarget{data-availability-and-usage}{%
-\subsection{Data availability and
+\section{Data availability and
 usage}\label{data-availability-and-usage}}
 
 The maps presented here are a version 1 product that is freely available
