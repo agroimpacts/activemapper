@@ -137,6 +137,9 @@ linenumbers: TRUE
 spacing: doublespacing
 footerdate: no
 
+note: This pre-print is a revised version of a manuscript that has undergone one round of peer review in \emph{Frontiers in Artificial Intelligence}, where it has been resubmitted. This version will be updated as it is further revised, and the final published version will be accessible through its DOI link.
+
+
 abstract: Mapping the characteristics of Africa's smallholder-dominated croplands, including the sizes and numbers of fields, can provide critical insights into food security and a range of other socioeconomic and environmental concerns. However, accurately mapping these systems is difficult because there is 1) a spatial and temporal mismatch between satellite sensors and smallholder fields, and 2) a lack of high-quality labels needed to train and assess machine learning classifiers. We developed an approach designed to address these two problems, and used it to map Ghana’s croplands. To overcome the spatio-temporal mismatch, we converted daily, high resolution imagery into two cloud-free composites (the primary growing season and subsequent dry season) covering the 2018 agricultural year, providing a seasonal contrast that helps to improve classification accuracy. To address the problem of label availability, we created a platform that rigorously assesses and minimizes label error, and used it to iteratively train a Random Forests classifier with active learning, which identifies the most informative training sample based on prediction uncertainty. Minimizing label errors improved model F1 scores by up to 25%. Active learning increased F1 scores by an average of 9.1% between first and last training iterations, and 2.3% more than models trained with randomly selected labels. We used the resulting 3.7 m map of cropland probabilities within a segmentation algorithm to delineate crop field boundaries. Using an independent map reference sample (n=1,207), we found that the cropland probability and field boundary maps had respective overall accuracies of 88% and 86.7%, user’s accuracies for the cropland class of 61.2% and 78.9%, and producer’s accuracies of 67.3% and 58.2%. An unbiased area estimate calculated from the map reference sample indicates that cropland covers 17.1% (15.4-18.9%) of Ghana. Using the most accurate validation labels to correct for biases in the segmented field boundaries map, we estimated that the average size and total number of field in Ghana are 1.73 ha and 1,662,281, respectively. Our results demonstrate an adaptable and transferable approach for developing annual, country-scale maps of crop field boundaries, with several features that effectively mitigate the errors inherent in remote sensing of smallholder-dominated agriculture.  
 
 keywords: active learning, machine learning, CubeSat, PlanetScope, smallholder, cropland, segmentation, field size, label error, Ghana, Africa
@@ -472,12 +475,15 @@ initial <- train_val_sites$initial %>% as_tibble %>% group_by(Cluster) %>%
 active <- train_val_sites$active %>% as_tibble %>% filter(usage == "train") %>% 
   group_by(aoi) %>% count()
 typicaln <- raster::modal(initial$n) + raster::modal(active$n)
+typicala <- raster::modal(active$n)
+aoi10a <- active %>% filter(aoi == "labeller10") %>% pull(n)
 aoi10n <- (initial %>% filter(Cluster %in% 3) %>% pull(n)) + 
   (active %>% filter(aoi == "labeller10") %>% pull(n))
 aoi14n <- (initial %>% filter(Cluster %in% 3) %>% pull(n)) + 
   (active %>% filter(aoi == "labeller14") %>% pull(n))
 aoi15n <- (initial %>% filter(Cluster %in% 2) %>% pull(n)) + 
   (active %>% filter(aoi == "labeller15") %>% pull(n))
+aoi15a <- active %>% filter(aoi == "labeller15") %>% pull(n)
 aoi3init <- initial %>% filter(!Cluster %in% 1:3) %>% pull(n)
 aoi3n <- aoi3init + (active %>% filter(aoi == "labeller3") %>% pull(n))
 
@@ -491,7 +497,7 @@ ttrain <- fmt(initial_total + active_total)
 tval <- fmt(validate_total$n)
 ```
 
-To make the initial maps of cropland probabilities, the active learning process ran for 3 iterations in 12 of 16 AOIs, varying from as little as 1 to as many as 4 iterations across the other 4 AOIs, with the number of iterations varying according to the performance of the starter models (i.e. AOIs with higher starting performance stopped after fewer iterations, see SI). Each AOI's model was trained by 300-500 randomly selected labels (Figure S7A), plus an additional `r aoi10n` - `r aoi15n` (typically `r typicaln`) labels within each AOI that were selected by active learning. Actively selected labels showed distinctive patterns in several AOIs (Figure S7B), such as concentrating along ecotones or the boundaries of agro-ecological zones. A total of `r ttrain` training and `r tval` validation labels were collected by 20 labellers to develop and assess model performance (Figure S8).
+To make the initial maps of cropland probabilities, the active learning process ran for 3 iterations in 12 of 16 AOIs, varying from as little as 1 to as many as 4 iterations across the other 4 AOIs, with the number of iterations varying according to the performance of the starter models (i.e. AOIs with higher starting performance stopped after fewer iterations, see SI). Each AOI's model was trained by 300-500 randomly selected labels (Figure S7A), plus an additional `r aoi10a` - `r aoi15a` (typically `r typicala`) labels within each AOI that were selected by active learning. Actively selected labels showed distinctive patterns in several AOIs (Figure S7B), such as concentrating along ecotones or the boundaries of agro-ecological zones. A total of `r ttrain` training and `r tval` validation labels were collected by 20 labellers to develop and assess model performance (Figure S8).
 
 ### Performance gains during active learning
 

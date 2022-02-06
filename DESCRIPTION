@@ -1,7 +1,7 @@
 Package: activemapper
 Type: Package
 Title: High resolution, annual maps of field boundaries
-Version: 0.0.5
+Version: 0.0.5-2
 Author: Lyndon Estes
 Maintainer: Lyndon Estes <lestes@clarku.edu>
 Description: Complete manuscript and analytics for "High resolution, annual maps
@@ -11,6 +11,6 @@ Description: Complete manuscript and analytics for "High resolution, annual maps
 License: Apache2
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Depends: 
     R (>= 2.10)

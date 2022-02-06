@@ -62,6 +62,8 @@ Scripts:
     - `inst/extdata/consensus_risk.rda`
 + `label_risk.R`: Builds on previous to create summary risk metrics 
     - `activemapper::label_risk`
++ `label_v_segments_summarize.R`: Comparison of areas and counts of fields in the hand-digitized labels versus the machine-segmented fields at the grid, tile, and AOI scales
+    - `activemapper::segment_quality_stats`
 + `iteration_metrics.R`: Processing iteration performance metrics
     - `activemapper::iteration_metrics` 
 + `consensus_high_low.R`: Processing iteration metrics from labelling strategy experiments performed in four AOIs

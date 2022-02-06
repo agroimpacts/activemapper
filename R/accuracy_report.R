@@ -18,7 +18,6 @@
 #' areas <- c(22353, 1122543, 610228)
 #' acc_mat <- accuracy(err_mat, areas)
 #' accuracy_report(err_mat, acc_mat, classes = paste0("Class", 1:3))
-
 accuracy_report <- function(err_mat, acc_mat, classes, digits = 1, z = 1.96) {
 
   rnd <- function(tab, d = digits) sprintf(glue("%0.{d}f"), tab)

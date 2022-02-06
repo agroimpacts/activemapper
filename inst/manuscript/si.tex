@@ -37,7 +37,7 @@
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \hypersetup{
-  pdftitle={High resolution, annual maps of the characteristics of smallholder-dominated croplands at national scales},
+  pdftitle={High resolution, annual maps of field boundaries for smallholder-dominated croplands at national scales},
   pdfkeywords={rmarkdown, reproducible science},
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
@@ -120,7 +120,7 @@
 \newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
 \newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
 
-\title{High resolution, annual maps of the characteristics of
+\title{High resolution, annual maps of field boundaries for
 smallholder-dominated croplands at national scales}
 \usepackage{etoolbox}
 \makeatletter
@@ -155,6 +155,42 @@ smallholder-dominated croplands at national scales}
 \singlespace
 
 \bleft
+
+\hypertarget{code-and-data-availability}{%
+\section{Code and Data Availability}\label{code-and-data-availability}}
+
+The repositories containing the data, code, and manuscript source files
+used to produce this paper are listed below:
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/agroimpacts/activemapper}{\texttt{activemapper}}:
+  Repository\footnote{github.com/agroimpacts/activemapper} containing
+  code and derived data used to write this paper.
+\item
+  \href{https:github.com/agroimpacts/imager}{\texttt{imager}}:
+  Repository\footnote{github.com/agroimpacts/imager} containing code for
+  the image processing software.
+\item
+  \href{https:github.com/agroimpacts/labeller}{\texttt{labeller}}:
+  Repository\footnote{github.com/agroimpacts/labeller} containing code
+  for the labelling platform.
+\item
+  \href{https:github.com/agroimpacts/learner}{\texttt{learner}}:
+  Repository\footnote{github.com/agroimpacts/learner} containing code
+  for the active learning component.
+\item
+  \href{https:github.com/agroimpacts/segmenter}{\texttt{segmenter}}:
+  Repository\footnote{github.com/agroimpacts/segmenter} containing code
+  for the segmentation algorithm.
+\item
+  \href{https://mappingafrica.io}{\texttt{mappingafrica.io}}: Project
+  website\footnote{https://mappingafrica.io} linking to web map
+  displaying field boundary maps. The web map is currently undergoing
+  redevelopment, and will be hosted on a new URL and links download
+  maps. In the interim, map data are available on request.
+\end{itemize}
 
 \hypertarget{supplemental-methods}{%
 \section{Supplemental Methods}\label{supplemental-methods}}
@@ -984,45 +1020,6 @@ total number of fields per tile (Figure \ref{fig:fieldsizes}).
 
 \caption{The A) average sizes of fields and B) total number of fields in each 0.05 degree tile, as calculated from the vectorized field boundaries.}\label{fig:fieldsizes}
 \end{figure}
-
-\hypertarget{code-and-data-availability}{%
-\section{Code and Data Availability}\label{code-and-data-availability}}
-
-The repositories containing the data, code, and manuscript source files
-used to produce this paper are listed below:
-
-\begin{itemize}
-\tightlist
-\item
-  \href{https://github.com/agroimpacts/activemapper}{\texttt{activemapper}}:
-  Contains the source code and derived data for this paper. The
-  repository\footnote{github.com/agroimpacts/activemapper} will be
-  opened following publication in a peer-reviewed journal.
-\item
-  \href{https://github.com/agroimpacts/croplandmaps_V2}{\texttt{croplandmaps}}:
-  Source code for web map displaying image composites and cropland
-  probability maps. The
-  repository\footnote{github.com/agroimpacts/croplandmaps\_V2} is open,
-  and the field boundary datasets are available for download.
-\item
-  \href{https:github.com/agroimpacts/imager}{\texttt{imager}}: Source
-  code for the image processing software. The
-  repository\footnote{github.com/agroimpacts/imager} is currently
-  private, but will be opened after completing a security audit.
-\item
-  \href{https:github.com/agroimpacts/labeller}{\texttt{labeller}}:
-  Source code for the labelling platform. The
-  repository\footnote{github.com/agroimpacts/labeller} is currently
-  private, but will be opened after completing a security audit.
-\item
-  \href{https:github.com/agroimpacts/learner}{\texttt{learner}}: Source
-  code for the active learning component. The
-  repository\footnote{github.com/agroimpacts/learner} is open.
-\item
-  \href{https:github.com/agroimpacts/segmenter}{\texttt{segmenter}}:
-  Source code for the segmentation algorithm. The repository
-  \footnote{github.com/agroimpacts/segmenter} is open.
-\end{itemize}
 
 \clearpage
 

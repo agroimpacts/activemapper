@@ -19,7 +19,7 @@ get_db_tables <- function(connection, dbtables = "default") {
   return(dbtbls)
 }
 
-#' Collection assignment history for a given worker
+#' Collect assignment history for a given worker
 #' @param assignment_data Assignment data table
 #' @param accuracy_data Accuracy data table
 #' @param workerid Integer ID of worker
@@ -46,7 +46,7 @@ assignment_history <- function(assignment_data, accuracy_data, workerid) {
   return(measurements)
 }
 
-#' Collection qualification assignment history for a given worker
+#' Collect qualification assignment history for a given worker
 #' @param qual_assignment_data Assignment data table
 #' @param qual_accuracy_data Qualification accuracy table
 #' @param workerid Integer ID of worker
@@ -186,7 +186,8 @@ get_user_maps <- function(assignmentid, categories, category, grid_poly,
 #' @param crs Coordinate reference system, current 4326, otherwise proj4string
 #' @return List containing rasters (label, heat map, risk map) and Bayesian
 #' measures of uncertainty.
-#' @details This
+#' @details This function is a modification of the function in rmapaccuracy,
+#' which is designed to allowed consensus labels to be made as a batch.
 #' @import dplyr
 #' @importFrom sf st_sf st_sfc st_is_empty st_union st_bbox
 #' @importFrom data.table as.data.table

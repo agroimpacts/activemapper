@@ -1,6 +1,5 @@
 ---
-title: "High resolution, annual maps of the characteristics of smallholder-dominated croplands at national scales"
-
+title: "High resolution, annual maps of field boundaries for  smallholder-dominated croplands at national scales"
 subtitle: "Supporting Information"
 
 output:
@@ -27,7 +26,6 @@ fontsize: 11pt
 geometry: margin=1in
 linenumbers: yes
 spacing: doublespacing
-# abstract: The abstract can go either here or below
 keywords: rmarkdown, reproducible science
 bibliography: 
   - references.bib
@@ -42,6 +40,9 @@ csl: ecology.csl
         \setcounter{figure}{0}
         \renewcommand{\thefigure}{S\arabic{figure}}%
      }
+
+
+
      
 ```{r setup, include=FALSE, cache=FALSE, message=FALSE}
 library(knitr)
@@ -83,6 +84,16 @@ cite_options(citation_format = "pandoc")
 \singlespace
 
 \bleft
+
+# Code and Data Availability
+The repositories containing the data, code, and manuscript source files used to produce this paper are listed below:
+
+- [`activemapper`](https://github.com/agroimpacts/activemapper): Repository\footnote{github.com/agroimpacts/activemapper} containing code and derived data used to write this paper. 
+- [`imager`](https:github.com/agroimpacts/imager): Repository\footnote{github.com/agroimpacts/imager} containing code for the image processing software.
+- [`labeller`](https:github.com/agroimpacts/labeller):  Repository\footnote{github.com/agroimpacts/labeller} containing code for the labelling platform. 
+- [`learner`](https:github.com/agroimpacts/learner): Repository\footnote{github.com/agroimpacts/learner} containing code for the active learning component.
+- [`segmenter`](https:github.com/agroimpacts/segmenter): Repository\footnote{github.com/agroimpacts/segmenter} containing code for the segmentation algorithm.
+- [`mappingafrica.io`](https://mappingafrica.io): Project website\footnote{https://mappingafrica.io} linking to web map displaying field boundary maps. The web map is currently undergoing redevelopment, and will be hosted on a new URL and links download maps. In the interim, map data are available on request.  
 
 
 # Supplemental Methods
@@ -639,18 +650,8 @@ To examine average field sizes, and the total number, the mean segment size per 
 knitr::include_graphics('figures/si_fsize_n_05.png')
 ```
 
-
-# Code and Data Availability
-The repositories containing the data, code, and manuscript source files used to produce this paper are listed below:
-
-- [`activemapper`](https://github.com/agroimpacts/activemapper): Contains the source code and derived data for this paper. The repository\footnote{github.com/agroimpacts/activemapper} will be opened following publication in a peer-reviewed journal.
-- [`croplandmaps`](https://github.com/agroimpacts/croplandmaps_V2): Source code for web map displaying image composites and cropland probability maps. The repository\footnote{github.com/agroimpacts/croplandmaps\_V2} is open, and the field boundary datasets are available for download. 
-- [`imager`](https:github.com/agroimpacts/imager): Source code for the image processing software. The repository\footnote{github.com/agroimpacts/imager} is currently private, but will be opened after completing a security audit. 
-- [`labeller`](https:github.com/agroimpacts/labeller): Source code for the labelling platform. The repository\footnote{github.com/agroimpacts/labeller} is currently private, but will be opened after completing a security audit. 
-- [`learner`](https:github.com/agroimpacts/learner): Source code for the active learning component. The repository\footnote{github.com/agroimpacts/learner} is open.
-- [`segmenter`](https:github.com/agroimpacts/segmenter): Source code for the segmentation algorithm. The repository \footnote{github.com/agroimpacts/segmenter} is open.
-
 \clearpage
+
 # References
 \singlespace
 

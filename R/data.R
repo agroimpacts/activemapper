@@ -93,6 +93,17 @@ NULL
 #' data(mapped_areas)
 NULL
 
+#' Summary statistics for digitized versus machine-segmented fields
+#' @name segment_quality_stats
+#' @docType data
+#' @description Mean, median areas and average counts of labeller-digitized
+#' fields versus machine-segmented fields at the grid, tile, and AOI scales
+#' @keywords data
+#' @examples
+#' data(segment_quality_stats)
+NULL
+
+
 #' Training and validation sites for AOIs 1-16
 #' @name tile_key
 #' @docType data
