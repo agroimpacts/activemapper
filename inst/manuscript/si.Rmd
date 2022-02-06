@@ -1,5 +1,6 @@
 ---
-title: "Supporting Information: Improving cropland maps through tight integration of human and machine intelligence"
+title: "High resolution, annual maps of field boundaries for  smallholder-dominated croplands at national scales"
+subtitle: "Supporting Information"
 
 output:
   pdf_document:
@@ -8,7 +9,9 @@ output:
     fig_height: 7
     keep_tex: yes
     number_sections: yes
-    template: manuscript.latex
+    toc_depth: 4
+    toc: yes
+    extra_dependencies: ["float", "titling", "setspace"]
     includes:
       in_header: header.tex
 
@@ -21,14 +24,11 @@ classoption: a4paper
 capsize: normalsize
 fontsize: 11pt
 geometry: margin=1in
-linenumbers: false
+linenumbers: yes
 spacing: doublespacing
-footerdate: yes
-# abstract: The abstract can go either here or below
 keywords: rmarkdown, reproducible science
 bibliography: 
   - references.bib
-  - knitcitations.bib
 csl: ecology.csl
 
 ---
@@ -41,7 +41,10 @@ csl: ecology.csl
         \renewcommand{\thefigure}{S\arabic{figure}}%
      }
 
-```{r setup, include=FALSE, cache=FALSE, message = FALSE}
+
+
+     
+```{r setup, include=FALSE, cache=FALSE, message=FALSE}
 library(knitr)
 library(citr)
 library(tidyverse)
@@ -64,7 +67,10 @@ opts_chunk$set(cache = 2, cache.path = "output/cache/")
 ## Plots
 opts_chunk$set(fig.path = "output/figures/")
 
+knitr::opts_chunk$set(fig.pos = "!ht", out.extra = "")
+# knitr::opts_chunk$set(fig.pos = "!H", out.extra = "")
 
+fmt <- function(x) format(x, big.mark = ",")
 ```
 
 
@@ -79,12 +85,34 @@ cite_options(citation_format = "pandoc")
 
 \bleft
 
+# Code and Data Availability
+The repositories containing the data, code, and manuscript source files used to produce this paper are listed below:
 
-# Methods
-## Assessing quality of composites
-The rubric presented in Table 1 was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry overlays within a `labeller` instance set up for the purpose. 
+- [`activemapper`](https://github.com/agroimpacts/activemapper): Repository\footnote{github.com/agroimpacts/activemapper} containing code and derived data used to write this paper. 
+- [`imager`](https:github.com/agroimpacts/imager): Repository\footnote{github.com/agroimpacts/imager} containing code for the image processing software.
+- [`labeller`](https:github.com/agroimpacts/labeller):  Repository\footnote{github.com/agroimpacts/labeller} containing code for the labelling platform. 
+- [`learner`](https:github.com/agroimpacts/learner): Repository\footnote{github.com/agroimpacts/learner} containing code for the active learning component.
+- [`segmenter`](https:github.com/agroimpacts/segmenter): Repository\footnote{github.com/agroimpacts/segmenter} containing code for the segmentation algorithm.
+- [`mappingafrica.io`](https://mappingafrica.io): Project website\footnote{https://mappingafrica.io} linking to web map displaying field boundary maps. The web map is currently undergoing redevelopment, and will be hosted on a new URL and links download maps. In the interim, map data are available on request.  
 
-```{r, echo=FALSE, message=FALSE}
+
+# Supplemental Methods
+## Map reference system
+The map reference system used in our mapping approach had three different levels. At the coarsest level, Ghana was divided into 16 different mapping zones, or areas of interest (AOIS; Figure \ref{fig:aois}A), that were used to create AOI-specific mapping models. Each AOIs was comprised of 400 to 777 adjacent tiles. These tiles were used to create seasonal image composites, and were defined within a 0.05 degree grid (Figure \ref{fig:aois}B)), with each tile numbered to correspond to a larger 1 degree grid cell that it sits within (dotted lines in Figure \ref{fig:aois}B). Training and reference labels were created within a 0.005 degree grid that nested within each tile (Figure \ref{fig:aois}C). Therefore, each tile has 100 grid cells, and there are 400 tiles per 1X1 degree. The smallest AOI consists of a single 1X1 degree, which fall in the center of the country (AOIs 5, 8, 11, and 14). AOIs falling along Ghana's boundaries were created by tiles from 1X1 degree cells that straddled Ghana's border with those from the closest degree cells that were fully contained within Ghana (e.g. AOI 1), with the exception of AOI 16, which was comprised of tiles in three partial 1X1 degree cells along Ghana's coast. 
+
+```{r aois, echo = FALSE, out.width="100%", fig.cap="The reference system used in this mapping approach, including A) numbered areas of interest (AOIs) that define the minimum mapping geography (solid black lines; dotted lines indicate boundaries of 1 degree grid), B) the 0.05 degree tile used for compositing imagery, and C) the 0.005 degree resolution reference grid used for collecting training data and distributed computing.", fig.align='center'}
+knitr::include_graphics('figures/reference_system.png')
+```
+
+
+## Image compositing 
+### Variation in lengths of temporal window used
+The typical window for compositing dry season imagery was December, 2018 to February, 2019, but in the cloudiest regions (AOIs 10, 11, 13, 14, 16) we started the dry season window in November, to ensure a sufficient density of images for compositing.
+
+### Assessing composite quality
+The rubric presented in Table \ref{tab:imqcriteria} was used to assess the quality of the seasonal image composites. The imagery was evaluated by examining their Raster Foundry [@azaveaRasterFoundry2020] overlays within a `labeller` instance set up for the purpose. 
+
+```{r imqcriteria, echo=FALSE, message=FALSE}
 library(kableExtra)
 image_qual_criteria <- tibble(
   `Quality dimension` = c(
@@ -106,9 +134,62 @@ kable(image_qual_criteria, format = "latex", booktabs = "T", caption = cap) %>%
 
 
 ## Mapping platform
-
 ### Digitizing tools
 To minimize the risk of topological errors, *mapper*'s polygon digitizing tools prevent drawing that results in self-intersections and overlaps between adjacent polygons. Upon submission, the PostGIS [`ST_MakeValid`](https://www.postgis.net/docs/ST_MakeValid.html) function is applied to each polygon's geometry to clean remaining topological errors upon insertion into the database. 
+
+### Mapping rules
+Labellers followed set of rules described in the next two sections when interpreting and digitizing field boundaries.
+
+#### Interpreting and mapping imagery
+
+- Map the fields that are visible in the PlanetScope images, not the fields that you see in the basemap.
+
+- As the first choice, map the field outlines as they appear in the dry season PlanetScope images. If a field is not clearly visible in the dry season image, but is visible in the growing season image, then the next choice is to map it in the growing season image.
+
+- Use all available images (PlanetScope scenes and base map) to help you interpret what is and is not a field. Toggling back and forth between the different image sources can help identify and classify the field boundaries.
+
+- Map fields that intersect the mapping target, making sure to finish the entire boundary.
+
+#### Choosing what to map
+
+- Draw polygons around fields that look like they contain crops that are planted and harvested during a single year (or occasionally slightly longer, in the case of crops such as sugarcane). These fields may look recently ploughed or harvested, or contain actively growing crops. 
+
+- Do not draw polygons around fields that are under tree crops, such as orchards, woodlots, or other planted forest types. 
+
+- Do not draw polygons around fields that look like they are annual croplands, but are overgrown and haven't been planted for a few years. These are possibly fallows or abandoned fields.
+
+- Do not draw polygons if you cannot tell whether a piece of land is an annual crop field or if it is perhaps another type of land cover (e.g. bare land, or a young orchard). 
+
+- Do not draw any polygons if there are no annual crop fields to map.
+
+### Assessing label accuracy
+For each accuracy assessment assignment, the labeller's maps are scored against  training reference polygons digitized by one of the map supervisors (e.g. Estes or Ye). A proportion of training reference sites were of the non-cropland class and thus had no corresponding polygons. 
+
+As described in the main text, the score for a particular assignment *i* is calculated as the weighted sum of five accuracy metrics:
+
+$$ score_i=\beta_0\mathrm{I}+\beta_1\mathrm{O}+\beta_2\mathrm{F}+\beta_3\mathrm{E}+\beta_4\mathrm{C}$$
+
+Where $\beta_{0-4}$ are the weights assigned to each accuracy metric that sum to 1. For the current production version, $\beta_{0-4}$ were assigned as 0.4, 0.2, 0.2, 0.1, and 0.1.
+
+*I* is "inside the box" accuracy which is defined as a proportion of the area correctly mapped within a 0.005 degree resolution grid (*I$_c$*) over total "inside the box" area for this grid (*I$_t$*). 
+
+$$ I=\frac{I_c}{I_t}$$
+
+*O* is "outside the box" accuracy which refers to a proportion of the field area correctly mapped outside the grid over total "outside the box" region (*O$_t$*, the region within the bounding box of the workers' polygons but not within 0.005 degree resolution grid).
+
+$$ O=\frac{O_c}{O_t}$$
+
+*F* is the fragmentation accuracy which is defined as a proportion of matched polygon number (*N$_m$*, the number of the workers' polygons that has at least 50% of its region overlapped with a reference polygon) over total workers' polygon number (*N$_t$*).
+
+$$ F=\frac{N_m}{N_t}$$
+
+*E* is the average edge accuracy for all pairs of matched workers and reference polygons; the edge accuracy for a single pair is defined as the length of 'correctly mapped edges' (*L$_c$*, the partial boundary of a workers' polygon that are within a three-pixel buffer region of the matched reference polygon boundary) over the total boundary length of its matched reference polygon (*L$_t$*).
+
+$$ E=\frac{L_c}{L_t}$$
+
+*C* is the categorical accuracy, i.e., a proportion of the area that has been correctly labeled with field category within intersected regions between worker's and reference polygons (*T$_c$*) over the total intersecting area (*T$_t$*).
+
+$$ C=\frac{T_c}{T_t}$$
 
 ### Consensus labelling
 As described in the main text, the formula used for creating a consensus label is: 
@@ -117,7 +198,7 @@ As described in the main text, the formula used for creating a consensus label i
 \mathrm{P(\theta|D)=\sum_{i=1}^{n}P(W_i|D)P(\theta|D, W_i)}
 \end{equation}
 
-Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W$_i$* is an individual worker.  Looking in greater details at this equation, the first half of the righthand side of the equation, P(W$_i$|D), is the "prior" for worker *i* for the current site based on their history of scores from prior accuracy assessment assignments. The second term, P($\theta$|D, W$_i$), is the probability that the actual class of the pixel in the current assignment is the class that worker *i*'s says that it is, which is either 0 or 1. There are four possible values for this second term:
+Where $\theta$ represents the true cover type of a pixel (field or not field), *D* is the worker's label of that field, and *W$_i$* is an individual worker.  Looking in greater details at this equation, the first half of the righthand side of the equation, P(W$_i$|D), is the "prior" for worker *i* for the current site based on their history of scores from accuracy assessment assignments. The second term, P($\theta$|D, W$_i$), is the probability that the actual class of the pixel in the current assignment is the class that worker *i* says that it is, which is either 0 or 1. There are four possible values for this second term:
 
 \begin{equation} \label{eq:tp}
 P(\theta = field|D_i = field) = 1
@@ -175,16 +256,16 @@ Which is the worker maximum likelihood, which can be computed as:
 \mathrm{P(\theta = no field|\hat{\theta}, M_I) = P(D = no field|\theta = no field, M_I) = \frac{1}{m}\left(\sum_{j}^{m}\frac{tn_j}{tn_j + fp_j} \right)}
 \end{equation}
 
-Equations \ref{eq:pacc1} and \ref{eq:pacc2} are producer's accuracies, thus the maximum worker likelihood is equivalent to the worker's average producer's accuracy. 
+Equations \ref{eq:pacc1} and \ref{eq:pacc2} are Producer's accuracies, thus the maximum worker likelihood is equivalent to the worker's average Producer's accuracy. 
 
 <!-- \ref{eq:prior} represents "mapper likelihood" for the current map: -->
 
-The other component of equation \ref{eq:prior}, P(W$_i$), is the worker's average score over *m* accuracy assessment assignment:  
-\begin{equation}
+The other component of equation \ref{eq:prior}, P(W$_i$), is the worker's average score over *m* accuracy assessment assignments:  
+\begin{equation} 
 \mathrm{P(W_i) \propto \frac{1}{m}\sum_{j=1}^{m}score_j}
 \end{equation}
 
-Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their overall average accuracy score multipled by 2) their average producer's accuracy to create a *weight* for their individual maps for the given site. Equation \ref{eq:main} becomes:
+Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their overall average accuracy score multipled by 2) their average Producer's accuracy to create a *weight* for their individual maps for the given site. Equation \ref{eq:main} becomes:
 
 \begin{equation} 
 \mathrm{P(\theta|D)=\frac{\sum_{i=1}^{n}weight_iP(\theta|D, W_i)}{\sum_{i=1}^{n}weight_i}}
@@ -192,20 +273,22 @@ Thus equation \ref{eq:prior} uses two measures of worker accuracy, 1) their over
 
 With $\mathrm{P(\theta|D, W_i)}$ being either 0 or 1. In labelling, if the consensus result for a pixel is: $\mathrm{P(\theta = field|D)}$ > 0.5, then we assign that pixel to the field category, otherwise to the no field category. 
 
-After creating the consensus label, the degree of confidence in the resulting label value can be expressed in terms of Bayesian risk. Risk for a given training sample site *i* is calculated as:
+After creating the consensus label, the degree of confidence in the resulting label value is measured by Bayesian Risk:
 
-\begin{equation}
-\mathrm{R_i=\frac{1}{n}\sum_{j=1}^{n} C_j(1 - L_j) + (1 - C_j)L_j}
+\begin{equation} \label{eq:pixelrisk}
+\mathrm{r=C(1 - L) + (1 - C)L}
 \end{equation}
 
-Where *C* is the consensus probability that a given pixel *j* is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. *R* is thus the average risk across all pixels at a given site, and the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling.  
+Where *C* is the consensus probability that a given pixel is a field ($\mathrm{P(\theta = field|D)}$), and *L* is the consensus label (i.e. non-field if *C* < 0.5, field if *C* > 0.5) for that pixel. The risk values across the entire sample site can be processed in two ways to provide useful information about the confidence in the consensus label for that site. The first is a simple average of all risk values in the site, where the slope of the risk varies depending on whether *L* is a field or not a field (Figure \ref{fig:riskcurve}). The closer to 0 the lower the risk that the *L* is mislabelled, while values approaching 1 indicate increasing risk of mislabelling. A second approach is to calculate the proportion of pixels having risk values that exceed a certain threshold. 
+
 
 ```{r riskcurve, echo = FALSE, fig.align='center', out.width="70%", message=FALSE, warning=FALSE, fig.cap="Bayesian risk values (Y-axis) for consensus values (X axis) ranging from 0 to 1 (0 indicates no consensus that a pixel falls into the field class, 1 means complete consensus) for field and non-field consensus labels."}
 knitr::include_graphics('figures/si_label_risk.png')
 ```
 
-#### Example
+Accuracy assessment and consensus label generation is performed using an `R` package `rmapaccuracy` that is internal to the labelling platform. The package relies on spatial data classes and operations provided by the `sf` [@pebesmaSimpleFeaturesStandardized2018] and `raster` [@hijmansRasterGeographicData2020] packages.   
 
+#### Example
 To provide an example of this approach in practice, we'll imagine two workers A and B, each with the following histories:
 
 ```{r, echo = FALSE}
@@ -226,12 +309,12 @@ $$
 Weight_A = score_A * PA_A(field) = P(W_A)P(D=field|W_A) = `r sc[1, 2]` * `r sc[1, 4]` = `r wtA`
 $$
 
+
 $$
 Weight_B = score_B * PA_B(field) = P(W_B)P(D=no field|W_B) = `r sc[2, 3]` * `r sc[2, 4]` = `r wtB`
 $$
 
 And then we plug these weights into the full equation:
-
 
 $$
 \mathrm{P(\theta|D)=\frac{\sum_{i=1}^{n}weight_iP(L = field|D, W_i)}{\sum_{i=1}^{n}weight_i}} = \frac{`r wtA` * 1 + `r wtB` * 0}{`r wtA` + `r wtB`} = `r round((wtA * 1 + wtB * 0) / (wtA + wtB), 3)`
@@ -239,101 +322,336 @@ $$
 
 Since `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj` > 0.5, we label the particular pixel a field.  
 
+Using equation \ref{eq:pixelrisk}, the corresponding risk associated with this particular pixel's label is thus `r rj * (1 - 1) + (1 - rj) * 1` (i.e., 1 - `r rj <- round((wtA * 1 + wtB * 0) / (wtA + wtB), 3); rj`). 
 
+### Segmentation
+An overview of the two inputs to and outputs from the segmentation algorithm are shown in Figure \ref{fig:segfig}. 
 
-Using the relevant part of equation 15, T=the corresponding risk associated with this particular pixel's label $\mathrm{R_j}$ is thus `r rj * (1 - 1) + (1 - rj) * 1`. 
-
-
-
+```{r segfig, echo = FALSE, fig.align='center', out.width="100%", message=FALSE, warning=FALSE, fig.cap="An overview of the inputs and key outputs from the five-step segmentation algorithm."}
+knitr::include_graphics('figures/si_segmentation_workflow.png')
+```
 
 
 ### Accuracy assessment
 We designed and implemented a map accuracy assessment protocol following procedures summarized by @StehmanKeyissuesrigorous2019. This entailed the creation of a map reference sample, which first entailed designing a sample, and then designing how the sample response would be collected.
 
 #### Map reference sample design
-A reference sample should ideally have some randomization involved in the sample selection protocol, and the probabilities for a sample being included should be provided.  There are multiple sample designs that can be chosen, but we employed a stratified sampling design, using the segmented field boundaries to define the strata for field/non-field. To create the sample, we first extracted the centroids for each of the sample grid cells in Ghana. We then intersected the centroid points with the field segments, assigned a class of 1 (cropland) where points intersected a field, and 0 where they didn't (non-cropland). We then removed from this set of points all those that corresponded to model training, validation, or training reference sites. We then extracted a random sample from both the cropland and non-cropland points. To determine the sample size of each, we specified a desired confidence interval using the following formula [@StehmanKeyissuesrigorous2019]:
+We employed a stratified design for collecting the map reference sample, using the segmented field boundaries to define the strata for cropland/non-cropland. To create the sample, we first extracted the centroids for each of the sample grid cells in Ghana. We then intersected the centroid points with the field segments, assigned a class of 1 (cropland) where points intersected a field, and 0 where they didn't (non-cropland). We removed from this set of points all those that corresponded to model training, validation, or training reference sites, and extracted a random sample from both the cropland and non-cropland points. To determine the sample size of each, we specified a desired confidence interval using the following formula [@StehmanKeyissuesrigorous2019]:
 
 $$n = \frac{z^2p(1-p)}{d^2}$$
         
 Where p is the estimated probability (or mapped class accuracy), and d is the size of the margin of error (1/2 the confidence interval). We selected a d value of 0.03 and assumed that the user's accuracy of the field class would be 0.75 and that of the non-cropland class would be 0.8, returning sample sizes of 800 and 683, respectively. The distribution of the resulting map reference sample is shown in Figure \ref{fig:refsample}.
 
-```{r refsample, echo = FALSE, fig.align='center', out.width="80%", message=FALSE, warning=FALSE, fig.cap="Distribution of the selected map reference sample for the cropland and non-cropland class. "}
+```{r refsample, echo = FALSE, fig.align='center', out.width="80%", message=FALSE, warning=FALSE, fig.cap="Distribution of the selected map reference sample for the cropland and non-cropland class. Classes represent the values extracted from the map strata, rather than those assigned during the classification of the sample."}
 knitr::include_graphics('figures/si_map_reference_sample.png')
 ```
 
 #### Response design
-##### Stage 1
-We collected the map reference sample on a separate instance of `labeller` set up for the purpose (`validator.crowdmapper.org`). For the sampling unit, we selected a rectangular polygon of ~0.1 ha (0.0002866$^\circ$ resolution), centered on the centroid of each grid cell selected for map reference sample.  Four classes were established for the validation: **cropland**, **non-cropland**, **uncertain but likely cropland**, and **uncertain but likely non-cropland**. The latter two classes were designed to capture information related to swidden dynamics, following the rationale that uncertainty and time since last cropping are likely to be positively correlated. This uncertainty also captures information about the inherent difficulty of the mapping task. Samples were collected by visually interpreting the overlays of PlanetScope composites presented in `labeller`, following the same interpretation protocols used by the labelling team, with the exception that the polygons placed were square and of 0.0002866$^\circ$ resolution. 
+We collected the map reference sample on a separate instance of the labelling platform set up for the purpose. For the sampling unit, we selected a rectangular polygon of ~0.1 ha (0.0002866$^\circ$ resolution). This polygon was centered on the centroid of each grid cell selected for map reference sample, and was presented as the target grid in the labelling platform. Four classes were established for the validation: **cropland**, **non-cropland**, **uncertain but likely cropland**, and **uncertain but likely non-cropland**. The latter two classes were designed to capture information related to swidden dynamics, following the rationale that uncertainty and time since last cropping are likely to be positively correlated. This uncertainty also captures information about the inherent difficulty of the mapping task. Samples were collected by visually interpreting the overlays of PlanetScope composites, following the same interpretation protocols used by the labelling team, with the exception that the polygons placed were square and of 0.0002866$^\circ$ resolution. 
 
-The map reference sample was first placed and defined in an initial stage. In this stage, the class of the initial square polygon was determined, and then the polygon was adjusted if it overlapped more than one class. In sites where the initial map reference grid fell on one of the two uncertain classes, a second polygon was placed in the nearest location where a definite cropland or non-cropland interpretation could be made, with the choice determined by whether the uncertain class was more likely cropland or not cropland. The uncertain class was only used for providing insight into fallow cycles, while the second, more certain polygon was used in a second stage of the map reference sample, which was given to multiple independent interpreters (see below). 
+Two supervisors (Ye and Estes), who were not involved in collecting training and validation labels, collected the map reference sample by evaluating the PlanetScope composites at each site to determine its class membership. The following set of rules were followed in collecting the sample:
 
-The following set of rules were followed in this first, sample placing phase (undertaken by Lyndon Estes):
-
-1. When determining the class corresponding with the initial location of the target grid, IF:
-  - More than half of the target falls within what appears to be a clear arable crop field, then assign it to **cropland**. 
-  - More than half falls in what is clearly not a field, then assign it to **non-cropland**. 
+1. When determining the class corresponding with the initial location of the target grid, if:
+  - More than half of the target falls within what appears to be a clear arable crop field, then classify it as **cropland**; 
+  - More than half falls in what is clearly not a field, then classify it as **non-cropland**; 
   - More than half falls in a location where it is harder to tell whether it is cropland or non-cropland, determine whether it is more likely a crop field or not a crop field, and then assign either **uncertain but likely cropland**, or **uncertain but likely non-cropland**.
   
-2. After determining the class, IF:
-  a. The target polygon is contained entirely within a single clear class AND
-      - The class is either **cropland** or **non-cropland** THEN:
-        - Digitize a point within the center of the target box, assign appropriate class, and complete the assignment
-      - The class belongs to one of the two **uncertain** classes THEN:
-      
-        - Digitize a square aligned exactly with the initial target polygon, and choose the class **cropland** or **non-cropland** (following the most likely interpretation) and move the new polygon to the nearest location where it can be contained entirely within that clear **cropland** or **non-cropland** class;
-        
-        - Digitize a point in the middle of the target polygon, and assign it the appropriate label: **cropland** or **non-cropland**. 
-        
-  b. The target polygon partially overlaps a second class AND:
-      - That class is either **cropland** or **non-cropland** THEN:
-      
-        - Digitize a square aligned exactly with the target polygon, assign the appropriate class, and move the box to the nearest location (shortest possible distance) where it can be contained entirely within that same class.  
-  
-      - That class is **uncertain** THEN:
-    
-        - Digitize a square aligned exactly with the target polygon, assign the appropriate **uncertain** class, then move the box to the nearest location (shortest possible distance) where it can be contained entirely within that same **uncertain** class.
-        - Digitize a second square aligned exactly with the initial target polygon, and choose the class **cropland** or **non-cropland** (following the most likely interpretation) and move the new polygon to the nearest location where it can be contained entirely within that clear **cropland** or **non-cropland** class.
-  
+2. After determining the class, if:
+  - The target polygon is contained entirely within a single clear class, then simply digitize a point within the center of the target box, assign the appropriate class label, and complete the assignment;
+  - Digitize a square polygon exactly aligned with the initial target, choose the correct class label, and then move the new polygon to the nearest location where it can be contained entirely by the assigned class.
 
-We then 
-  - Definition of spatial assessment
-  - Definition of classes
-  - Reference source
-  - Specific information collected from each source
-  - Rules for reference class labels
-  - How agreement between map and reference classes is defined
+After collecting the sample, the geometries were further refined by converting the points (sites were the target didn't have to be shifted) to polygons with the same  0.0002866$^\circ$ resolution, and then the full set of map reference polygons was used to extract the classified values from both the cropland probability and vectorized field boundary maps. Accuracies were assessed for the entire country, and with several zones consisting of different groupings of AOIs or agroecozones\footnote{sourced from https://wheregeospatial.com/agro-ecological-zones-ghana/}
 
-##### Stage 2
+#### Map reference label uncertainty
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# reference labels, for total count and uncertainty of class categories
+ref_labels <- st_read(
+  system.file("extdata/map_reference_labels.geojson", 
+              package = "activemapper"), quiet = TRUE
+)
+class_ct <- as_tibble(ref_labels) %>% group_by(category) %>% count()
+ref_ct <- as_tibble(ref_labels) %>% group_by(worker_id) %>% count() %>% pull(n)
+
+crp_ct <- class_ct %>% filter(category %in% c("annualcropland", "unsure1"))
+noncrp_ct <- class_ct %>% filter(category %in% c("noncropland", "unsure2"))
+
+# observer agreement/correlation
+ref_labels_joint <- st_read(
+  system.file("extdata/map_reference_labels_joint.geojson", 
+              package = "activemapper"), quiet = TRUE
+)
+joint_classes <- ref_labels_joint %>% as_tibble() %>% 
+  select(name, category, worker_id) %>% 
+  arrange(name) %>% 
+  mutate(class = case_when(
+    category == "annualcropland" | category == "unsure1" ~ 1, 
+    category == "noncropland" | category == "unsure2" ~ 0 
+  ))
+class_mat <- joint_classes %>% dplyr::select(name, class, worker_id) %>% 
+  tidyr::pivot_wider(names_from = worker_id, values_from = class) %>% 
+  dplyr::select(-name) %>% as.matrix()
+
+usertab <- table("User1" = class_mat[, 1], "User2" = class_mat[, 2])
+
+agreement <- round(sum(diag(usertab)) / sum(usertab) * 100, 1)
+observer_r <- cor.test(class_mat[, 1], class_mat[, 2], method = "spearman")
+
+```
+
+The size of the collected validation sample was `r sum(ref_ct)`, with `r ref_ct[2]` samples collected and interpreted by one observer (Su Ye) and `r ref_ct[1]` collected by a second observer (Estes). To evaluate the uncertainty inherent in defining the map reference labels, the pair mapped `r sum(usertab)` common sites, showing an overall level of agreement of `r agreement`%, and a Spearman Rank Correlation of `r round(unname(observer_r$estimate), 2)`. 
+
+Although this overlap between observers was limited, the map reference classification scheme provided two additional measures of uncertainty, which were classes defined as "unsure but most likely a field" or "unsure but most likely not a field", which the reference labeller would choose when they could not with high confidence state whether the site was either cropland or not cropland. Of the `r sum(crp_ct$n)` map reference samples that were identified as cropland, `r round(crp_ct$n[2] / sum(crp_ct$n) * 100, 1)`% fell into the lower confidence category, as did `r round(noncrp_ct$n[2] / sum(noncrp_ct$n) * 100, 1)`% of the `r sum(noncrp_ct$n)` non-cropland samples. Across both classes, the reference labellers had lower confidence in `r round(sum(crp_ct$n[2], noncrp_ct$n[2]) / sum(ref_ct) * 100, 1)` of sites labelled.
+
+#### Accuracy assessment zones
+The zones used to assess regional variation in map accuracy are illustrated in Figure \ref{fig:aoizones}. 
 
 
+```{r aoizones, echo = FALSE, out.width="90%", fig.cap="Four zones used to combine the A) AOIs and B) agroecozones (B), in order to assess sub-national mapping accuracy. In B, the ID number of Ghana's individual agroecozones is shown in grey: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_aoi_zones.png')
+```
 
-\clearpage
-# Results
-## Image quality
+# Supplemental Results
+## Image catalog and quality
 
-## Active learning process
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data("image_quality")
+wqual_diff <- image_quality$img %>% filter(kml_type == "F") %>%
+  group_by(name, season, worker_id) %>%
+  summarize(tile = min(tile), score = sum(score) / 12) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = worker_id, values_from = score,
+              names_prefix = "w") %>%
+  dplyr::select(tile, season, w92, w99) %>% 
+  mutate(d = w92 - w99, 
+         absd = abs(d))
+```
+
+The total number of PlanetScope images available for download from the Planet API [@planetteamPlanetApplicationProgram2018] per tile for each of the two major seasons is shown in Figure \ref{fig:imagedensity}. 
+
+```{r imagedensity, echo = FALSE, out.width="90%", fig.cap="The density of images available through the Planet API for the five month growing season in 2018 and the subsequent three month dry season (excluding the month of November), shown in relation to the AOI boundaries.", fig.align='center', message=FALSE, results='hold'}
+knitr::include_graphics('figures/si_planet_coverage.png')
+```
+
+
+The image quality assessment was conducted by two separate observers (L. Song and Q. Zhang). Each observer assessed the composites for each season at all 50 of the randomly selected tiles (see main text) following the defined criteria (Table \ref{tab:imqcriteria}). To calculate the score for a given tile for each season, we summed the ranking across the four categories for each observer, rescaled the values, and then calculated the mean tile score across both observers by season. The mean difference between the two observers was `r d <- round(mean(wqual_diff$d), 3); d` (sd = `r absd <- round(sd(wqual_diff$d), 3); absd`) and the mean absolute difference was `r round(mean(wqual_diff$absd), 3)` (sd = `r round(sd(wqual_diff$absd), 3)`), thus one observer scored tiles about `r abs(round(d * 100))` percent lower than the other observer, on average.
+
+## Mapping cropland probabilities with active learning
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+initial <- train_val_sites$initial %>% as_tibble %>% group_by(Cluster) %>%
+  count()
+active <- train_val_sites$active %>% as_tibble %>% filter(usage == "train") %>% 
+  group_by(aoi) %>% count()
+typicaln <- raster::modal(initial$n) + raster::modal(active$n)
+aoi10n <- (initial %>% filter(Cluster %in% 3) %>% pull(n)) + 
+  (active %>% filter(aoi == "labeller10") %>% pull(n))
+aoi14n <- (initial %>% filter(Cluster %in% 3) %>% pull(n)) + 
+  (active %>% filter(aoi == "labeller14") %>% pull(n))
+aoi15n <- (initial %>% filter(Cluster %in% 2) %>% pull(n)) + 
+  (active %>% filter(aoi == "labeller15") %>% pull(n))
+aoi3init <- initial %>% filter(!Cluster %in% 1:3) %>% pull(n)
+aoi3n <- aoi3init + (active %>% filter(aoi == "labeller3") %>% pull(n))
+```
+
+The number of active learning iterations per AOI was three, for all but four AOIs. AOIs 10 and 14 stopped after one and two iterations, respectively, as they started with high initial validation accuracies (\>83%) and showed little subsequent improvement. The models for these two AOIs were thus trained with `r aoi10n` - `r aoi14n` labels. AOI 15 was run for 4 iterations (`r aoi15n` samples), while AOI 3 underwent a second active learning cycle because the model produced during the first cycle was inaccurate (see next section). In this second run, `r aoi3init` initial training sites randomly selected within the AOI were used, followed by 2 subsequent active learning iterations, resulting in a training sample of `r aoi3n`. 
+
 ### Labelling
-The distributions of the initial 500 sites used to train the RandomForest model for each AOI are shown in Figure \ref{fig:trainval}. In AOI 3, the initial active learning cycle resulted in low accuracy because the northern part of the AOI shows low contrast between fields and the surrounding vegetation in the dry season. Training the model with the initial 500 samples resulted in large commission errors in this part of the AOI, thus we ran a second active learning cycle that began with an inital random draw of 300 training sites confined to this AOI (blue points in Figure \ref{fig:trainval}A)
-```{r trainval, echo = FALSE, out.width="80%", fig.cap="The distribution of A) initial randomly selected training sites, including 300 points selected within AOI 3 to retrain a second active learning run for this region, as well as the locations of training reference sites, and B) validation points and training sites selected during each active learning iteration.", fig.align='center', message=FALSE, results='hold'}
+The locations of training, training reference, and validation points are shown in Figure \ref{fig:trainval}. In AOI 3, the initial active learning cycle resulted in low accuracy because the northern part of the AOI shows low contrast between fields and the surrounding vegetation in the dry season. Training the model with the initial 500 samples resulted in large commission errors in this part of the AOI, thus we ran a second active learning cycle that began with an inital random draw of 300 training sites confined to this AOI (blue points in Figure \ref{fig:trainval}A).
+```{r trainval, echo = FALSE, out.width="70%", fig.cap="The distribution of A) initial randomly selected training sites, including 300 points selected to initialize a second run for retrain AOI 3, and the locations of training reference sites, and B) validation points and training sites selected during each active learning iteration. Grey background lines and show the boundaries and ID number of Ghana's agroecozones: 1 = Coastal savanna; 2 = Wet evergreen; 3 = Moist evergreen; 4 = Deciduous forest; 5 = Transitional zone; 6 = Guinea savanna; 7 = Sudan savanna; 8 (not shown) = Volta Lake.", fig.align='center', message=FALSE}
 knitr::include_graphics('figures/si_training_validation_pts.png')
 ```
 
-The distribution of data collection effort and scores received at training reference sites by labelling team (Figure \ref{fig:trainqual}).
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data("label_summary")  
+toofew <- label_summary$nlabels %>% filter(n < 10) %>% pull(ID)
+tsites <- label_summary$nlabels %>% filter(!ID %in% toofew) %>% 
+  group_by(kml_type) %>% 
+  summarize(tot = sum(n), mu = round(mean(n)), med = round(median(n)), 
+            stdev = round(sd(n)), lower = min(n), upper = max(n))
 
-```{r trainqual, echo = FALSE, out.width="60%", fig.cap="The A) distributions of scores at training reference sites for each labeller (means indicated by X in boxplots), and B) the number of training and training reference sites completed by each labeller. Labellers' identities are anonymized.", fig.align='center', message=FALSE, results='hold'}
-knitr::include_graphics('figures/si_training_quality_n.png')
+# training rate
+train_rate <- label_summary$nlabels %>% 
+  tidyr::pivot_wider(names_from = kml_type, values_from = n) %>% 
+  rename_all(funs(c("ID", "tr", "tref"))) %>% 
+  mutate(trate = tref / tr) %>% filter(tr > 10)
+
+tsitesc <- tsites %>% mutate(across(where(is.numeric), fmt))
+# nvecs <- tsites$tot[1])
+# muvecs <- fmt(tsites$mu[1])
+
 ```
 
+The distribution of training and validation sample collection effort was divided across `r nrow(label_summary$score_stats)` labellers, with a core group of `r label_summary$nlabels %>% filter(kml_type == "Training" & n > 1000) %>% nrow()` who completed more than 1,000 assignment each (Figure \ref{fig:assignmentcount}). As each training/validation task was undertaken by 4 separate labellers, `r tsitesc$tot[1]` sets of labels were made. Each labeller digitized an average of `r tsitesc$mu[1]` training/validation assignments. 
 
-## Experiments
-### Label quality
-
-```{r, echo = FALSE, out.width="100%", fig.cap="Cropland probability images produced by RandomForest models trained with A) consensus labels, B) the most accurate worker's labels, and C) the least accurate worker's labels.", fig.align='center', message=FALSE}
-knitr::include_graphics('figures/si_hml_probs.png')
+```{r assignmentcount, echo = FALSE, out.width="80%", fig.cap="The A) number of training/validation and accuracy assessment assignments completed by each labeller, and B) the distributions of quality scores at training reference sites for each labeller (means indicated by X in boxplots). Labellers' identities are anonymized.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_training_n.png')
 ```
 
+These results include those from re-labelling the initial training in Cluster 2 (AOIs 7-9, 12, 15). This was done because we discovered a small spatial offset in the original image composites, which we corrected by reprocessing the images. We replaced the image overlays in the instances for this Cluster (Figure \ref{fig:trainval}A), and the labelling team mapped these sites a second time during the production run in late 2019. The reprocessed labels were used to initially train the model for AOIs 9, 12, and 15.
+
+### Model performance
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# random versus active data
+data("iteration_metrics")
+
+# process data: remove labeller from AOI and select AOIs 1-16
+V1 <- c("Accuracy", "AUC", "F1")
+aois <- c(paste0("labeller", c(1, 8, 15, "1r", "8r", "15r")))
+imetrics <- iteration_metrics %>% 
+  filter(Metric %in% V1 & AOI %in% aois) %>% 
+  mutate(AOI = gsub("labeller", "", AOI)) %>% 
+  mutate(type = case_when(
+    AOI %in% c(1, 8, 15) ~ "active", 
+    AOI %in% c("1r", "8r", "15r") ~ "random"
+  )) %>% 
+  mutate(AOI = gsub("r", "", AOI)) %>% 
+  tidyr::pivot_wider(names_from = "type", values_from = "Score") %>% 
+  mutate(delta = (active - random) / random * 100) 
+imetrics_all <- imetrics %>% 
+  filter(Iteration < 4) %>% 
+  group_by(Iteration, Metric) %>% 
+  summarize(active = mean(active), random = mean(random), 
+            delta = mean(delta)) %>%
+  ungroup() %>% mutate(AOI = "All") %>% 
+  select(AOI, Iteration, Metric, active, random, delta)
+
+ixl <- lapply(1:3, function(x) {
+  ix <- imetrics_all %>% filter(Iteration == x) %>% pull(delta)
+  ix <- round(ix, 1)
+  names(ix) <- V1
+  ix
+})
+names(ixl) <- as.roman(1:3)
+
+i1acc <- imetrics %>% 
+  filter(Iteration == 1 & Metric == "Accuracy") %>% 
+  pull(delta) %>% round(2)
+names(i1acc) <- imetrics %>% distinct(AOI) %>% pull()
+
+u <- function(x) unname(x)
+```
+
+The differences in accuracy, AUC, and F1 between the active learning process and the random retraining at each iteration for AOIs 1, 8, and 15 (Figure \ref{fig:randomvactive}). Small differences due to random variations in the RandomForest models are the reason for the non-zero differences at iteration 0, when both models were trained with the same level set.
+
+```{r randomvactive, echo = FALSE, out.width="90%", fig.cap="The percent difference in performance metrics per iteration for AOIs 1, 8, and 15 (grey lines with numbers indicating AOI; the black line indicates average difference across the three AOIs) when comparing models trained using active learning versus those trained using randomly selected sites. Postive percentages indicate superior performance by active learning, negative percentages the inverse.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_random_vs_active.png')
+```
+
+The lower accuracy of actively versus randomly trained models in earlier iterations was caused by results at AOI 15, where active learning accuracy was `r abs(u(i1acc["15"]))` percent lower than random training after iteration 1 (see Figure \ref{fig:randomvactive}). In comparison, iteration 1 active learning accuracies were `r u(i1acc["1"])` and `r u(i1acc["8"])` percent higher than random training for AOIs 1 and 8, respectively. Accuracy under active learning for AOI 15 exceeded randomized training after 4 iterations.
+
+### The impact of training data error
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+data("label_risk")
+murisk <- label_risk$stats %>% group_by(usage) %>% 
+  summarize(Risk = round(mean(Risk), 3)) %>% 
+  tidyr::pivot_wider(names_from = usage, values_from = Risk)
+mintrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
+  filter(Risk == min(Risk))
+maxtrainrisk <- label_risk$stats %>% filter(usage == "Train") %>% 
+  filter(Risk == max(Risk))
+minvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
+  filter(Risk == min(Risk))
+maxvalrisk <- label_risk$stats %>% filter(usage == "Validate") %>% 
+  filter(Risk == max(Risk))
+
+# label clusters
+cl1 <- label_risk$stats %>% filter(aoi %in% 1:6) %>% group_by(usage) %>% 
+  summarize(Risk = round(mean(Risk), 3))
+cl2 <- label_risk$stats %>% filter(aoi %in% c(7:9, 12, 15)) %>% 
+  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
+cl3 <- label_risk$stats %>% filter(aoi %in% c(10:11, 13:14, 16)) %>% 
+  group_by(usage) %>% summarize(Risk = round(mean(Risk), 3))
+
+# training clusters
+cl2arisk <- label_risk$stats %>% filter(aoi %in% c("Cl2a")) %>% pull(Risk) %>% 
+  round(3)
+cl2brisk <- label_risk$stats %>% filter(aoi %in% c("Cl2b")) %>% pull(Risk) %>% 
+  round(3)
+```
+
+Two measures of label quality, average quality score per labeller and the Bayesian Risk of labels, were calculated to provide proxy measures of label error. Labeller quality was scored `r tsitesc$tot[2]` times against `r length(unique(label_summary$scores$name))` unique training reference sites, with each labeller assessed an average of `r tsites$mu[2]` times at a rate of 1 training reference site for every `r round(1 / (tsites$mu[2] / tsites$mu[1]), 2)` training site mapped. The mean of each labeller's average accuracy score was `r round(mean(label_summary$score_stats$Mean), 2)` (range `r round(min(label_summary$score_stats$Mean), 2)` to `r round(max(label_summary$score_stats$Mean), 2)`; Figure \ref{fig:labelqual}).
+
+```{r labelqual, echo = FALSE, out.width="70%", fig.cap="Boxplots showing the distributions of quality scores from the accuracy assessment assignments undertaken by each labeller (means indicated by X in boxplots). Labellers' identities are anonymized.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_label_quality.png')
+```
+
+The average Bayesian Risk of each training and validation site is shown in Figure \ref{fig:labelrisk}, and the distribution of risk values per AOI and the initial training clusters in Figure \ref{fig:labelriskhist}. The three initial clusters include the second mapping of Cluster 2 (Figure \ref{fig:trainval}A). 
+
+```{r labelrisk, echo = FALSE, out.width="80%", fig.cap="The average Bayes Risk of each training and validation site in Ghana.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_label_risk_map.png')
+```
+
+```{r labelriskhist, echo = FALSE, out.width="40%", fig.cap="The distribution of Bayesian Risk values for training (left column) and validation (right column) sites in each AOI, with the average value indicated by vertical lines. The first three rows (panel titles beginning with 'Cl') indicate distributions of Bayes Risk in the initial training clusters, including the first ('Cl2a') and second ('Cl2b') mappings of Cluster 2.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_label_risk_hists.png')
+```
+
+The average Bayesian risk was `r murisk$Train` for training labels and `r murisk$Validate` for validation labels. Risk was highest in the northern AOIs (AOIs 1-6; Figures \ref{fig:labelrisk}-\ref{fig:labelriskhist}), falling between `r cl1$Risk[1]` for training and `r cl1$Risk[2]` for validation labels, and lowest in the southwestern AOIs (AOIs 10, 11, 13, 14, 16; training risk = `r cl3$Risk[1]`; validation risk = `r cl3$Risk[2]`). Label risk in the central-southeastern AOIs (AOIs 7-9, 12, 15) was slightly lower (training = `r cl2$Risk[1]`; validation = `r cl2$Risk[2]`) than in the north. Labeller experience also appeared to reduce risk, which we observed during a relabelling of the 500 initial random site in this cluster; the mean risk of the updated labels was `r cl2brisk`, compared to `r cl2arisk` for original labels.
+
+Probability images resulting from Random Forests models trained with labels generated under three different labeling strategies are illustrated in Figure \ref{fig:labelstrategy}. These included consensus labels, and those individual labels that were likely to be the most and least accurate for each training site. Label accuracy was based on the mean score of each labeller against the training reference sites (Figure \ref{fig:labelqual}), as assessed when labelling a given AOI. These images were created for a single tile in AOI 1.    
+
+```{r labelstrategy, echo = FALSE, out.width="100%", fig.cap="Cropland probability images produced by Random Forests models trained with A) consensus labels, B) the most accurate individual labels, and C) the least accurate individual labels.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_label_strategy_probs.png')
+```
+
+The association between the average label risk per AOI and several model performance metrics, assessed using Spearman Rank Correlation, is shown in Table \ref{tab:labelrisk_v_metrics}.
+
+```{r labelrisk_v_metrics, echo=FALSE}
+data("label_risk_metrics")
+
+cor_fun <- function(df) {
+  cor.test(df$Risk, df$Score, method = "spearman") %>% broom::tidy()
+}
+
+lr_mets <- unique(label_risk_metrics$Metric)
+risk_corr <- lapply(lr_mets[lr_mets != "TSS"], function(x) {
+  dat <- label_risk_metrics %>% filter(Metric == x)
+  cor_fun(dat) %>% mutate(Metric = x)
+}) %>% do.call(rbind, .) %>% 
+  select(estimate, Metric) %>% 
+  rename(r = estimate)
+nms <- risk_corr$Metric
+risk_corr <- round(t(risk_corr[, 1]), 3)
+colnames(risk_corr) <- nms
+
+cap <- glue::glue("Spearman's Rank correlation between the average label risk per AOI and a variety of model performance metrics.")
+kable(risk_corr, format = "latex", booktabs = "T", caption = cap) %>% 
+  kable_styling(full_width = TRUE, latex_options = c("hold_position")) #%>% 
+  # column_spec(1, width = "8cm")
+```
+
+## Map accuracy 
+### Categorical accuracy
+In addition to the map accuracies and area estimates calculated per AOI zone (reported in main text; see Figure \ref{fig:aoizones}A), the accuracies were also assessed within several different groupings of agroecozones (Figures \ref{fig:aoizones}B and Table \ref{tab:aezaccuracy}).
+
+\begin{table}
+\caption{Map accuracies and adjusted area estimates for the ~3 m pixel-wise classifications (based on RandomForest predictions). Results are provided for four different groupings of Ghana's 8 agroecozones zones (Zone 1 = Coastal savanna; Zone 2 = Wet evergreen, Moist evergreen, and Deciduous forest; Zone 3 = Transitional zone; Zone 4 = Guinea savanna and Sudan savanna) plus the entire country. The error matrix (with reference values in columns) provides the areal percentage for each cell, and the producer's (P), user's (U), and overall (O) map accuracies and their margins of error (in parenthesis) are provided, as well as the sample-adjusted area estimates (in km$^{2}$) and margins of error.}
+\begin{center}
+\includegraphics[width = 16cm]{figures/si_aez_accuracies.png}
+\end{center}
+\label{tab:aezaccuracy}
+\end{table}
+
+### Field area and number
+To mean, median, and distributions of the average area of segmented field boundaries over the 100 validation sites in each AOI are compared to the areas of the polygons digitized by the most accurate labeller over the same sites in Figure \ref{fig:areavalidation}. The same statistics for average number of segments versus average number of labelled polygons across validation sites in each AOI are shown in Figure \ref{fig:numbervalidation}.      
+```{r areavalidation, echo = FALSE, out.width="90%", fig.cap="The distributions of the average areas (in hectares) of segmented field boundaries (shown in blue) at the 100 validation sites per AOI, compared with the average areas of field boundaries digitized (shown in red) by the most accurate worker to label each site. Vertical lines indicate the mean and median of each distribution.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_validation_stats_fha2.png')
+```
+
+```{r numbervalidation, echo = FALSE, out.width="90%", fig.cap="The distributions of the average number of segmented field boundaries (shown in blue) at the 100 validation sites per AOI, compared with the average number of digitized polygons (shown in red) by the most accurate worker to label each site. The mean and median of each distribution is shown. Vertical lines indicate the mean and median of each distribution.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_validation_stats_fn2.png')
+```
+
+## Cropland characteristics
+### Field area and number
+
+To examine average field sizes, and the total number, the mean segment size per 0.05 degree tiles was calculated and mapped, as well as the total number of fields per tile (Figure \ref{fig:fieldsizes}).  
+
+```{r fieldsizes, echo = FALSE, out.width="90%", fig.cap="The A) average sizes of fields and B) total number of fields in each 0.05 degree tile, as calculated from the vectorized field boundaries.", fig.align='center', message=FALSE}
+knitr::include_graphics('figures/si_fsize_n_05.png')
+```
 
 \clearpage
+
 # References
 \singlespace
 
@@ -344,10 +662,6 @@ knitr::include_graphics('figures/si_hml_probs.png')
 \eleft
 
 \clearpage
-
-
-
-
 
 ```{r sessioninfo, echo = FALSE, eval = FALSE}
 # set eval = FALSE if you don't want this info (useful for reproducibility) to appear 

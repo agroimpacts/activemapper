@@ -1,12 +1,16 @@
 Package: activemapper
 Type: Package
-Title: For analytics on activemapper data
-Version: 0.0.1-19
+Title: High resolution, annual maps of field boundaries
+Version: 0.0.5-2
 Author: Lyndon Estes
 Maintainer: Lyndon Estes <lestes@clarku.edu>
-Description: Some functions to simplify pulling and analyzing data from the 
+Description: Complete manuscript and analytics for "High resolution, annual maps
+    of field boundaries for smallholder-dominated croplands at national scales". 
+    Includes some functions to simplify pulling and analyzing data from the 
     the various outputs of compositer/labeller/learner/segmenter data
 License: Apache2
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.2
+Depends: 
+    R (>= 2.10)

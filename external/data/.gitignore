@@ -1,0 +1,11 @@
+animation/*
+aois/heat/*
+aois/labels/*
+aois/labels_fix2/*
+aois/risk/*
+aois/segments/*
+dl/*
+segments/*
+results/segments/*
+results/segments/individual/*
+planet/*

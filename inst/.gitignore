@@ -1,1 +1,4 @@
 .DS_Store
+manuscript/output/*
+manuscript/paper*
+manuscript/paper/*bak.Rmd

@@ -1,0 +1,97 @@
+---
+title: "High resolution, annual maps of the characteristics of smallholder-dominated croplands at national scales"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Overview
+
+This package contains the source documents and code used to produce the paper titled above. The primary datasets analyzed in writing this paper consist of the maps produced for Ghana (hosted on AWS S3), as well as the tables from ~29 instances of the labelling platform described in the paper. 
+
+The following is a brief overview of the contents of the package, which can be installed as an R package:
+
+```{r, eval=FALSE}
+devtools::install_github("agroimpacts/activemapper", build_vignettes = TRUE)
+```
+
+# Contents
+## Manuscript
+The main manuscript and SI can be found as system files in the installed `activemapper` package:
+
+```{r, eval=FALSE}
+# Open main manuscript
+pth <- system.file("manuscript/manuscript.pdf", package = "activemapper")
+system(paste(Sys.getenv("R_PDFVIEWER"), pth))
+
+# Open the SI
+pth <- system.file("manuscript/si.pdf", package = "activemapper")
+system(paste(Sys.getenv("R_PDFVIEWER"), pth))
+
+```
+
+The source code (RMarkdown) used to make these documents and their supporting figures and tables are in the same directory:
+```{r, eval=FALSE}
+dir(system.file("manuscript", package = "activemapper"), recursive = TRUE)
+```
+
+## Ingredients
+### Raw data scripts
+The scripts used to set up some of the data used to initialize the labelling and machine learning instances used to create the maps, and to process the outputs from these for analysis in this paper, are in a `data-raw` folder. That folder is accessible is the package's repository is cloned locally. 
+
+Scripts:
+
++ `aoi_tiles.R`: Africa wide degree and tile grid, as well as Ghana tiles. 
++ `consensus_high_low.R`: Processing iteration metrics from labelling strategy experiments performed in four AOIs
+    - `activemapper::consensus_high_low`
++ `consensus_risk.R`: Reprocessing all digitized labels into consensus labels, to output Bayesian Risk metrics. 
+    - `inst/extdata/consensus_risk.rda`
++ `cropland_fractions.R`: Cropland fractions at 0.005 degree from the classified cropland probability map
+    - `inst/extdata/aoi_probs.rda` (name should be change from probs)
+    - `inst/extdata/probs_005.tif` (name should be change from probs)
++ `data_for_instances.R`: Further prepping of degrees, tiles, grid for instances, as well as Ghana AOIs.
+    - `inst/extdata/aois.geojson`
+    - `inst/extdata/degrees.geojson`
+    - `inst/extdata/ghana_tiles.geojson`
+    - `inst/extdata/ghana_grid.csv`
++ `data_from_instances.R`: Collect databases from various labelling platform instances, anonymize, and reshape
+    - `inst/extdata/instance_tbls.rda`
++ `error_matrices.R`: Calculate error matrices from map reference sample
+    - `activemapper::error_matrices`
++ `fboundary_stats_valsites.R`: Extract digitized and segmented field boundary stats from validation sites
+    - `inst/extdata/field_validation_stats.rda`
++ `intersect_segments_with_reference.R`: Intersect reference labels with segmented field boundaries. 
+    - `inst/extdata/ref_int_segments.geojson`
++ `iteration_metrics.R`: Processing iteration performance metrics
+    - `activemapper::iteration_metrics` 
++ `label_risk.R`: Builds on previous to create summary risk metrics 
+    - `activemapper::label_risk`
++ `label_v_segments_summarize.R`: Comparison of areas and counts of fields in the hand-digitized labels versus the machine-segmented fields at the grid, tile, and AOI scales
+    - `activemapper::segment_quality_stats`
++ `mapped_areas.R`: Calculate cropland areas from the classified cropland probabilities and the segmented field boundaries. 
+    - `activemapper::mapped_areas`
++ `train_val_sites.R`: Extract training and validation sites
+    - `activemapper::train_val_sites`
+
+### Package data
+
+All processed datasets are available as either system files or as lazy loading datasets.   
+```{r, eval=FALSE}
+# system files
+dir(system.file("extdata", package = "activemapper"))
+
+# lazy-loading data
+d <- data(package = "activemapper")
+d$results[, "Item"]
+```
+
+
