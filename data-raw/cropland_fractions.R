@@ -1,4 +1,4 @@
-# Create probability map (grid scale) from RF 3 m probability images
+# Create grid scale fractional map from RF 3 m probability images
 # Ran on rstudio instance on EC2, to avoid download into S3
 
 library(sf)
@@ -65,7 +65,9 @@ cropfrac_005 <- do.call(terra::mosaic, cropfrac_aoi)
 # probs_005[probs_005 > 100] <- NA
 
 
-save(cropfrac_aoi, file = here::here("inst/extdata/aoi_probs.rda"))
+# save(cropfrac_aoi, file = here::here("inst/extdata/aoi_probs.rda"))
+save(cropfrac_aoi, file = here::here("inst/extdata/cropfrac_aoi.rda"))
 writeRaster(cropfrac_005,
-            filename = here::here("inst/extdata/probs_005.tif"))
+            # filename = here::here("inst/extdata/probs_005.tif"))
+            filename = here::here("inst/extdata/cropfrac_005.tif"))
 

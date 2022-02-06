@@ -51,6 +51,13 @@ The scripts used to set up some of the data used to initialize the labelling and
 Scripts:
 
 + `aoi_tiles.R`: Africa wide degree and tile grid, as well as Ghana tiles. 
++ `consensus_high_low.R`: Processing iteration metrics from labelling strategy experiments performed in four AOIs
+    - `activemapper::consensus_high_low`
++ `consensus_risk.R`: Reprocessing all digitized labels into consensus labels, to output Bayesian Risk metrics. 
+    - `inst/extdata/consensus_risk.rda`
++ `cropland_fractions.R`: Cropland fractions at 0.005 degree from the classified cropland probability map
+    - `inst/extdata/aoi_probs.rda` (name should be change from probs)
+    - `inst/extdata/probs_005.tif` (name should be change from probs)
 + `data_for_instances.R`: Further prepping of degrees, tiles, grid for instances, as well as Ghana AOIs.
     - `inst/extdata/aois.geojson`
     - `inst/extdata/degrees.geojson`
@@ -58,33 +65,24 @@ Scripts:
     - `inst/extdata/ghana_grid.csv`
 + `data_from_instances.R`: Collect databases from various labelling platform instances, anonymize, and reshape
     - `inst/extdata/instance_tbls.rda`
-+ `consensus_risk.R`: Reprocessing all digitized labels into consensus labels, to output Bayesian Risk metrics. 
-    - `inst/extdata/consensus_risk.rda`
++ `error_matrices.R`: Calculate error matrices from map reference sample
+    - `activemapper::error_matrices`
++ `intersect_segments_with_reference.R`: Intersect reference labels with segmented field boundaries. 
+    - `inst/extdata/ref_int_segments.geojson`
++ `iteration_metrics.R`: Processing iteration performance metrics
+    - `activemapper::iteration_metrics` 
 + `label_risk.R`: Builds on previous to create summary risk metrics 
     - `activemapper::label_risk`
 + `label_v_segments_summarize.R`: Comparison of areas and counts of fields in the hand-digitized labels versus the machine-segmented fields at the grid, tile, and AOI scales
     - `activemapper::segment_quality_stats`
-+ `iteration_metrics.R`: Processing iteration performance metrics
-    - `activemapper::iteration_metrics` 
-+ `consensus_high_low.R`: Processing iteration metrics from labelling strategy experiments performed in four AOIs
-    - `activemapper::consensus_high_low`
-+ `train_val_sites.R`: Extract training and validation sites
-    - `activemapper::train_val_sites`
-<!-- + `cropcover_from_segments.R`: Create a 0.005 degree grid of cropland fractions from the segmented field boundaries. Used for stratifying reference sample -->
-<!--     - `inst/extdata/field_density005.tif` -->
-+ `error_matrices.R`: Calculate error matrices from map reference sample
-    - `activemapper::error_matrices`
 + `mapped_areas.R`: Calculate cropland areas from the classified cropland probabilities and the segmented field boundaries. 
     - `activemapper::mapped_areas`
-+ `cropland_fractions.R`: Cropland fractions at 0.005 degree from the classified cropland probability map
-    - `inst/extdata/aoi_probs.rda` (name should be change from probs)
-    - `inst/extdata/probs_005.tif` (name should be change from probs)
-
-"inst/extdata/ref_int_segments.geojson"
++ `train_val_sites.R`: Extract training and validation sites
+    - `activemapper::train_val_sites`
 
 ### Package data
 
-ALl processed datasets are available as either system files or as lazy loading datasets.   
+All processed datasets are available as either system files or as lazy loading datasets.   
 ```{r, eval=FALSE}
 # system files
 dir(system.file("extdata", package = "activemapper"))
