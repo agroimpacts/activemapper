@@ -67,6 +67,8 @@ Scripts:
     - `inst/extdata/instance_tbls.rda`
 + `error_matrices.R`: Calculate error matrices from map reference sample
     - `activemapper::error_matrices`
++ `fboundary_stats_valsites.R`: Extract digitized and segmented field boundary stats from validation sites
+    - `inst/extdata/field_validation_stats.rda`
 + `intersect_segments_with_reference.R`: Intersect reference labels with segmented field boundaries. 
     - `inst/extdata/ref_int_segments.geojson`
 + `iteration_metrics.R`: Processing iteration performance metrics
